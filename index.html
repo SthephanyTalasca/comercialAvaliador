@@ -103,6 +103,7 @@
                     <div id="analysis-results" class="hidden">
                         <div id="general-score-section" class="mb-8"></div>
                         <div id="cancellation-alert-section" class="mb-8 hidden"></div>
+                        <div id="competitor-alert-section" class="mb-8 hidden"></div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                             <div class="flex flex-col space-y-8">
@@ -156,6 +157,7 @@
         const summarySection = document.getElementById('summary-section');
         const errorMessage = document.getElementById('error-message');
         const cancellationAlertSection = document.getElementById('cancellation-alert-section');
+        const competitorAlertSection = document.getElementById('competitor-alert-section');
         const highlightSection = document.getElementById('highlight-section');
         const generalScoreSection = document.getElementById('general-score-section');
         const opportunitiesSection = document.getElementById('opportunities-section');
@@ -261,35 +263,19 @@
                     Você é um avaliador sênior de performance comercial, especialista em vendas de software B2B, extremamente crítico e detalhista. Sua tarefa é analisar a performance do Consultor Comercial (CC), "${ccName}", com base na transcrição da reunião.
 
                     **INSTRUÇÕES GERAIS E REGRAS:**
-                    1.  **Análise Detalhada:** Avalie o CC em CADA um dos 18 critérios abaixo.
-                    2.  **Cálculo da Nota Geral:** Calcule a média de todas as notas dos critérios. Se a nota de 'Contorno de Objeções' for -1, exclua este critério do cálculo.
-                    3.  **REGRA PARA OBJEÇÕES:** Se a transcrição **não contiver nenhuma objeção**, dúvida significativa ou hesitação do cliente, a habilidade não pode ser avaliada. Neste caso, para o critério 'Contorno de Objeções', **atribua a nota -1** e justifique que 'Nenhuma objeção foi apresentada para avaliação'.
-                    4.  **REGRA PARA TÉCNICAS DE VENDA ATIVAS:** Para os critérios 'Gatilhos Mentais', 'Técnicas de Fechamento' e 'Encantamento Comercial', a ausência de evidência é uma falha. Se não houver uso claro dessas técnicas, **atribua uma nota entre 4 e 5 (Fraco/Razoável)** e justifique a ausência como uma oportunidade perdida.
-                    5.  **REGRA PARA RAPPORT:** Para o critério 'Rapport e Conexão', se não houver evidência clara de uma ação proativa do CC, **atribua a nota 6 (Razoável)**.
-                    6.  **PLANO DE AÇÃO OBRIGATÓRIO:** Analise criticamente. Para o campo "specificErrors", você **DEVE** identificar pelo menos 1 ou 2 pontos fracos ou oportunidades perdidas. Para "suggestions", você **DEVE** fornecer pelo menos 2 sugestões práticas e acionáveis. Não deixe esses campos vazios.
-                    7.  **Formato de Saída:** A resposta DEVE ser um único objeto JSON.
+                    1.  **Análise de Critérios:** Avalie o CC em CADA um dos 18 critérios abaixo.
+                    2.  **Análise de Perfil do CLIENTE:** No campo "profileAnalysis", analise o perfil comportamental do **CLIENTE** (prospect), não do consultor.
+                    3.  **Análise de Concorrentes:** No campo "competitorAnalysis", identifique se o cliente menciona usar algum concorrente de gestão de tarefas (GCLICK, ACESSORIAS, ONVIO, GESTTA, OTIMIZZA, CONFI, ou qualquer outro). Se sim, defina "mentioned" como true e "competitorName" com o nome do concorrente. Caso contrário, "mentioned" deve ser false.
+                    4.  **REGRA PARA OBJEÇÕES:** Se a transcrição não contiver nenhuma objeção, para o critério 'Contorno de Objeções', **atribua a nota -1** e justifique que 'Nenhuma objeção foi apresentada para avaliação'. A nota geral deve ignorar este critério.
+                    5.  **REGRA PARA TÉCNICAS DE VENDA ATIVAS:** Para 'Gatilhos Mentais', 'Técnicas de Fechamento' e 'Encantamento Comercial', a ausência é uma falha. Se não houver evidência, **atribua nota entre 4 e 5** e justifique a oportunidade perdida.
+                    6.  **REGRA PARA RAPPORT:** Se não houver ação proativa para criar conexão, **atribua nota 6** em 'Rapport e Conexão'.
+                    7.  **PLANO DE AÇÃO OBRIGATÓRIO:** Seja crítico. Os campos "specificErrors" e "suggestions" **DEVEM** conter pelo menos 1-2 itens cada. Não os deixe vazios.
+                    8.  **Formato de Saída:** A resposta DEVE ser um único objeto JSON.
 
                     ---
                     **CRITÉRIOS DE AVALIAÇÃO COMERCIAL:**
                     **Escala:** 9–10: Excelente; 7–8: Muito bom; 5–6: Razoável; 3–4: Fraco; 1–2: Insuficiente.
-                    1.  Rapport e Conexão: Criou um ambiente de confiança?
-                    2.  Autoridade Comercial: Posicionou-se como especialista?
-                    3.  Clareza da Apresentação: A comunicação foi clara e objetiva?
-                    4.  Gatilhos Mentais: Usou gatilhos como prova social, urgência, etc.?
-                    5.  Pré-Fechamento: Sondou a temperatura da negociação?
-                    6.  Técnicas de Fechamento: Tentou ativamente fechar a venda?
-                    7.  Contorno de Objeções: Lidou bem com as objeções? (Lembre-se da regra da nota -1).
-                    8.  Escuta Ativa: Ouviu mais do que falou? Entendeu as dores?
-                    9.  Perguntas Poderosas: Fez perguntas investigativas e de impacto?
-                    10. Personalização: Adaptou a abordagem ao cliente?
-                    11. Conexão com o Negócio: Conectou a solução aos resultados do cliente?
-                    12. Jornada do Cliente: Deixou os próximos passos claros?
-                    13. Gestão de Tempo: Foi eficiente com o tempo?
-                    14. Encantamento Comercial: Surpreendeu o cliente positivamente?
-                    15. Postura Profissional: Manteve profissionalismo e maturidade?
-                    16. Domínio de Produto: Demonstrou conhecimento profundo?
-                    17. Portfólio Estratégico: Apresentou o portfólio de forma estratégica?
-                    18. Conexão com o Ecossistema Contábil: Entendeu o contexto do contador?
+                    1.  Rapport e Conexão, 2. Autoridade Comercial, 3. Clareza da Apresentação, 4. Gatilhos Mentais, 5. Pré-Fechamento, 6. Técnicas de Fechamento, 7. Contorno de Objeções, 8. Escuta Ativa, 9. Perguntas Poderosas, 10. Personalização, 11. Conexão com o Negócio, 12. Jornada do Cliente, 13. Gestão de Tempo, 14. Encantamento Comercial, 15. Postura Profissional, 16. Domínio de Produto, 17. Portfólio Estratégico, 18. Conexão com o Ecossistema Contábil.
                     ---
                     **TRANSCRIÇÃO PARA ANÁLISE:**
                     ---
@@ -297,7 +283,7 @@
                     ---
                 `;
 
-                const schema = { type: "OBJECT", properties: { "notaGeral": { "type": "NUMBER" }, "evaluation": { type: "ARRAY", items: { type: "OBJECT", properties: { "criterio": { "type": "STRING" }, "nota": { "type": "NUMBER" }, "justificativa": { "type": "STRING" } }, required: ["criterio", "nota", "justificativa"] } }, "speakingTime": { type: "OBJECT", properties: { "cc": { "type": "NUMBER" }, "client": { "type": "NUMBER" } }, required: ["cc", "client"] }, "profileAnalysis": { type: "OBJECT", properties: { "profile": { "type": "STRING" }, "handling": { "type": "STRING" }, "suggestions": { "type": "STRING" } }, required: ["profile", "handling", "suggestions"] }, "summary": { type: "OBJECT", properties: { "strengths": { "type": "ARRAY", "items": { "type": "STRING" } }, "specificErrors": { "type": "ARRAY", "items": { "type": "STRING" } }, "suggestions": { "type": "ARRAY", items: { "type": "STRING" } } }, required: ["strengths", "specificErrors", "suggestions"] }, "cancellationAlert": { type: "OBJECT", properties: { "risk": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["risk", "reason"] }, "meetingHighlight": { "type": "STRING" }, "opportunities": { type: "ARRAY", items: { type: "OBJECT", properties: { "product": { "type": "STRING" }, "reason": { "type": "STRING" } }, required: ["product", "reason"] } } }, required: ["notaGeral", "evaluation", "speakingTime", "profileAnalysis", "summary", "cancellationAlert", "meetingHighlight", "opportunities"] };
+                const schema = { type: "OBJECT", properties: { "notaGeral": { "type": "NUMBER" }, "evaluation": { type: "ARRAY", items: { type: "OBJECT", properties: { "criterio": { "type": "STRING" }, "nota": { "type": "NUMBER" }, "justificativa": { "type": "STRING" } }, required: ["criterio", "nota", "justificativa"] } }, "speakingTime": { type: "OBJECT", properties: { "cc": { "type": "NUMBER" }, "client": { "type": "NUMBER" } }, required: ["cc", "client"] }, "profileAnalysis": { type: "OBJECT", properties: { "profile": { "type": "STRING" }, "handling": { "type": "STRING" }, "suggestions": { "type": "STRING" } }, required: ["profile", "handling", "suggestions"] }, "competitorAnalysis": { type: "OBJECT", properties: { "mentioned": { "type": "BOOLEAN" }, "competitorName": { "type": "STRING" } }, required: ["mentioned", "competitorName"] }, "summary": { type: "OBJECT", properties: { "strengths": { "type": "ARRAY", "items": { "type": "STRING" } }, "specificErrors": { "type": "ARRAY", "items": { "type": "STRING" } }, "suggestions": { "type": "ARRAY", items: { "type": "STRING" } } }, required: ["strengths", "specificErrors", "suggestions"] }, "cancellationAlert": { type: "OBJECT", properties: { "risk": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["risk", "reason"] }, "meetingHighlight": { "type": "STRING" }, "opportunities": { type: "ARRAY", items: { type: "OBJECT", properties: { "product": { "type": "STRING" }, "reason": { "type": "STRING" } }, required: ["product", "reason"] } } }, required: ["notaGeral", "evaluation", "speakingTime", "profileAnalysis", "competitorAnalysis", "summary", "cancellationAlert", "meetingHighlight", "opportunities"] };
                 const payload = { contents: [{ role: "user", parts: [{ text: evaluationPrompt }] }], generationConfig: { responseMimeType: "application/json", responseSchema: schema } };
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 
@@ -333,6 +319,7 @@
             
             displayGeneralScore(data.notaGeral);
             displayCancellationAlert(data.cancellationAlert);
+            displayCompetitorAnalysis(data.competitorAnalysis);
             
             const sortedForDisplay = [...data.evaluation].sort((a, b) => (b.nota === -1 ? -Infinity : b.nota) - (a.nota === -1 ? -Infinity : a.nota));
 
@@ -410,15 +397,12 @@
 
         function displayCancellationAlert(alertData) {
             cancellationAlertSection.innerHTML = '';
+            cancellationAlertSection.classList.add('hidden');
             if (alertData && alertData.risk) {
                 cancellationAlertSection.innerHTML = `
                     <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert">
                         <div class="flex">
-                            <div class="py-1">
-                                <svg class="fill-current h-6 w-6 text-red-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                    <path d="M10 0C4.48 0 0 4.48 0 10s4.48 10 10 10 10-4.48 10-10S15.52 0 10 0zm-1 15H9v-2h2v2zm0-4H9V5h2v6z"/>
-                                </svg>
-                            </div>
+                            <div class="py-1"><svg class="fill-current h-6 w-6 text-red-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10 0C4.48 0 0 4.48 0 10s4.48 10 10 10 10-4.48 10-10S15.52 0 10 0zm-1 15H9v-2h2v2zm0-4H9V5h2v6z"/></svg></div>
                             <div>
                                 <p class="font-bold">Alerta de Risco de Não-Fechamento!</p>
                                 <p class="text-sm">${alertData.reason}</p>
@@ -427,8 +411,25 @@
                     </div>
                 `;
                 cancellationAlertSection.classList.remove('hidden');
-            } else {
-                cancellationAlertSection.classList.add('hidden');
+            }
+        }
+
+        function displayCompetitorAnalysis(competitorData) {
+            competitorAlertSection.innerHTML = '';
+            competitorAlertSection.classList.add('hidden');
+            if (competitorData && competitorData.mentioned) {
+                competitorAlertSection.innerHTML = `
+                    <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg" role="alert">
+                        <div class="flex">
+                            <div class="py-1"><svg class="fill-current h-6 w-6 text-yellow-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10 0C4.48 0 0 4.48 0 10s4.48 10 10 10 10-4.48 10-10S15.52 0 10 0zm-1 15H9v-2h2v2zm0-4H9V5h2v6z"/></svg></div>
+                            <div>
+                                <p class="font-bold">Concorrente Mencionado!</p>
+                                <p class="text-sm">O cliente mencionou o uso da plataforma: <strong>${competitorData.competitorName}</strong>.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                competitorAlertSection.classList.remove('hidden');
             }
         }
 
