@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -133,12 +132,12 @@
         </main>
 
         <footer class="text-center mt-12 text-gray-500 text-sm">
-            <p>&copy; 2024 Avaliação de Reunião Comercial. Todos os direitos reservados.</p>
+            <p>&copy; 2025 Avaliação de Reunião Comercial. Todos os direitos reservados.</p>
         </footer>
     </div>
 
     <script>
-        const apiKey = " AIzaSyCT-KVfOR_bDwywTJzzC_eRtSPjo1aeDJ4";
+        const apiKey = "AIzaSyCT-KVfOR_bDwywTJzzC_eRtSPjo1aeDJ4";
 
         const ccNameInput = document.getElementById('cc-name-input');
         const transcriptInput = document.getElementById('transcript-input');
@@ -243,10 +242,10 @@
             errorMessage.classList.add('hidden');
             loadingSpinner.classList.remove('hidden');
             loadingText.textContent = 'A analisar... Isto pode levar alguns segundos.';
+            analyzeBtn.disabled = true;
 
             const manualTranscript = transcriptInput.value.trim();
             const ccName = ccNameInput.value.trim();
-
             const readPromises = uploadedFiles.map(file => file.text());
 
             try {
@@ -259,68 +258,46 @@
                 }
 
                 const evaluationPrompt = `
-                    Você é um avaliador sênior de Consultor Comercial, especializado em produtos de software para contabilidade. A sua tarefa é analisar a performance do CC, cujo nome é "${ccName}", com base na transcrição da reunião abaixo.
+                    Você é um avaliador sênior de performance comercial, especialista em vendas de software B2B, extremamente crítico e detalhista. Sua tarefa é analisar a performance do Consultor Comercial (CC), "${ccName}", com base na transcrição da reunião.
 
-                    **FONTES DE CONHECIMENTO:**
-                    - **Principal:** Use o passo a passo comercial como a fonte primária da verdade: PROCESSO COMERCIAL SEM CONCORRÊNCIA
-                    - **Secundária:** Use o passo a passo comercial para concorrente do sistema Acessórias como a fonte Secundária da verdade caso identifique que o cliente utiliza essa plataforma: PROCESSO COMERCIAL CLIENTE USANDO ACESSORIAS
-                    - **Fontes Adicionais para analisar contorno de objeções:**
-                        - https://sites-files.us-east-1.linodeobjects.com/elivros.digital/2023/03/as-armas-da-persuasao.pdf
-                        - https://alunos.impulsaoprofissional.com.br/wp-content/uploads/Como-Fazer-Amigos-e-Influenciar-Pessoas-Dale-Carnegie.pdf
-                        - https://trechos.org/wp-content/uploads/2020/04/Manual-de-persuasao-do-FBI-www.trechos.org_.pdf
-                        - https://www.fundace.org.br/_up_arquivo/como_chegar_ao_sim_william_ury.pdf
+                    **INSTRUÇÕES GERAIS E REGRAS:**
+                    1.  **Análise Detalhada:** Avalie o CC em CADA um dos 18 critérios abaixo.
+                    2.  **Cálculo da Nota Geral:** Calcule a média de todas as notas dos critérios. Se a nota de 'Contorno de Objeções' for -1, exclua este critério do cálculo.
+                    3.  **REGRA PARA OBJEÇÕES:** Se a transcrição **não contiver nenhuma objeção**, dúvida significativa ou hesitação do cliente, a habilidade não pode ser avaliada. Neste caso, para o critério 'Contorno de Objeções', **atribua a nota -1** e justifique que 'Nenhuma objeção foi apresentada para avaliação'.
+                    4.  **REGRA PARA TÉCNICAS DE VENDA ATIVAS:** Para os critérios 'Gatilhos Mentais', 'Técnicas de Fechamento' e 'Encantamento Comercial', a ausência de evidência é uma falha. Se não houver uso claro dessas técnicas, **atribua uma nota entre 4 e 5 (Fraco/Razoável)** e justifique a ausência como uma oportunidade perdida.
+                    5.  **REGRA PARA RAPPORT:** Para o critério 'Rapport e Conexão', se não houver evidência clara de uma ação proativa do CC, **atribua a nota 6 (Razoável)**.
+                    6.  **PLANO DE AÇÃO OBRIGATÓRIO:** Analise criticamente. Para o campo "specificErrors", você **DEVE** identificar pelo menos 1 ou 2 pontos fracos ou oportunidades perdidas. Para "suggestions", você **DEVE** fornecer pelo menos 2 sugestões práticas e acionáveis. Não deixe esses campos vazios.
+                    7.  **Formato de Saída:** A resposta DEVE ser um único objeto JSON.
 
-                    **INSTRUÇÕES DETALHADAS:**
-                    1.  **AVALIAÇÃO TÉCNICA DA REUNIÃO:**
-                        - Avalie o consultor comercial (CC) nos 18 critérios listados abaixo, com notas de 1 a 10.
-                        - Se a nota for inferior a 10, justifique o que faltou para a excelência.
-                        - Se não houver evidência suficiente para um critério, atribua **nota 10** com a justificativa: "Sem evidências claras na transcrição. Nota máxima atribuída conforme diretriz".
-                        - A nota geral ("notaGeral") será a média simples das 18 notas.
-                    2.  **ATRIBUTOS AVALIADOS:**
-                        (Rapport e Conexão, Autoridade Comercial, Clareza da Apresentação, Gatilhos Mentais, Pré-Fechamento, Técnicas de Fechamento, Contorno de Objeções, Escuta Ativa, Perguntas Poderosas, Personalização, Conexão com o Negócio, Jornada do Cliente, Gestão de Tempo, Encantamento Comercial, Postura Profissional, Domínio de Produto, Portfólio Estratégico, Conexão com o Ecossistema Contábil)
-                    3.  **ANÁLISE DE PERFIL DO CLIENTE:**
-                        - Identifique o perfil comportamental do cliente (ex: cético, apressado, analítico, cordial).
-                        - Explique como o CC lidou com esse perfil e o que poderia ter feito melhor para se adaptar.
-                    4.  **ANÁLISE DE TEMPO DE FALA:**
-                        - Analise linha por linha e categorize como "cc" (para o consultor) ou "client".
-                        - Conte palavras e calcule o percentual de participação de cada um.
-                        - Se não for possível atribuir com clareza, retorne 0 para ambos.
-                    5.  **ALERTA DE RISCO (NÃO-FECHAMENTO):**
-                        - Detecte qualquer sinal de risco: insatisfação, desinteresse, objeção não contornada que possa levar à perda da venda.
-                        - Se houver risco, defina "risk" como true e descreva o motivo.
-                        - Caso contrário, defina "risk" como false.
-                    6.  **PONTO ALTO DA REUNIÃO:**
-                        - Descreva o momento mais positivo da reunião – onde houve maior impacto, encantamento ou validação explícita.
-                    7.  **OPORTUNIDADES DE VENDA (UPSELL):**
-                        - Liste produtos adicionais (GF, COF, WhatsApp Oficial, Emissor de NF) que fazem sentido com base nas dores relatadas.
-                        - Se não houver menção clara, retorne uma lista vazia.
-                    8.  **RESUMO EXECUTIVO:**
-                        - Crie uma lista para "strengths": aspectos que se destacaram positivamente.
-                        - Crie uma lista para "specificErrors": falhas identificadas e o impacto comercial delas.
-                        - Crie uma lista para "suggestions": recomendações práticas e objetivas para evolução.
-                    9.  **Formato de Saída:** A sua resposta DEVE ser um único objeto JSON.
-
+                    ---
+                    **CRITÉRIOS DE AVALIAÇÃO COMERCIAL:**
+                    **Escala:** 9–10: Excelente; 7–8: Muito bom; 5–6: Razoável; 3–4: Fraco; 1–2: Insuficiente.
+                    1.  Rapport e Conexão: Criou um ambiente de confiança?
+                    2.  Autoridade Comercial: Posicionou-se como especialista?
+                    3.  Clareza da Apresentação: A comunicação foi clara e objetiva?
+                    4.  Gatilhos Mentais: Usou gatilhos como prova social, urgência, etc.?
+                    5.  Pré-Fechamento: Sondou a temperatura da negociação?
+                    6.  Técnicas de Fechamento: Tentou ativamente fechar a venda?
+                    7.  Contorno de Objeções: Lidou bem com as objeções? (Lembre-se da regra da nota -1).
+                    8.  Escuta Ativa: Ouviu mais do que falou? Entendeu as dores?
+                    9.  Perguntas Poderosas: Fez perguntas investigativas e de impacto?
+                    10. Personalização: Adaptou a abordagem ao cliente?
+                    11. Conexão com o Negócio: Conectou a solução aos resultados do cliente?
+                    12. Jornada do Cliente: Deixou os próximos passos claros?
+                    13. Gestão de Tempo: Foi eficiente com o tempo?
+                    14. Encantamento Comercial: Surpreendeu o cliente positivamente?
+                    15. Postura Profissional: Manteve profissionalismo e maturidade?
+                    16. Domínio de Produto: Demonstrou conhecimento profundo?
+                    17. Portfólio Estratégico: Apresentou o portfólio de forma estratégica?
+                    18. Conexão com o Ecossistema Contábil: Entendeu o contexto do contador?
+                    ---
                     **TRANSCRIÇÃO PARA ANÁLISE:**
                     ---
                     ${combinedTranscript}
                     ---
                 `;
 
-                const schema = {
-                    type: "OBJECT",
-                    properties: {
-                        "notaGeral": { "type": "NUMBER" },
-                        "evaluation": { type: "ARRAY", items: { type: "OBJECT", properties: { "criterio": { "type": "STRING" }, "nota": { "type": "NUMBER" }, "justificativa": { "type": "STRING" } }, required: ["criterio", "nota", "justificativa"] } },
-                        "speakingTime": { type: "OBJECT", properties: { "cc": { "type": "NUMBER" }, "client": { "type": "NUMBER" } }, required: ["cc", "client"] },
-                        "profileAnalysis": { type: "OBJECT", properties: { "profile": { "type": "STRING" }, "handling": { "type": "STRING" }, "suggestions": { "type": "STRING" } }, required: ["profile", "handling", "suggestions"] },
-                        "summary": { type: "OBJECT", properties: { "strengths": { "type": "ARRAY", "items": { "type": "STRING" } }, "specificErrors": { "type": "ARRAY", "items": { "type": "STRING" } }, "suggestions": { "type": "ARRAY", items: { "type": "STRING" } } }, required: ["strengths", "specificErrors", "suggestions"] },
-                        "cancellationAlert": { type: "OBJECT", properties: { "risk": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["risk", "reason"] },
-                        "meetingHighlight": { "type": "STRING" },
-                        "opportunities": { type: "ARRAY", items: { type: "OBJECT", properties: { "product": { "type": "STRING" }, "reason": { "type": "STRING" } }, required: ["product", "reason"] } }
-                    },
-                    required: ["notaGeral", "evaluation", "speakingTime", "profileAnalysis", "summary", "cancellationAlert", "meetingHighlight", "opportunities"]
-                };
-
+                const schema = { type: "OBJECT", properties: { "notaGeral": { "type": "NUMBER" }, "evaluation": { type: "ARRAY", items: { type: "OBJECT", properties: { "criterio": { "type": "STRING" }, "nota": { "type": "NUMBER" }, "justificativa": { "type": "STRING" } }, required: ["criterio", "nota", "justificativa"] } }, "speakingTime": { type: "OBJECT", properties: { "cc": { "type": "NUMBER" }, "client": { "type": "NUMBER" } }, required: ["cc", "client"] }, "profileAnalysis": { type: "OBJECT", properties: { "profile": { "type": "STRING" }, "handling": { "type": "STRING" }, "suggestions": { "type": "STRING" } }, required: ["profile", "handling", "suggestions"] }, "summary": { type: "OBJECT", properties: { "strengths": { "type": "ARRAY", "items": { "type": "STRING" } }, "specificErrors": { "type": "ARRAY", "items": { "type": "STRING" } }, "suggestions": { "type": "ARRAY", items: { "type": "STRING" } } }, required: ["strengths", "specificErrors", "suggestions"] }, "cancellationAlert": { type: "OBJECT", properties: { "risk": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["risk", "reason"] }, "meetingHighlight": { "type": "STRING" }, "opportunities": { type: "ARRAY", items: { type: "OBJECT", properties: { "product": { "type": "STRING" }, "reason": { "type": "STRING" } }, required: ["product", "reason"] } } }, required: ["notaGeral", "evaluation", "speakingTime", "profileAnalysis", "summary", "cancellationAlert", "meetingHighlight", "opportunities"] };
                 const payload = { contents: [{ role: "user", parts: [{ text: evaluationPrompt }] }], generationConfig: { responseMimeType: "application/json", responseSchema: schema } };
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 
@@ -346,6 +323,8 @@
                 loadingSpinner.classList.add('hidden');
                 errorMessage.textContent = `Ocorreu um erro na análise. ${error.message}. Por favor, verifique o conteúdo da transcrição e tente novamente.`;
                 errorMessage.classList.remove('hidden');
+            } finally {
+                checkAnalysisButtonState();
             }
         }
 
@@ -355,34 +334,56 @@
             displayGeneralScore(data.notaGeral);
             displayCancellationAlert(data.cancellationAlert);
             
-            data.evaluation.sort((a, b) => b.nota - a.nota);
+            const sortedForDisplay = [...data.evaluation].sort((a, b) => (b.nota === -1 ? -Infinity : b.nota) - (a.nota === -1 ? -Infinity : a.nota));
 
             detailedReport.innerHTML = '<h3 class="text-xl font-semibold mb-4 text-center lg:text-left">Avaliação Detalhada</h3>';
-            data.evaluation.forEach(item => {
+            
+            sortedForDisplay.forEach(item => {
                 const reportItem = document.createElement('div');
                 reportItem.className = 'p-4 border border-gray-200 rounded-lg bg-gray-50';
                 
-                const scoreColor = item.nota >= 8 ? 'text-green-600' : item.nota >= 5 ? 'text-yellow-600' : 'text-red-600';
+                const isNotApplicable = item.nota === -1;
+
+                const titleClass = isNotApplicable ? 'text-md font-semibold text-gray-500 line-through' : 'text-md font-semibold text-gray-800';
+                const justificationClass = isNotApplicable ? 'text-gray-400 line-through mt-2 pl-1 text-sm' : 'text-gray-600 mt-2 pl-1 text-sm';
+                
+                const scoreColor = item.nota >= 9 ? 'text-green-600' : item.nota >= 7 ? 'text-blue-600' : item.nota >= 5 ? 'text-yellow-600' : 'text-red-600';
+                const scoreDisplay = isNotApplicable 
+                    ? `<span class="text-gray-500 font-medium">N/A</span>` 
+                    : `
+                        <span class="font-bold text-lg ${scoreColor}">${item.nota.toFixed(1)}</span>
+                        <span class="text-sm text-gray-500">/ 10</span>
+                    `;
 
                 reportItem.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <h4 class="text-md font-semibold text-gray-800">${item.criterio}</h4>
+                        <h4 class="${titleClass}">${item.criterio}</h4>
                         <div class="text-right">
-                            <span class="font-bold text-lg ${scoreColor}">${item.nota.toFixed(1)}</span>
-                            <span class="text-sm text-gray-500">/ 10</span>
+                            ${scoreDisplay}
                         </div>
                     </div>
-                    <p class="text-gray-600 mt-2 pl-1 text-sm">${item.justificativa}</p>
+                    <p class="${justificationClass}">${item.justificativa}</p>
                 `;
                 detailedReport.appendChild(reportItem);
             });
 
-            const radarLabels = data.evaluation.map(item => item.criterio);
-            const radarScores = data.evaluation.map(item => item.nota);
+            const radarData = data.evaluation.filter(item => item.nota !== -1);
+            const radarLabels = radarData.map(item => item.criterio);
+            const radarScores = radarData.map(item => item.nota);
+
             if (radarChartInstance) radarChartInstance.destroy();
             radarChartInstance = new Chart(radarChartCanvas, {
                 type: 'radar',
-                data: { labels: radarLabels, datasets: [{ label: 'Performance', data: radarScores, backgroundColor: 'rgba(0, 45, 114, 0.2)', borderColor: '#002d72', borderWidth: 2 }] },
+                data: { 
+                    labels: radarLabels,
+                    datasets: [{ 
+                        label: 'Performance', 
+                        data: radarScores,
+                        backgroundColor: 'rgba(0, 45, 114, 0.2)', 
+                        borderColor: '#002d72', 
+                        borderWidth: 2 
+                    }] 
+                },
                 options: { responsive: true, maintainAspectRatio: false, scales: { r: { beginAtZero: true, min: 0, max: 10, stepSize: 2 } }, plugins: { legend: { display: false } } }
             });
 
@@ -396,11 +397,13 @@
 
         function displayGeneralScore(score) {
             if (score === null || isNaN(score)) return;
-            const scoreColor = score >= 8 ? 'text-green-600' : score >= 5 ? 'text-yellow-600' : 'text-red-600';
+            const scoreColor = score >= 9 ? 'text-green-600' : score >= 7 ? 'text-blue-600' : score >= 5 ? 'text-yellow-600' : 'text-red-600';
+            const scoreText = score >= 9 ? 'Excelente' : score >= 7 ? 'Muito Bom' : score >= 5 ? 'Razoável' : score >= 3 ? 'Fraco' : 'Insuficiente';
             generalScoreSection.innerHTML = `
                 <div class="text-center bg-gray-50 p-4 rounded-lg">
                     <h3 class="text-xl font-semibold text-primary">Nota Geral da Reunião</h3>
                     <p class="text-5xl font-bold ${scoreColor} mt-2">${score.toFixed(1)}</p>
+                    <p class="text-lg font-medium ${scoreColor} mt-1">${scoreText}</p>
                 </div>
             `;
         }
@@ -430,29 +433,32 @@
         }
 
         function displaySpeakingTime({ cc, client }) {
-            if (isNaN(cc) || isNaN(client) || (cc === 0 && client === 0)) {
-                speakingTimeAnalysis.innerHTML = `<p class="text-center text-gray-500 text-sm">Não foi possível analisar a distribuição de fala. Verifique a formatação da transcrição.</p>`;
+            if (isNaN(cc) || isNaN(client)) {
+                speakingTimeAnalysis.innerHTML = `<p class="text-center text-gray-500 text-sm">Dados de fala indisponíveis.</p>`;
                 return;
             }
+
+            const total = cc + client;
+            if (total === 0) {
+                speakingTimeAnalysis.innerHTML = `<p class="text-center text-gray-500 text-sm">Não foi possível analisar a distribuição de fala.</p>`;
+                return;
+            }
+
+            const ccPercent = (cc / total) * 100;
+            const clientPercent = 100 - ccPercent;
+
             speakingTimeAnalysis.innerHTML = `
-                <div class="space-y-3">
-                    <div class="flex justify-between mb-1">
-                        <span class="text-base font-medium text-primary">Consultor</span>
-                        <span class="text-sm font-medium text-primary">${Math.round(cc)}%</span>
+                <div class="w-full">
+                    <div class="flex justify-between mb-1 text-sm font-medium">
+                        <span class="text-primary">Consultor (${Math.round(ccPercent)}%)</span>
+                        <span class="text-secondary-pink">Cliente (${Math.round(clientPercent)}%)</span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-4">
-                        <div class="bg-primary h-4 rounded-full" style="width: ${Math.min(cc, 100)}%"></div>
+                    <div class="w-full bg-gray-200 rounded-full h-4 flex overflow-hidden">
+                        <div class="h-full bg-primary transition-all duration-500" style="width: ${ccPercent}%" title="Consultor: ${ccPercent.toFixed(1)}%"></div>
+                        <div class="h-full bg-secondary-pink transition-all duration-500" style="width: ${clientPercent}%" title="Cliente: ${clientPercent.toFixed(1)}%"></div>
                     </div>
                 </div>
-                <div class="mt-3">
-                    <div class="flex justify-between mb-1">
-                        <span class="text-base font-medium text-secondary-pink">Cliente</span>
-                        <span class="text-sm font-medium text-secondary-pink">${Math.round(client)}%</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-4">
-                        <div class="bg-secondary-pink h-4 rounded-full" style="width: ${Math.min(client, 100)}%"></div>
-                    </div>
-                </div>`;
+            `;
         }
         
         function displayMeetingHighlight(highlight) {
@@ -486,6 +492,10 @@
         }
 
         function displayProfileAnalysis(profileData) {
+            if (!profileData || !profileData.profile) {
+                 profileAnalysisSection.innerHTML = '';
+                 return;
+            }
             profileAnalysisSection.innerHTML = `
                 <h3 class="text-2xl font-bold text-center text-primary">Análise de Perfil do Cliente</h3>
                 <div class="mt-6 bg-yellow-50/60 p-6 rounded-lg">
@@ -500,10 +510,22 @@
         }
 
         function displaySummary(summaryData) {
+            if (!summaryData) {
+                summarySection.innerHTML = '';
+                return;
+            }
             const ccName = ccNameInput.value.trim();
-            const strengthsList = (summaryData.strengths || []).map(s => `<li class="flex items-start"><span class="text-green-500 mr-2 mt-1">&#10003;</span><span>${s}</span></li>`).join('');
-            const errorsList = (summaryData.specificErrors || []).map(e => `<li class="flex items-start"><span class="text-red-500 mr-2 mt-1">&#10007;</span><span>${e}</span></li>`).join('');
-            const suggestionsList = (summaryData.suggestions || []).map(s => `<li class="flex items-start"><span class="text-primary mr-2 mt-1">&#10148;</span><span>${s}</span></li>`).join('');
+            const strengthsList = (summaryData.strengths && summaryData.strengths.length > 0)
+                ? summaryData.strengths.map(s => `<li class="flex items-start"><span class="text-green-500 mr-2 mt-1">&#10003;</span><span>${s}</span></li>`).join('')
+                : '<li class="text-gray-500">Nenhuma força específica foi destacada.</li>';
+
+            const errorsList = (summaryData.specificErrors && summaryData.specificErrors.length > 0)
+                ? summaryData.specificErrors.map(e => `<li class="flex items-start"><span class="text-red-500 mr-2 mt-1">&#10007;</span><span>${e}</span></li>`).join('')
+                : '<li class="text-gray-500">Nenhum ponto de melhoria crítico foi identificado.</li>';
+
+            const suggestionsList = (summaryData.suggestions && summaryData.suggestions.length > 0)
+                ? summaryData.suggestions.map(s => `<li class="flex items-start"><span class="text-primary mr-2 mt-1">&#10148;</span><span>${s}</span></li>`).join('')
+                : '<li class="text-gray-500">Nenhuma sugestão adicional.</li>';
             
             summarySection.innerHTML = `
                 <h3 class="text-2xl font-bold text-center text-primary">Resumo Executivo para <span class="text-secondary-pink">${ccName}</span></h3>
@@ -513,11 +535,11 @@
                         <ul class="space-y-2 text-gray-700">${strengthsList}</ul>
                     </div>
                     <div>
-                        <h4 class="text-lg font-semibold mb-3 text-primary">Erros Específicos</h4>
+                        <h4 class="text-lg font-semibold mb-3 text-primary">Pontos a Melhorar</h4>
                         <ul class="space-y-2 text-gray-700">${errorsList}</ul>
                     </div>
                     <div>
-                        <h4 class="text-lg font-semibold mb-3 text-primary">Sugestões de Melhoria</h4>
+                        <h4 class="text-lg font-semibold mb-3 text-primary">Sugestões Práticas</h4>
                         <ul class="space-y-2 text-gray-700">${suggestionsList}</ul>
                     </div>
                 </div>
@@ -526,4 +548,3 @@
     </script>
 </body>
 </html>
-```
