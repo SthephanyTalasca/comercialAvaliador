@@ -138,8 +138,10 @@
     </div>
 
     <script>
-        const apiKey = "AIzaSyCT-KVfOR_bDwywTJzzC_eRtSPjo1aeDJ4";
-
+        // NOTA: Para que a aplicação funcione, você precisa inserir sua própria chave de API do Google AI Studio.
+        // Em um ambiente de produção, é crucial gerenciar as chaves de API de forma segura, 
+        // por exemplo, usando um proxy de backend para evitar expor a chave no lado do cliente.
+        const apiKey = "AIzaSyCT-KVfOR_bDwywTJzzC_eRtSPjo1aeDJ4"; // <-- 
         const ccNameInput = document.getElementById('cc-name-input');
         const transcriptInput = document.getElementById('transcript-input');
         const analyzeBtn = document.getElementById('analyze-btn');
@@ -165,6 +167,7 @@
         let radarChartInstance = null;
         let uploadedFiles = [];
 
+        // Event Listeners
         ccNameInput.addEventListener('input', checkAnalysisButtonState);
         transcriptInput.addEventListener('input', checkAnalysisButtonState);
         fileDropZone.addEventListener('click', () => fileInput.click());
@@ -228,18 +231,34 @@
             for (let i = 0; i < retries; i++) {
                 try {
                     const response = await fetch(url, options);
-                    if (response.status !== 503) return response;
+                    if (response.status !== 503) return response; // Not a server overload, return response
                     loadingText.textContent = `Servidor sobrecarregado. A tentar novamente em ${delay / 1000}s... (${i + 1}/${retries})`;
                 } catch (error) {
                     console.error(`Fetch attempt ${i + 1} failed:`, error);
                 }
                 await new Promise(resolve => setTimeout(resolve, delay));
-                delay *= 2;
+                delay *= 2; // Exponential backoff
             }
             throw new Error(`O modelo continua sobrecarregado após ${retries} tentativas. Por favor, tente mais tarde.`);
         }
 
         async function handleAnalysis() {
+            // FIX: Add a check for the API key right at the start.
+            if (!apiKey || apiKey === "") {
+                resultsSection.classList.remove('hidden');
+                loadingSpinner.classList.add('hidden');
+                analysisResults.classList.add('hidden');
+                errorMessage.innerHTML = `
+                    <p class="font-bold">Erro de Configuração</p>
+                    <p class="text-sm mt-1">A chave de API (apiKey) não foi definida. Por favor, edite o código, adicione sua chave de API do Google AI Studio na variável 'apiKey' e tente novamente.</p>
+                `;
+                errorMessage.classList.remove('hidden');
+                setTimeout(() => {
+                     resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+                return; // Stop execution if no key is provided.
+            }
+
             analysisResults.classList.add('hidden');
             errorMessage.classList.add('hidden');
             loadingSpinner.classList.remove('hidden');
@@ -263,8 +282,8 @@
                     Você é um avaliador sênior de performance comercial, especialista em vendas de software B2B, extremamente crítico e detalhista. Sua tarefa é analisar a performance do Consultor Comercial (CC), "${ccName}", com base na transcrição da reunião.
 
                     **INSTRUÇÕES GERAIS E REGRAS:**
-                    1.  **Análise de Critérios:** Avalie o CC em CADA um dos 18 critérios abaixo.
-                    2.  **Análise de Perfil do CLIENTE:** No campo "profileAnalysis", analise o perfil comportamental do **CLIENTE** (prospect), não do consultor.
+                    1.  **Análise de Critérios:** Avalie o CC em CADA um dos 17 critérios abaixo.
+                    2.  **Análise de Perfil do CLIENTE:** No campo "profileAnalysis", analise o perfil comportamental do **CLIENTE** (prospect), não do consultor, com base nas diretrizes fornecidas na seção "ANÁLISE DE PERFIL COMPORTAMENTAL DO CLIENTE".
                     3.  **Análise de Concorrentes:** No campo "competitorAnalysis", identifique se o cliente menciona usar algum concorrente de gestão de tarefas (GCLICK, ACESSORIAS, ONVIO, GESTTA, OTIMIZZA, CONFI, ou qualquer outro). Se sim, defina "mentioned" como true e "competitorName" com o nome do concorrente. Caso contrário, "mentioned" deve ser false.
                     4.  **REGRA PARA OBJEÇÕES:** Se a transcrição não contiver nenhuma objeção, para o critério 'Contorno de Objeções', **atribua a nota -1** e justifique que 'Nenhuma objeção foi apresentada para avaliação'. A nota geral deve ignorar este critério.
                     5.  **REGRA PARA TÉCNICAS DE VENDA ATIVAS:** Para 'Gatilhos Mentais', 'Técnicas de Fechamento' e 'Encantamento Comercial', a ausência é uma falha. Se não houver evidência, **atribua nota entre 4 e 5** e justifique a oportunidade perdida.
@@ -275,7 +294,103 @@
                     ---
                     **CRITÉRIOS DE AVALIAÇÃO COMERCIAL:**
                     **Escala:** 9–10: Excelente; 7–8: Muito bom; 5–6: Razoável; 3–4: Fraco; 1–2: Insuficiente.
-                    1.  Rapport e Conexão, 2. Autoridade Comercial, 3. Clareza da Apresentação, 4. Gatilhos Mentais, 5. Pré-Fechamento, 6. Técnicas de Fechamento, 7. Contorno de Objeções, 8. Escuta Ativa, 9. Perguntas Poderosas, 10. Personalização, 11. Conexão com o Negócio, 12. Jornada do Cliente, 13. Gestão de Tempo, 14. Encantamento Comercial, 15. Postura Profissional, 16. Domínio de Produto, 17. Portfólio Estratégico, 18. Conexão com o Ecossistema Contábil.
+
+                    1. Rapport e Conexão
+                    O que foi avaliado: conexão emocional, uso do nome, leveza na abordagem, empatia inicial.
+                    Sinais de excelência: quebra de gelo personalizada, linguagem acessível, genuinidade na escuta.
+                    Oportunidades de melhoria: travas emocionais, abordagem mecânica, falta de acolhimento.
+
+                    2. Autoridade Comercial
+                    O que foi avaliado: postura de liderança na reunião, condução do ritmo e domínio da conversa.
+                    Sinais de excelência: voz firme, segurança nas transições, condução clara e assertiva.
+                    Oportunidades de melhoria: hesitação, perda de controle da pauta, submissão ao cliente.
+
+                    3. Clareza da Apresentação
+                    O que foi avaliado: didática, linguagem comercial simplificada, conexão com o cenário do cliente.
+                    Sinais de excelência: analogias, explicações limpas, ausência de termos técnicos desnecessários.
+                    Oportunidades de melhoria: excesso de jargões, fala corrida ou confusa, falha na pedagogia da venda.
+
+                    4. Gatilhos Mentais
+                    O que foi avaliado: uso técnico de escassez, autoridade, prova social, reciprocidade e urgência.
+                    Sinais de excelência: aplicação sutil e estratégica, alinhada com o perfil do lead.
+                    Oportunidades de melhoria: ausência completa de gatilhos, uso artificial ou forçado.
+
+                    5. Pré-Fechamento
+                    O que foi avaliado: perguntas de validação, percepção de alinhamento e prontidão para decisão.
+                    Sinais de excelência: perguntas como "faz sentido para você?" ou “tem algo que ainda te trava?”
+                    Oportunidades de melhoria: avanço direto sem validar, não sentir o termômetro do cliente.
+
+                    6. Técnicas de Fechamento
+                    O que foi avaliado: aplicação de técnicas como fechamento alternativo, direto ou escalado.
+                    Sinais de excelência: uso de perguntas finais com assertividade e confiança.
+                    Oportunidades de melhoria: final sem comando claro, ausência de convite à ação.
+
+                    7. Contorno de Objeções
+                    O que foi avaliado: antecipação, escuta ativa, técnica de espelhamento e argumento estruturado.
+                    Sinais de excelência: abordagem empática, clara e baseada em cases, dados ou benefícios.
+                    Oportunidades de melhoria: reatividade, confronto, argumentação fraca ou sem estrutura.
+
+                    8. Escuta Ativa
+                    O que foi avaliado: reformulação de falas, atenção aos detalhes e linguagem não-verbal.
+                    Sinais de excelência: frases como “você comentou que…”, “entendi que seu ponto é…”.
+                    Oportunidades de melhoria: interrupção, respostas genéricas, ausência de validação.
+
+                    9. Perguntas Poderosas
+                    O que foi avaliado: profundidade na investigação da dor, abertura de espaço para reflexão.
+                    Sinais de excelência: perguntas que geram silêncio reflexivo ou expandem o discurso do lead.
+                    Oportunidades de melhoria: perguntas rasas, genéricas ou de sim/não.
+
+                    10. Personalização do Pitch
+                    O que foi avaliado: adaptação do discurso à realidade do cliente, dores e momento de negócio.
+                    Sinais de excelência: pitch com exemplos próximos, similaridade com contexto do lead.
+                    Oportunidades de melhoria: apresentação padrão, sem customização.
+
+                    11. Conexão com o Negócio do Cliente
+                    O que foi avaliado: profundidade no entendimento do modelo operacional e estratégia do cliente.
+                    Sinais de excelência: perguntas de modelo de receita, operação interna, metas da empresa.
+                    Oportunidades de melhoria: superficialidade, falta de vínculo com o dia a dia do cliente.
+
+                    12. Jornada do Cliente
+                    O que foi avaliado: clareza nos próximos passos, expectativas de onboarding e implementação.
+                    Sinais de excelência: timeline clara, prazos definidos, tranquilidade transmitida.
+                    Oportunidades de melhoria: final solto, sem cronograma, deixando dúvidas abertas.
+
+                    13. Gestão de Tempo
+                    O que foi avaliado: fluidez da reunião, ritmo equilibrado, cumprimento da pauta.
+                    Sinais de excelência: início, meio e fim bem distribuídos.
+                    Oportunidades de melhoria: atropelos, repetições, tangentes.
+
+                    14. Encantamento Comercial
+                    O que foi avaliado: energia, brilho nos olhos, crença no impacto da solução.
+                    Sinais de excelência: entusiasmo genuíno, emoção ao falar dos benefícios.
+                    Oportunidades de melhoria: discurso frio, falta de empolgação ou engajamento emocional.
+
+                    15. Postura Profissional
+                    O que foi avaliado: maturidade emocional, reação a objeções ou falhas, tom de voz.
+                    Sinais de excelência: compostura, elegância na fala, controle emocional.
+                    Oportunidades de melhoria: reclamações, tom de justificativa, postura passiva ou nervosa.
+
+                    16. Domínio de Produto
+                    O que foi avaliado: segurança técnica ao apresentar o Nibo.
+                    Sinais de excelência: explicações fluidas, analogias, domínio de dúvidas comuns.
+                    Oportunidades de melhoria: travas, imprecisões, necessidade de consultar outros.
+                    Para o item 16 use as fontes de conhecimento como fonte de verificação se o discurso sobre o produto teve alguma falha, incoerência ou ponto de melhoria: https://ajuda.nibo.com.br/pt-BR/
+
+                    17. Portfólio Estratégico
+                    O que foi avaliado: ampliação do escopo com visão de cross-sell.
+                    Sinais de excelência: identificação de fit para GF, COF, WhatsApp, Emissor, etc.
+                    Oportunidades de melhoria: venda única, sem leitura de potencial adicional.
+
+                    ANÁLISE DE PERFIL COMPORTAMENTAL DO CLIENTE
+                    Tipos:
+                    - Analítico: cauteloso, quer dados, precisa de segurança.
+                    - Pragmático: direto, objetivo, foca no ROI.
+                    - Afável: gentil, relacional, evita conflitos.
+                    - Expressivo: emocional, envolvido, valoriza propósito.
+                    Avaliação:
+                    - Identificação do perfil pelo CC: ele leu os sinais corretamente?
+                    - Adaptação do discurso: ajustou ritmo, profundidade, abordagem?
+                    - Oportunidades de ajuste futuro: como personalizar melhor para esse perfil?
                     ---
                     **TRANSCRIÇÃO PARA ANÁLISE:**
                     ---
@@ -321,6 +436,7 @@
             displayCancellationAlert(data.cancellationAlert);
             displayCompetitorAnalysis(data.competitorAnalysis);
             
+            // Sort criteria by score for display (highest first), but keep N/A at the bottom
             const sortedForDisplay = [...data.evaluation].sort((a, b) => (b.nota === -1 ? -Infinity : b.nota) - (a.nota === -1 ? -Infinity : a.nota));
 
             detailedReport.innerHTML = '<h3 class="text-xl font-semibold mb-4 text-center lg:text-left">Avaliação Detalhada</h3>';
@@ -354,6 +470,7 @@
                 detailedReport.appendChild(reportItem);
             });
 
+            // Filter out N/A criteria for the radar chart
             const radarData = data.evaluation.filter(item => item.nota !== -1);
             const radarLabels = radarData.map(item => item.criterio);
             const radarScores = radarData.map(item => item.nota);
@@ -362,7 +479,7 @@
             radarChartInstance = new Chart(radarChartCanvas, {
                 type: 'radar',
                 data: { 
-                    labels: radarLabels,
+                    labels: radarLabels, 
                     datasets: [{ 
                         label: 'Performance', 
                         data: radarScores,
