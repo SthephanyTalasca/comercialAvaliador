@@ -102,6 +102,8 @@
 
                     <div id="analysis-results" class="hidden">
                         <div id="general-score-section" class="mb-8"></div>
+                        
+                        <div id="deal-status-section" class="mb-8 hidden"></div>
                         <div id="cancellation-alert-section" class="mb-8 hidden"></div>
                         <div id="competitor-alert-section" class="mb-8 hidden"></div>
 
@@ -125,6 +127,7 @@
                         
                         <div id="highlight-section" class="mt-12 pt-8 border-t border-gray-200"></div>
                         <div id="opportunities-section" class="mt-12 pt-8 border-t border-gray-200"></div>
+                        <div id="key-moments-section" class="mt-12 pt-8 border-t border-gray-200 hidden"></div>
                         <div id="profile-analysis-section" class="mt-12 pt-8 border-t border-gray-200"></div>
                         <div id="summary-section" class="mt-12 pt-8 border-t border-gray-200"></div>
                     </div>
@@ -141,10 +144,11 @@
         // NOTA: Para que a aplicação funcione, você precisa inserir sua própria chave de API do Google AI Studio.
         // Em um ambiente de produção, é crucial gerenciar as chaves de API de forma segura, 
         // por exemplo, usando um proxy de backend para evitar expor a chave no lado do cliente.
-        const apiKey = "AIzaSyDp7L_MK46uDrwCGHI2kze0VpxG3_AZfrs"; // <-- SUBSTITUA PELA SUA CHAVE DE API
+        const apiKey = "SUA_API_KEY_DO_GOOGLE_AI_STUDIO_AQUI"; // <-- SUBSTITUA PELA SUA CHAVE DE API
         const ccNameInput = document.getElementById('cc-name-input');
         const transcriptInput = document.getElementById('transcript-input');
         const analyzeBtn = document.getElementById('analyze-btn');
+        // ... (resto das suas constantes de elementos)
         const fileDropZone = document.getElementById('file-drop-zone');
         const fileInput = document.getElementById('file-input');
         const fileList = document.getElementById('file-list');
@@ -243,7 +247,7 @@
         }
 
         async function handleAnalysis() {
-            if (!apiKey || apiKey === "SUA_API_KEY_AQUI") {
+            if (!apiKey || apiKey === "SUA_API_KEY_DO_GOOGLE_AI_STUDIO_AQUI") {
                 resultsSection.classList.remove('hidden');
                 loadingSpinner.classList.add('hidden');
                 analysisResults.classList.add('hidden');
@@ -283,86 +287,53 @@
                     **INSTRUÇÕES GERAIS E REGRAS CRÍTICAS:**
                     1.  **Análise de Critérios:** Avalie o CC em CADA um dos 17 critérios listados abaixo.
                     2.  **Estrutura de Feedback para Falhas (Prontuário – OBRIGATÓRIO):** Ao identificar que o consultor não atingiu a nota máxima (9 ou 10) em QUALQUER critério, sua justificativa DEVE seguir esta estrutura de 4 partes, com clareza:
-                        - **Momento da Falha:** Identifique com precisão o momento da falha (Ex: "Na parte da reunião em que o cliente demonstrou insegurança sobre o preço...").
-                        - **Comportamento Atual:** Descreva o que o consultor fez ou deixou de fazer (Ex: "O consultor apenas reafirmou os valores, sem gerar valor percebido ou contornar a dúvida.").
-                        - **Ação para Nota Máxima:** Indique com clareza o que deveria ter sido feito para alcançar a nota 10 (Ex: "Para atingir a nota 10 neste ponto, o ideal seria ele aplicar o gatilho de prova social, reforçando com um case de sucesso...").
-                        - **Sugestões Práticas (X, Y, Z):** Adicione sugestões concretas e acionáveis (Ex: "X: Citar um cliente parecido que migrou recentemente. Y: Reforçar autoridade da empresa com número de usuários ativos. Z: Utilizar a técnica de espelhamento + fechamento alternativo.").
-                    3.  **Análise de Concorrentes:** No campo "competitorAnalysis", identifique se o cliente menciona um concorrente. Se sim, "mentioned" deve ser true. **REGRA ADICIONAL:** Dentro da justificativa do critério 'Técnicas de Fechamento', avalie se o consultor seguiu o manual obrigatório da empresa para lidar com essa concorrência.
+                        - **Momento da Falha:** Identifique com precisão o momento da falha.
+                        - **Comportamento Atual:** Descreva o que o consultor fez ou deixou de fazer.
+                        - **Ação para Nota Máxima:** Indique com clareza o que deveria ter sido feito para alcançar a nota 10.
+                        - **Sugestões Práticas (X, Y, Z):** Adicione sugestões concretas e acionáveis.
+                    3.  **Análise de Concorrentes:** No campo "competitorAnalysis", identifique se o cliente menciona um concorrente.
                     4.  **Análise de Perfil do CLIENTE:** No campo "profileAnalysis", analise o perfil comportamental do **CLIENTE**, não do consultor.
                     5.  **Regras de Pontuação Específicas:**
-                        - **Objeções:** Se não houver objeções na transcrição, a nota de 'Contorno de Objeções' deve ser **-1** (N/A) e a justificativa deve ser 'Nenhuma objeção foi apresentada para avaliação'.
-                        - **Técnicas Ativas (Gatilhos, Fechamento):** A ausência completa de uso é uma falha grave. Se não houver evidência, a nota deve ser **entre 4 e 5**.
-                        - **Rapport:** Se não houver ação proativa para criar conexão (apenas um "bom dia" formal), a nota de 'Rapport' deve ser **6**.
-                    6.  **Formato de Saída:** A resposta DEVE ser um único objeto JSON, sem exceções.
+                        - **Objeções:** Se não houver objeções, a nota de 'Contorno de Objeções' deve ser **-1** (N/A).
+                        - **Técnicas Ativas (Gatilhos, Fechamento):** A ausência completa de uso é uma falha grave (nota **entre 4 e 5**).
+                        - **Rapport:** Se for apenas formal, a nota de 'Rapport' deve ser **6**.
+                    6.  **Formato de Saída:** A resposta DEVE ser um único objeto JSON.
+                    7.  **Análise de Momentos-Chave:** No final da sua análise, identifique o momento MAIS CRÍTICO da reunião (objeção ou fechamento). Crie um objeto 'momentosChave' com 'cenarioAtual' (transcrição exata) e 'cenarioIdeal' (script reescrito).
+                    8.  **Análise de Fechamento de Negócio (NOVO):** Analise o final da conversa para determinar se o negócio foi fechado. Procure por frases de confirmação explícita do cliente ("vamos fechar", "pode mandar o contrato", "negócio fechado", "me envia o link para pagamento"). O resultado deve ser um objeto 'dealStatus' com 'closed' (boolean) e 'reason' (uma breve justificativa com a evidência encontrada).
 
                     ---
                     **CRITÉRIOS DE AVALIAÇÃO COMERCIAL (Escala de 1 a 10):**
 
-                    1.  **Rapport e Conexão:** (O que foi avaliado: conexão emocional, uso do nome, leveza, empatia inicial. Sinais de excelência: quebra de gelo personalizada, linguagem acessível, genuinidade.)
-                    2.  **Autoridade Comercial:** (O que foi avaliado: postura de liderança, condução do ritmo. Sinais de excelência: voz firme, segurança nas transições, condução clara e assertiva.)
-                    3.  **Clareza da Apresentação:** (O que foi avaliado: didática, linguagem simplificada. Sinais de excelência: analogias, explicações limpas, sem termos técnicos desnecessários.)
+                    1.  **Rapport e Conexão:** (conexão emocional, empatia inicial.)
+                    2.  **Autoridade Comercial:** (postura de liderança, condução do ritmo.)
+                    3.  **Clareza da Apresentação:** (didática, linguagem simplificada.)
+                    4.  **Gatilhos Mentais:** (Uso estratégico de urgência, autoridade, prova social, etc. Indique oportunidades perdidas com exemplos de frases.)
+                    5.  **Pré-Fechamento:** (Adesão ESTRITA ao manual de pré-fechamento. Avalie o fluxo passo a passo.)
                     
-                    4.  **Gatilhos Mentais:**
-                        - **O que foi avaliado:** Uso estratégico (explícito ou implícito) de gatilhos como urgência, autoridade, prova social, escassez, baseado nas fontes de Robert Cialdini e Dale Carnegie.
-                        - **Análise de Oportunidade Perdida:** Quando o consultor NÃO explorou um gatilho óbvio, sua resposta DEVE indicar: o momento exato da conversa, o contexto da fala, o gatilho ideal a ser usado e um exemplo de frase.
-                        - **Exemplo de Feedback de Falha:** "Quando o cliente duvidou da segurança do sistema, o consultor só respondeu tecnicamente. Ideal seria usar AUTORIDADE, como: 'Inclusive, este modelo é usado por mais de 2.500 contabilidades com suas mesmas normas de compliance.'"
-
-                    5.  **Pré-Fechamento:**
-                        - **O que foi avaliado:** A adesão ESTRITA ao processo obrigatório de pré-fechamento da empresa. A apresentação do preço SÓ PODE ocorrer após a conclusão bem-sucedida deste processo.
-                        - **Manual Obrigatório de Pré-Fechamento (Avaliar passo a passo):**
-                            1.  **Recapitulação da Dor:** O consultor DEVE iniciar a transição para o fechamento recapitulando os pontos de dor (X, Y, Z) levantados no início e mostrando como a solução os resolve. (Ex: "Como você pôde ver, aqueles pontos que identificamos...")
-                            2.  **Pedido de Feedback:** Após a recapitulação, o consultor DEVE pedir um feedback direto sobre a ferramenta. (Ex: "O que você achou da solução? Me dá um feedback...")
-                            3.  **Validação de Interesse:** Com um feedback positivo, o consultor DEVE perguntar sobre o desejo de implementação. (Ex: "Você gostaria de ter o Nibo aplicando todo esse diferencial...")
-                            4.  **Trial Close (Condicional ao Orçamento):** Se o cliente condicionar a resposta ao preço ("depende do valor", "vamos ver"), o consultor DEVE fazer o fechamento-teste. (Ex: "Se o nosso valor estiver dentro do seu orçamento, você me daria esse voto de confiança hoje?")
-                        - **Regra Crítica para Objeção de "Sócio":**
-                            - Se o cliente mencionar um sócio, é uma **FALHA GRAVE** apresentar o valor.
-                            - O procedimento correto é: 1) Reconhecer a necessidade. 2) Tentar agendar uma nova reunião com o sócio no mesmo dia. 3) Se não for possível, enviar uma gravação e pedir validação ANTES de falar de preços. Avalie se o consultor seguiu este fluxo. Se ele apresentou o preço mesmo assim, a nota neste critério deve ser muito baixa (entre 2 e 4).
-
                     6.  **Técnicas de Fechamento:**
                         - **O que foi avaliado:** A adesão ESTRITA ao processo obrigatório de Negociação de Valores.
-                        - **Manual Obrigatório de Negociação (Avaliar passo a passo):**
-                            1.  **Explicação da Precificação:** O consultor explicou o modelo (mensalidade por nº de clientes + setup com consultor dedicado)? Reforçou a parceria e sua disponibilidade pessoal?
-                            2.  **Apresentação do Valor:** Usou a frase exata com tom positivo: "Pode admitir, você achou que seria bem mais caro, né?"
-                            3.  **Tratamento de Objeção de Preço (Nível 1):** Ao ouvir "está alto", ele fez a pergunta de diagnóstico "O que pesou mais para você: a mensalidade ou o setup?" para isolar o problema?
-                            4.  **Tática de Valor Agregado:** Ele usou a tática de mostrar o site da Gestão Financeira e depois oferecê-la como bônus (sem custo) para justificar o pacote?
-                            5.  **Tratamento de Objeção de Preço (Nível 2):** Se ambos os valores foram questionados, ele tentou obter uma contraproposta ("O que você tinha em mente como investimento hoje?")?
-                            6.  **Fechamento Condicional:** Após receber uma contraproposta ou antes de oferecer um desconto, ele usou a frase de compromisso "Se eu conseguir isso para você, posso contar com seu voto de confiança para avançarmos?"
-                            7.  **Regra Crucial (Pré-Desconto):** ANTES de conceder qualquer desconto, ele reforçou a parceria, a pessoalidade e o seu papel como um conector para ajudar o cliente a crescer?
-                            8.  **Último Recurso (Escalonamento):** Se o cliente ainda estava resistente, ele usou a tática de chamar o coordenador, já condicionando a melhoria da oferta ao agendamento do treinamento?
-                        - **Regra de Concorrência:** Se um concorrente foi mencionado, é OBRIGATÓRIO avaliar aqui se o consultor seguiu o manual específico para aquele concorrente.
+                        - **Manual Obrigatório de Negociação:** Avalie passo a passo (Explicação, Apresentação do Valor, Tratamento de Objeção Nível 1 e 2, Fechamento Condicional, etc.).
+                        - **REGRA DE PONTUAÇÃO CRÍTICA (NOVO):** Se a sua 'Análise de Fechamento de Negócio' concluir que o negócio foi fechado, a nota para este critério 'Técnicas de Fechamento' DEVE ser no mínimo 8. A justificativa deve refletir que, apesar de possíveis desvios do manual, o resultado final (o fechamento) foi alcançado com sucesso. A nota pode ser 9 ou 10 se o fechamento foi conduzido de forma exemplar.
+                        - **REGRA DE SUGESTÃO PRÁTICA:** Se o consultor falhou em algum passo, a sua "Sugestão Prática" DEVE incluir um mini-script de diálogo ideal.
 
-                    7.  **Contorno de Objeções:** (O que foi avaliado: antecipação, escuta, técnica de espelhamento, argumento estruturado. Sinais de excelência: abordagem empática, baseada em cases, dados ou benefícios.)
-                    8.  **Escuta Ativa:** (O que foi avaliado: reformulação de falas, atenção aos detalhes. Sinais de excelência: "você comentou que...", "entendi que seu ponto é...".)
-                    9.  **Perguntas Poderosas:** (O que foi avaliado: profundidade na investigação da dor. Sinais de excelência: perguntas que geram silêncio reflexivo ou expandem o discurso.)
+                    7.  **Contorno de Objeções:**
+                        - **O que foi avaliado:** Antecipação, escuta, técnica de espelhamento, argumento estruturado.
+                        - **REGRA DE FEEDBACK:** Se o consultor falhou, sua resposta DEVE incluir uma subseção "**Exemplos de Abordagem**" com 2 a 3 frases exatas que ele poderia ter usado.
 
-                    10. **Personalização do Pitch:**
-                        - **O que foi avaliado:** A profundidade da personalização. Não basta uma adaptação superficial. O objetivo é demonstrar domínio das dores emocionais, técnicas e operacionais do cliente.
-                        - **Checklist para Avaliação:** O consultor usou perguntas abertas para o motivo real? Validou verbalmente as dores (espelhamento consultivo)? Trouxe 1-2 exemplos de clientes com perfil similar? Personalizou a demo com base no segmento do cliente?
-                        - **Regra Específica para Clientes 'Acessórias':** Se a transcrição indicar que o cliente utiliza 'Acessórias', é OBRIGATÓRIO que o consultor tenha mencionado e explorado o benefício do aplicativo personalizado. A ausência desta menção deve impactar negativamente a nota.
-                        - **Exemplo de Excelência:** Em vez de "isso vai te ajudar a ganhar tempo", um bom consultor diria: “Como você me contou que hoje o envio de obrigações depende da planilha da colaboradora X, essa automação reduz esse gargalo e te garante mais controle, especialmente nas semanas de fechamento, certo?”
-
-                    11. **Conexão com o Negócio do Cliente:** (O que foi avaliado: profundidade no entendimento do modelo operacional e estratégia do cliente. Sinais de excelência: perguntas sobre receita, operação, metas.)
-                    12. **Jornada do Cliente:** (O que foi avaliado: clareza nos próximos passos, expectativas de onboarding. Sinais de excelência: timeline clara, prazos definidos, tranquilidade transmitida.)
-
-                    13. **Gestão de Tempo:**
-                        - **O que foi avaliado:** Duração e aproveitamento do tempo da reunião. Analise a transcrição para estimar o ritmo e a duração efetiva.
-                        - **Critérios de Nota (use como guia para o ritmo percebido):**
-                            - ⏱️ Até 20 min: Nota 5 (insuficiente, superficial).
-                            - ⏱️ 21-30 min: Nota 7 (bom, mas pode evoluir).
-                            - ⏱️ 31-40 min: Nota 8 (ótimo, com aprofundamento).
-                            - ⏱️ 41-50 min: Nota 10 (excelente, ideal).
-                            - ⏱️ Acima de 1h: Nota 6 + recomendação (excesso, perda de foco).
-                        - **Justificativa:** Justifique a nota citando o aproveitamento do tempo, se houve dispersão ou aprofundamento excessivo, ou se o tempo curto impactou a argumentação.
-
-                    14. **Encantamento Comercial:** (O que foi avaliado: energia, brilho nos olhos, crença no impacto da solução. Sinais de excelência: entusiasmo genuíno, emoção ao falar dos benefícios.)
-                    15. **Postura Profissional:** (O que foi avaliado: maturidade emocional, reação a objeções, tom de voz. Sinais de excelência: compostura, elegância na fala, controle emocional.)
-                    16. **Domínio de Produto:** (O que foi avaliado: segurança técnica ao apresentar o Nibo, usando a base de conhecimento (ajuda.nibo.com.br) como referência para precisão. Sinais de excelência: explicações fluidas, analogias, domínio de dúvidas comuns.)
-                    17. **Portfólio Estratégico:** (O que foi avaliado: ampliação do escopo com visão de cross-sell/upsell para outros produtos do portfólio. Sinais de excelência: identificação de fit para GF, COF, WhatsApp, Emissor, etc.)
+                    8.  **Escuta Ativa:** (reformulações, atenção aos detalhes.)
+                    9.  **Perguntas Poderosas:** (profundidade na investigação da dor.)
+                    10. **Personalização do Pitch:** (Domínio das dores do cliente, exemplos de clientes similares.)
+                    11. **Conexão com o Negócio do Cliente:** (entendimento do modelo operacional e estratégia do cliente.)
+                    12. **Jornada do Cliente:** (clareza nos próximos passos, onboarding.)
+                    13. **Gestão de Tempo:** (Duração e aproveitamento do tempo da reunião.)
+                    14. **Encantamento Comercial:** (energia, crença na solução.)
+                    15. **Postura Profissional:** (maturidade emocional, tom de voz.)
+                    16. **Domínio de Produto:** (segurança técnica.)
+                    17. **Portfólio Estratégico:** (visão de cross-sell/upsell.)
 
                     ---
                     **ANÁLISE DE PERFIL COMPORTAMENTAL DO CLIENTE (OBRIGATÓRIO):**
-                    - **Tipos:** Analítico (cauteloso, quer dados), Pragmático (direto, foca no ROI), Afável (relacional, evita conflitos), Expressivo (emocional, valoriza propósito).
-                    - **Avaliação:** Identifique o perfil do cliente, como o consultor lidou com ele, e dê sugestões de como a abordagem poderia ser mais bem adaptada a esse perfil.
+                    - Identifique o perfil (Analítico, Pragmático, Afável, Expressivo), como o consultor lidou e dê sugestões de abordagem.
 
                     ---
                     **TRANSCRIÇÃO PARA ANÁLISE:**
@@ -371,7 +342,7 @@
                     ---
                 `;
 
-                const schema = { type: "OBJECT", properties: { "notaGeral": { "type": "NUMBER" }, "evaluation": { type: "ARRAY", items: { type: "OBJECT", properties: { "criterio": { "type": "STRING" }, "nota": { "type": "NUMBER" }, "justificativa": { "type": "STRING" } }, required: ["criterio", "nota", "justificativa"] } }, "speakingTime": { type: "OBJECT", properties: { "cc": { "type": "NUMBER" }, "client": { "type": "NUMBER" } }, required: ["cc", "client"] }, "profileAnalysis": { type: "OBJECT", properties: { "profile": { "type": "STRING" }, "handling": { "type": "STRING" }, "suggestions": { "type": "STRING" } }, required: ["profile", "handling", "suggestions"] }, "competitorAnalysis": { type: "OBJECT", properties: { "mentioned": { "type": "BOOLEAN" }, "competitorName": { "type": "STRING" } }, required: ["mentioned", "competitorName"] }, "summary": { type: "OBJECT", properties: { "strengths": { "type": "ARRAY", "items": { "type": "STRING" } }, "specificErrors": { "type": "ARRAY", "items": { "type": "STRING" } }, "suggestions": { "type": "ARRAY", items: { "type": "STRING" } } }, required: ["strengths", "specificErrors", "suggestions"] }, "cancellationAlert": { type: "OBJECT", properties: { "risk": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["risk", "reason"] }, "meetingHighlight": { "type": "STRING" }, "opportunities": { type: "ARRAY", items: { type: "OBJECT", properties: { "product": { "type": "STRING" }, "reason": { "type": "STRING" } }, required: ["product", "reason"] } } }, required: ["notaGeral", "evaluation", "speakingTime", "profileAnalysis", "competitorAnalysis", "summary", "cancellationAlert", "meetingHighlight", "opportunities"] };
+                const schema = { type: "OBJECT", properties: { "notaGeral": { "type": "NUMBER" }, "evaluation": { type: "ARRAY", items: { type: "OBJECT", properties: { "criterio": { "type": "STRING" }, "nota": { "type": "NUMBER" }, "justificativa": { "type": "STRING" } }, required: ["criterio", "nota", "justificativa"] } }, "speakingTime": { type: "OBJECT", properties: { "cc": { "type": "NUMBER" }, "client": { "type": "NUMBER" } }, required: ["cc", "client"] }, "profileAnalysis": { type: "OBJECT", properties: { "profile": { "type": "STRING" }, "handling": { "type": "STRING" }, "suggestions": { "type": "STRING" } }, required: ["profile", "handling", "suggestions"] }, "competitorAnalysis": { type: "OBJECT", properties: { "mentioned": { "type": "BOOLEAN" }, "competitorName": { "type": "STRING" } }, required: ["mentioned", "competitorName"] }, "summary": { type: "OBJECT", properties: { "strengths": { "type": "ARRAY", "items": { "type": "STRING" } }, "specificErrors": { "type": "ARRAY", "items": { "type": "STRING" } }, "suggestions": { "type": "ARRAY", items: { "type": "STRING" } } }, required: ["strengths", "specificErrors", "suggestions"] }, "cancellationAlert": { type: "OBJECT", properties: { "risk": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["risk", "reason"] }, "dealStatus": { type: "OBJECT", properties: { "closed": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["closed", "reason"] }, "meetingHighlight": { "type": "STRING" }, "opportunities": { type: "ARRAY", items: { type: "OBJECT", properties: { "product": { "type": "STRING" }, "reason": { "type": "STRING" } }, required: ["product", "reason"] } }, "momentosChave": { type: "OBJECT", properties: { "cenarioAtual": { "type": "STRING" }, "cenarioIdeal": { "type": "STRING" } }, required: ["cenarioAtual", "cenarioIdeal"] } }, required: ["notaGeral", "evaluation", "speakingTime", "profileAnalysis", "competitorAnalysis", "summary", "cancellationAlert", "dealStatus", "meetingHighlight", "opportunities", "momentosChave"] };
                 const payload = { contents: [{ role: "user", parts: [{ text: evaluationPrompt }] }], generationConfig: { responseMimeType: "application/json", responseSchema: schema } };
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 
@@ -406,10 +377,10 @@
             loadingSpinner.classList.add('hidden');
             
             displayGeneralScore(data.notaGeral);
+            displayDealStatusFlag(data.dealStatus); // <-- NOVA CHAMADA
             displayCancellationAlert(data.cancellationAlert);
             displayCompetitorAnalysis(data.competitorAnalysis);
             
-            // Sort criteria by score for display (highest first), but keep N/A at the bottom
             const sortedForDisplay = [...data.evaluation].sort((a, b) => (b.nota === -1 ? -Infinity : b.nota) - (a.nota === -1 ? -Infinity : a.nota));
 
             detailedReport.innerHTML = '<h3 class="text-xl font-semibold mb-4 text-center lg:text-left">Avaliação Detalhada</h3>';
@@ -419,31 +390,24 @@
                 reportItem.className = 'p-4 border border-gray-200 rounded-lg bg-gray-50';
                 
                 const isNotApplicable = item.nota === -1;
-
                 const titleClass = isNotApplicable ? 'text-md font-semibold text-gray-500 line-through' : 'text-md font-semibold text-gray-800';
                 const justificationClass = isNotApplicable ? 'text-gray-400 line-through mt-2 pl-1 text-sm' : 'text-gray-600 mt-2 pl-1 text-sm';
                 
                 const scoreColor = item.nota >= 9 ? 'text-green-600' : item.nota >= 7 ? 'text-blue-600' : item.nota >= 5 ? 'text-yellow-600' : 'text-red-600';
                 const scoreDisplay = isNotApplicable 
                     ? `<span class="text-gray-500 font-medium">N/A</span>` 
-                    : `
-                        <span class="font-bold text-lg ${scoreColor}">${item.nota.toFixed(1)}</span>
-                        <span class="text-sm text-gray-500">/ 10</span>
-                    `;
+                    : `<span class="font-bold text-lg ${scoreColor}">${item.nota.toFixed(1)}</span><span class="text-sm text-gray-500">/ 10</span>`;
 
                 reportItem.innerHTML = `
                     <div class="flex justify-between items-center">
                         <h4 class="${titleClass}">${item.criterio}</h4>
-                        <div class="text-right">
-                            ${scoreDisplay}
-                        </div>
+                        <div class="text-right">${scoreDisplay}</div>
                     </div>
                     <p class="${justificationClass}">${item.justificativa.replace(/\n/g, '<br>')}</p>
                 `;
                 detailedReport.appendChild(reportItem);
             });
 
-            // Filter out N/A criteria for the radar chart
             const radarData = data.evaluation.filter(item => item.nota !== -1);
             const radarLabels = radarData.map(item => item.criterio);
             const radarScores = radarData.map(item => item.nota);
@@ -451,22 +415,14 @@
             if (radarChartInstance) radarChartInstance.destroy();
             radarChartInstance = new Chart(radarChartCanvas, {
                 type: 'radar',
-                data: { 
-                    labels: radarLabels, 
-                    datasets: [{ 
-                        label: 'Performance', 
-                        data: radarScores,
-                        backgroundColor: 'rgba(0, 45, 114, 0.2)', 
-                        borderColor: '#002d72', 
-                        borderWidth: 2 
-                    }] 
-                },
+                data: { labels: radarLabels, datasets: [{ label: 'Performance', data: radarScores, backgroundColor: 'rgba(0, 45, 114, 0.2)', borderColor: '#002d72', borderWidth: 2 }] },
                 options: { responsive: true, maintainAspectRatio: false, scales: { r: { beginAtZero: true, min: 0, max: 10, stepSize: 2 } }, plugins: { legend: { display: false } } }
             });
 
             displaySpeakingTime(data.speakingTime);
             displayMeetingHighlight(data.meetingHighlight);
             displayOpportunities(data.opportunities);
+            displayKeyMoments(data.momentosChave);
             displayProfileAnalysis(data.profileAnalysis);
             displaySummary(data.summary);
             analysisResults.classList.remove('hidden');
@@ -481,8 +437,30 @@
                     <h3 class="text-xl font-semibold text-primary">Nota Geral da Reunião</h3>
                     <p class="text-5xl font-bold ${scoreColor} mt-2">${score.toFixed(1)}</p>
                     <p class="text-lg font-medium ${scoreColor} mt-1">${scoreText}</p>
-                </div>
-            `;
+                </div>`;
+        }
+        
+        // <-- NOVA FUNÇÃO PARA EXIBIR A FLAG DE NEGÓCIO FECHADO -->
+        function displayDealStatusFlag(dealStatus) {
+            const dealStatusSection = document.getElementById('deal-status-section');
+            dealStatusSection.innerHTML = '';
+            dealStatusSection.classList.add('hidden');
+            if (dealStatus && dealStatus.closed) {
+                dealStatusSection.innerHTML = `
+                    <div class="bg-green-100 border-l-4 border-green-500 text-green-800 p-4 rounded-lg" role="alert">
+                        <div class="flex">
+                            <div class="py-1">
+                                <svg class="fill-current h-6 w-6 text-green-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM6.7 9.29L9 11.6l4.3-4.3 1.4 1.42L9 14.4l-3.7-3.7 1.4-1.42z"/></svg>
+                            </div>
+                            <div>
+                                <p class="font-bold">Negócio Fechado ou Iminente!</p>
+                                <p class="text-sm">${dealStatus.reason}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                dealStatusSection.classList.remove('hidden');
+            }
         }
 
         function displayCancellationAlert(alertData) {
@@ -498,8 +476,7 @@
                                 <p class="text-sm">${alertData.reason}</p>
                             </div>
                         </div>
-                    </div>
-                `;
+                    </div>`;
                 cancellationAlertSection.classList.remove('hidden');
             }
         }
@@ -517,8 +494,7 @@
                                 <p class="text-sm">O cliente mencionou o uso da plataforma: <strong>${competitorData.competitorName}</strong>.</p>
                             </div>
                         </div>
-                    </div>
-                `;
+                    </div>`;
                 competitorAlertSection.classList.remove('hidden');
             }
         }
@@ -528,16 +504,13 @@
                 speakingTimeAnalysis.innerHTML = `<p class="text-center text-gray-500 text-sm">Dados de fala indisponíveis.</p>`;
                 return;
             }
-
             const total = cc + client;
             if (total === 0) {
                 speakingTimeAnalysis.innerHTML = `<p class="text-center text-gray-500 text-sm">Não foi possível analisar a distribuição de fala.</p>`;
                 return;
             }
-
             const ccPercent = (cc / total) * 100;
             const clientPercent = 100 - ccPercent;
-
             speakingTimeAnalysis.innerHTML = `
                 <div class="w-full">
                     <div class="flex justify-between mb-1 text-sm font-medium">
@@ -548,8 +521,7 @@
                         <div class="h-full bg-primary transition-all duration-500" style="width: ${ccPercent}%" title="Consultor: ${ccPercent.toFixed(1)}%"></div>
                         <div class="h-full bg-secondary-pink transition-all duration-500" style="width: ${clientPercent}%" title="Cliente: ${clientPercent.toFixed(1)}%"></div>
                     </div>
-                </div>
-            `;
+                </div>`;
         }
         
         function displayMeetingHighlight(highlight) {
@@ -558,8 +530,7 @@
                 <h3 class="text-2xl font-bold text-center text-primary">Ponto Alto da Reunião</h3>
                 <div class="mt-6 bg-green-50/50 p-6 rounded-lg">
                      <p class="text-gray-700">${highlight}</p>
-                </div>
-            `;
+                </div>`;
         }
 
         function displayOpportunities(opportunities) {
@@ -572,14 +543,33 @@
                 <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
                     <h4 class="text-md font-semibold text-gray-800">${op.product}</h4>
                     <p class="text-gray-600 mt-2 pl-1 text-sm">${op.reason}</p>
-                </div>
-            `).join('');
-
+                </div>`).join('');
             opportunitiesSection.innerHTML = `
                 <h3 class="text-2xl font-bold text-center text-primary">Oportunidades de Upsell Identificadas</h3>
-                <div class="mt-6 space-y-4">${opportunitiesList}</div>
-            `;
+                <div class="mt-6 space-y-4">${opportunitiesList}</div>`;
             opportunitiesSection.classList.remove('hidden');
+        }
+
+        function displayKeyMoments(keyMomentsData) {
+            const keyMomentsSection = document.getElementById('key-moments-section');
+            if (!keyMomentsData || !keyMomentsData.cenarioAtual || !keyMomentsData.cenarioIdeal) {
+                keyMomentsSection.innerHTML = '';
+                keyMomentsSection.classList.add('hidden');
+                return;
+            }
+            keyMomentsSection.innerHTML = `
+                <h3 class="text-2xl font-bold text-center text-primary">Revisão do Momento-Chave da Reunião</h3>
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-red-50 p-6 rounded-lg border border-red-200">
+                        <h4 class="text-lg font-semibold mb-3 text-red-700">Cenário Atual (Como Aconteceu)</h4>
+                        <div class="text-gray-700 text-sm whitespace-pre-wrap font-mono">${keyMomentsData.cenarioAtual}</div>
+                    </div>
+                    <div class="bg-green-50 p-6 rounded-lg border border-green-200">
+                        <h4 class="text-lg font-semibold mb-3 text-green-700">Cenário Ideal (Como Poderia Ter Sido)</h4>
+                        <div class="text-gray-800 text-sm whitespace-pre-wrap font-mono">${keyMomentsData.cenarioIdeal}</div>
+                    </div>
+                </div>`;
+            keyMomentsSection.classList.remove('hidden');
         }
 
         function displayProfileAnalysis(profileData) {
@@ -596,8 +586,7 @@
                     <p class="text-gray-700">${profileData.handling}</p>
                     <h4 class="text-lg font-semibold mt-6 mb-2 text-primary">Sugestões de Abordagem</h4>
                     <p class="text-gray-700">${profileData.suggestions}</p>
-                </div>
-            `;
+                </div>`;
         }
 
         function displaySummary(summaryData) {
@@ -609,11 +598,9 @@
             const strengthsList = (summaryData.strengths && summaryData.strengths.length > 0)
                 ? summaryData.strengths.map(s => `<li class="flex items-start"><span class="text-green-500 mr-2 mt-1">&#10003;</span><span>${s}</span></li>`).join('')
                 : '<li class="text-gray-500">Nenhuma força específica foi destacada.</li>';
-
             const errorsList = (summaryData.specificErrors && summaryData.specificErrors.length > 0)
                 ? summaryData.specificErrors.map(e => `<li class="flex items-start"><span class="text-red-500 mr-2 mt-1">&#10007;</span><span>${e.replace(/\n/g, '<br>')}</span></li>`).join('')
                 : '<li class="text-gray-500">Nenhum ponto de melhoria crítico foi identificado.</li>';
-
             const suggestionsList = (summaryData.suggestions && summaryData.suggestions.length > 0)
                 ? summaryData.suggestions.map(s => `<li class="flex items-start"><span class="text-primary mr-2 mt-1">&#10148;</span><span>${s.replace(/\n/g, '<br>')}</span></li>`).join('')
                 : '<li class="text-gray-500">Nenhuma sugestão adicional.</li>';
@@ -633,8 +620,7 @@
                         <h4 class="text-lg font-semibold mb-3 text-primary">Sugestões Práticas</h4>
                         <ul class="space-y-2 text-gray-700">${suggestionsList}</ul>
                     </div>
-                </div>
-            `;
+                </div>`;
         }
     </script>
 </body>
