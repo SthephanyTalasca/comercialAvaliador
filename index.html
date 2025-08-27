@@ -44,6 +44,10 @@
             background-color: #eef2ff;
             border-color: #002d72;
         }
+        /* Estilo para o modal */
+        #sales-guide-modal {
+            transition: opacity 0.3s ease;
+        }
     </style>
 </head>
 <body class="text-gray-800">
@@ -56,7 +60,13 @@
 
         <main>
             <div class="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-gray-200">
-                <h2 class="text-2xl font-semibold mb-4 text-primary">1. Forneça os Dados da Reunião</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold text-primary">1. Forneça os Dados da Reunião</h2>
+                    <button id="open-guide-btn" class="bg-yellow-400 text-yellow-900 font-bold py-2 px-4 rounded-lg hover:bg-yellow-500 transition-colors text-sm flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                        Guia de Vendas
+                    </button>
+                </div>
                 
                 <div class="mb-6">
                     <label for="cc-name-input" class="block text-lg font-medium text-gray-700 mb-2">Nome do Consultor (CC)</label>
@@ -101,6 +111,7 @@
                     <div id="error-message" class="hidden text-center my-8 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg" role="alert"></div>
 
                     <div id="analysis-results" class="hidden">
+                        <div id="closing-status-section" class="mb-8"></div>
                         <div id="general-score-section" class="mb-8"></div>
                         <div id="cancellation-alert-section" class="mb-8 hidden"></div>
                         <div id="competitor-alert-section" class="mb-8 hidden"></div>
@@ -137,11 +148,85 @@
         </footer>
     </div>
 
+    <div id="sales-guide-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <header class="p-5 border-b flex justify-between items-center">
+                <h2 class="text-2xl font-bold text-primary">Guia Rápido de Técnicas de Vendas</h2>
+                <button id="close-guide-btn" class="text-gray-500 hover:text-red-600 transition-colors">&times;</button>
+            </header>
+            <main class="p-6 overflow-y-auto space-y-8 text-gray-700">
+                
+                <section>
+                    <h3 class="text-xl font-semibold text-primary mb-3">Parte 1: A Mentalidade Correta para o Fechamento</h3>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><b>Fechamento é Ajudar, Não Forçar:</b> É a conclusão lógica de uma conversa em que você identificou um problema e apresentou a solução. Você está ajudando o cliente a tomar a melhor decisão.</li>
+                        <li><b>Confiança Gera Confiança:</b> Aja como se o "sim" fosse o resultado natural. Sua segurança e tranquilidade são contagiantes.</li>
+                        <li><b>Assuma a Parceria:</b> Deixe claro que a assinatura do contrato é o início de uma parceria onde você estará junto para garantir o sucesso dele.</li>
+                        <li><b>O Poder do Silêncio:</b> Após fazer uma pergunta de fechamento ("Podemos avançar?"), fique em silêncio. Deixe o cliente processar.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3 class="text-xl font-semibold text-primary mb-3">Parte 2: Técnicas de Fechamento</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-bold">1. Fechamento Presumido (Assumptive Close)</h4>
+                            <p class="text-sm">Aja como se a decisão já estivesse tomada. Transmite confiança.</p>
+                            <p class="mt-1 pl-4 border-l-2 border-yellow-400"><i>Ex: "Qual é o melhor e-mail para eu enviar o nosso termo de parceria?"</i></p>
+                        </div>
+                        <div>
+                            <h4 class="font-bold">2. Fechamento por Alternativa (Alternative Close)</h4>
+                            <p class="text-sm">Ofereça duas opções, onde ambas significam um "sim".</p>
+                            <p class="mt-1 pl-4 border-l-2 border-yellow-400"><i>Ex: "O treinamento da sua equipe fica melhor na terça de manhã ou na quinta à tarde?"</i></p>
+                        </div>
+                        <div>
+                            <h4 class="font-bold">3. Fechamento Condicional (If... Then... Close)</h4>
+                            <p class="text-sm">Ofereça uma concessão em troca de um compromisso imediato. Ideal para negociações.</p>
+                            <p class="mt-1 pl-4 border-l-2 border-yellow-400"><i>Ex: "<b>Se eu conseguir</b> a liberação do módulo X sem custo, <b>então podemos</b> assinar o contrato hoje?"</i></p>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h3 class="text-xl font-semibold text-primary mb-3">Parte 3: O Método A.C.R.E. para Contornar Objeções</h3>
+                    <p class="mb-2">Objeções são pedidos de mais informação. Nunca discuta. Use o método:</p>
+                    <ul class="list-none space-y-2">
+                        <li><span class="font-bold text-primary">A - Acolha:</span> Ouça com atenção. Mostre que você entende a preocupação.</li>
+                        <li><span class="font-bold text-primary">C - Confirme:</span> Isole a objeção real. Faça perguntas para entender a raiz do problema.</li>
+                        <li><span class="font-bold text-primary">R - Responda:</span> Reforce o valor da sua solução, respondendo diretamente à objeção confirmada.</li>
+                        <li><span class="font-bold text-primary">E - Encaminhe:</span> Verifique se a objeção foi sanada e peça novamente pelo avanço.</li>
+                    </ul>
+                </section>
+                
+                <section>
+                    <h3 class="text-xl font-semibold text-primary mb-3">Parte 4: Lidando com as Objeções Mais Comuns</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-bold">"Está muito caro."</h4>
+                            <p class="text-sm"><b>Acolha:</b> "Eu entendo sua preocupação com o investimento."<br><b>Confirme:</b> "Quando você diz 'caro', o que pesou mais, a mensalidade ou o setup?"<br><b>Responda:</b> (Após isolar) "Vamos pensar no retorno. Se a ferramenta te economizar X horas, isso representa um ganho de R$ YYY. Ela se paga e ainda gera lucro."<br><b>Encaminhe:</b> "Pensando nesse retorno, o investimento não parece mais justo?"</p>
+                        </div>
+                        <div>
+                            <h4 class="font-bold">"Preciso falar com meu sócio."</h4>
+                            <p class="text-sm"><b>Acolha:</b> "Claro, uma decisão importante deve ser compartilhada."<br><b>Confirme:</b> "Qual ponto da nossa conversa você acha que será mais importante para ele?"<br><b>Responda:</b> "Ótimo. Que tal agendarmos uma nova conversa de 15 minutos com vocês dois? Assim eu mesmo posso esclarecer os pontos para ele."<br><b>Encaminhe:</b> "Posso verificar minha agenda para amanhã à tarde?"</p>
+                        </div>
+                         <div>
+                            <h4 class="font-bold">"Não tenho tempo para implementar isso agora."</h4>
+                            <p class="text-sm"><b>Acolha:</b> "Essa é uma preocupação muito comum, a rotina é corrida."<br><b>Confirme:</b> "Na verdade, essa falta de tempo é exatamente o problema que nossa ferramenta resolve, certo?"<br><b>Responda:</b> "É por isso que nosso processo inclui um consultor dedicado. Ele fará 90% do trabalho pesado. O investimento de tempo da sua equipe será mínimo."<br><b>Encaminhe:</b> "Se eu te garantir que cuidaremos de tudo, podemos começar a resolver essa falta de tempo?"</p>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
     <script>
         // NOTA: Para que a aplicação funcione, você precisa inserir sua própria chave de API do Google AI Studio.
         // Em um ambiente de produção, é crucial gerenciar as chaves de API de forma segura, 
         // por exemplo, usando um proxy de backend para evitar expor a chave no lado do cliente.
         const apiKey = "AIzaSyDp7L_MK46uDrwCGHI2kze0VpxG3_AZfrs"; // <-- SUBSTITUA PELA SUA CHAVE DE API
+        
+        // Elementos da página
         const ccNameInput = document.getElementById('cc-name-input');
         const transcriptInput = document.getElementById('transcript-input');
         const analyzeBtn = document.getElementById('analyze-btn');
@@ -163,7 +248,13 @@
         const highlightSection = document.getElementById('highlight-section');
         const generalScoreSection = document.getElementById('general-score-section');
         const opportunitiesSection = document.getElementById('opportunities-section');
+        const closingStatusSection = document.getElementById('closing-status-section');
         
+        // Elementos do Guia de Vendas (Modal)
+        const salesGuideModal = document.getElementById('sales-guide-modal');
+        const openGuideBtn = document.getElementById('open-guide-btn');
+        const closeGuideBtn = document.getElementById('close-guide-btn');
+
         let radarChartInstance = null;
         let uploadedFiles = [];
 
@@ -182,6 +273,16 @@
              }, 100);
              handleAnalysis();
         });
+        
+        // Listeners do Guia de Vendas
+        openGuideBtn.addEventListener('click', () => salesGuideModal.classList.remove('hidden'));
+        closeGuideBtn.addEventListener('click', () => salesGuideModal.classList.add('hidden'));
+        salesGuideModal.addEventListener('click', (e) => {
+            if (e.target === salesGuideModal) { // Fecha se clicar no fundo
+                salesGuideModal.classList.add('hidden');
+            }
+        });
+
 
         function checkAnalysisButtonState() {
             const hasText = transcriptInput.value.trim().length > 0;
@@ -253,7 +354,7 @@
                 `;
                 errorMessage.classList.remove('hidden');
                 setTimeout(() => {
-                     resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }, 100);
                 return; // Stop execution if no key is provided.
             }
@@ -294,6 +395,7 @@
                         - **Técnicas Ativas (Gatilhos, Fechamento):** A ausência completa de uso é uma falha grave. Se não houver evidência, a nota deve ser **entre 4 e 5**.
                         - **Rapport:** Se não houver ação proativa para criar conexão (apenas um "bom dia" formal), a nota de 'Rapport' deve ser **6**.
                     6.  **Formato de Saída:** A resposta DEVE ser um único objeto JSON, sem exceções.
+                    7.  **Flag de Fechamento:** No campo "closingStatus", identifique se o negócio foi fechado. Considere um negócio fechado se o cliente usar termos como "fechado", "pode mandar o contrato", "vamos fechar", ou se começar a passar dados cadastrais (CNPJ, e-mail para contrato).
 
                     ---
                     **CRITÉRIOS DE AVALIAÇÃO COMERCIAL (Escala de 1 a 10):**
@@ -301,52 +403,53 @@
                     1.  **Rapport e Conexão:** (O que foi avaliado: conexão emocional, uso do nome, leveza, empatia inicial. Sinais de excelência: quebra de gelo personalizada, linguagem acessível, genuinidade.)
                     2.  **Autoridade Comercial:** (O que foi avaliado: postura de liderança, condução do ritmo. Sinais de excelência: voz firme, segurança nas transições, condução clara e assertiva.)
                     3.  **Clareza da Apresentação:** (O que foi avaliado: didática, linguagem simplificada. Sinais de excelência: analogias, explicações limpas, sem termos técnicos desnecessários.)
+                    4.  **Gatilhos Mentais:** (O que foi avaliado: Uso estratégico de gatilhos como urgência, autoridade, prova social, etc.)
+                    5.  **Pré-Fechamento:** (O que foi avaliado: A adesão ESTRITA ao processo obrigatório de pré-fechamento e tratamento da objeção de "sócio".)
                     
-                    4.  **Gatilhos Mentais:**
-                        - **O que foi avaliado:** Uso estratégico (explícito ou implícito) de gatilhos como urgência, autoridade, prova social, escassez, baseado nas fontes de Robert Cialdini e Dale Carnegie.
-                        - **Análise de Oportunidade Perdida:** Quando o consultor NÃO explorou um gatilho óbvio, sua resposta DEVE indicar: o momento exato da conversa, o contexto da fala, o gatilho ideal a ser usado e um exemplo de frase.
-                        - **Exemplo de Feedback de Falha:** "Quando o cliente duvidou da segurança do sistema, o consultor só respondeu tecnicamente. Ideal seria usar AUTORIDADE, como: 'Inclusive, este modelo é usado por mais de 2.500 contabilidades com suas mesmas normas de compliance.'"
-
-                    5.  **Pré-Fechamento:**
-                        - **O que foi avaliado:** Se o consultor buscou validação de interesse/reduziu objeções ANTES de apresentar o preço. Busque por perguntas de validação.
-                        - **Análise do Processo:** Avalie se esta etapa seguiu o processo comercial da empresa. Se houve falha, descreva o impacto na segurança do cliente. Use trechos da conversa para apoiar sua análise.
-
                     6.  **Técnicas de Fechamento:**
-                        - **O que foi avaliado:** Se usou técnica de fechamento (alternativa, condicional, assumida, etc.) e pediu o fechamento com clareza.
-                        - **Análise do Processo:** Avalie se a técnica e os passos seguintes (ex: abrir calendário, enviar proposta) seguiram o processo. Descreva como falhas no processo impactaram a decisão do cliente ou a perda de timing.
-                        - **Regra de Concorrência:** Se um concorrente foi mencionado, é OBRIGATÓRIO avaliar aqui se o consultor seguiu o manual específico para aquele concorrente.
+                        - **O que foi avaliado:** A adesão ESTRITA ao processo obrigatório de Negociação de Valores, que varia conforme a origem do cliente.
+                        - ---
+                        - **FLUXO DE NEGOCIAÇÃO PARA CLIENTES 'ACESSÓRIAS':**
+                        - **Se a transcrição indicar que o cliente usa 'Acessórias', o consultor DEVE seguir este roteiro:**
+                            1.  **Investigação de Custo Atual:** ANTES de apresentar valores, o consultor DEVE perguntar quanto o cliente paga atualmente na Acessórias.
+                            2.  **Estratégia de Precificação:** O consultor DEVE posicionar o valor da nossa solução ACIMA do valor pago na Acessórias.
+                            3.  **Justificativa Obrigatória de Valor:** A justificativa para o preço maior DEVE ser baseada no valor do "Ecossistema Completo" versus o produto isolado do concorrente, reforçando as funcionalidades já apresentadas.
+                            4.  **Plano B:** Se o cliente não informar o valor, o consultor deve retornar ao "Modelo de Fechamento Padrão" (descrito abaixo).
+                        - ---
+                        - **MODELO DE FECHAMENTO PADRÃO (para todos os outros casos):**
+                            1.  **Explicação da Precificação:** O consultor explicou o modelo (mensalidade por nº de clientes + setup com consultor dedicado)? Reforçou a parceria e sua disponibilidade pessoal?
+                            2.  **Apresentação do Valor:** Usou a frase exata com tom positivo: "Pode admitir, você achou que seria bem mais caro, né?"
+                            3.  **Tratamento de Objeção de Preço (Nível 1):** Ao ouvir "está alto", ele fez a pergunta de diagnóstico "O que pesou mais para você: a mensalidade ou o setup?" para isolar o problema?
+                            4.  **Tática de Valor Agregado:** Ele usou a tática de mostrar o site da Gestão Financeira e depois oferecê-la como bônus (sem custo) para justificar o pacote?
+                            5.  **Tratamento de Objeção de Preço (Nível 2):** Se ambos os valores foram questionados, ele tentou obter uma contraproposta ("O que você tinha em mente como investimento hoje?")?
+                            6.  **Fechamento Condicional:** Após receber uma contraproposta ou antes de oferecer um desconto, ele usou a frase de compromisso "Se eu conseguir isso para você, posso contar com seu voto de confiança para avançarmos?"
+                        - ---
+                        - **REGRAS GERAIS DE FECHAMENTO (Aplicável a ambos os fluxos):**
+                            - **Regra Crucial (Pré-Desconto):** ANTES de conceder qualquer desconto, ele reforçou a parceria, a pessoalidade e o seu papel como um conector para ajudar o cliente a crescer?
+                            - **Último Recurso (Escalonamento):** Se o cliente ainda estava resistente, ele usou a tática de chamar o coordenador, já condicionando a melhoria da oferta ao agendamento do treinamento?
+                        - **REGRA DE PONTUAÇÃO FINAL:** Se a análise da transcrição indicar que o negócio foi fechado (cliente disse "sim", "fechado", ou passou dados para o contrato), a nota para este critério **DEVE ser 9 ou 10**, refletindo o sucesso máximo da negociação.
 
-                    7.  **Contorno de Objeções:** (O que foi avaliado: antecipação, escuta, técnica de espelhamento, argumento estruturado. Sinais de excelência: abordagem empática, baseada em cases, dados ou benefícios.)
-                    8.  **Escuta Ativa:** (O que foi avaliado: reformulação de falas, atenção aos detalhes. Sinais de excelência: "você comentou que...", "entendi que seu ponto é...".)
-                    9.  **Perguntas Poderosas:** (O que foi avaliado: profundidade na investigação da dor. Sinais de excelência: perguntas que geram silêncio reflexivo ou expandem o discurso.)
+                    7.  **Contorno de Objeções:** (O que foi avaliado: antecipação, escuta, técnica de espelhamento, argumento estruturado.)
+                    8.  **Escuta Ativa:** (O que foi avaliado: reformulação de falas, atenção aos detalhes.)
+                    9.  **Perguntas Poderosas:** (O que foi avaliado: profundidade na investigação da dor.)
 
                     10. **Personalização do Pitch:**
-                        - **O que foi avaliado:** A profundidade da personalização. Não basta uma adaptação superficial. O objetivo é demonstrar domínio das dores emocionais, técnicas e operacionais do cliente.
-                        - **Checklist para Avaliação:** O consultor usou perguntas abertas para o motivo real? Validou verbalmente as dores (espelhamento consultivo)? Trouxe 1-2 exemplos de clientes com perfil similar? Personalizou a demo com base no segmento do cliente?
-                        - **Exemplo de Excelência:** Em vez de "isso vai te ajudar a ganhar tempo", um bom consultor diria: “Como você me contou que hoje o envio de obrigações depende da planilha da colaboradora X, essa automação reduz esse gargalo e te garante mais controle, especialmente nas semanas de fechamento, certo?”
+                        - **O que foi avaliado:** A profundidade da personalização.
+                        - **Checklist para Avaliação:** O consultor usou perguntas abertas para o motivo real? Validou verbalmente as dores? Trouxe exemplos de clientes com perfil similar?
+                        - **Regra Específica para Clientes 'Acessórias':** Se a transcrição indicar que o cliente utiliza 'Acessórias', é OBRIGATÓRIO que o consultor tenha mencionado e explorado o benefício do aplicativo personalizado. A ausência desta menção deve impactar negativamente a nota.
 
-                    11. **Conexão com o Negócio do Cliente:** (O que foi avaliado: profundidade no entendimento do modelo operacional e estratégia do cliente. Sinais de excelência: perguntas sobre receita, operação, metas.)
-                    12. **Jornada do Cliente:** (O que foi avaliado: clareza nos próximos passos, expectativas de onboarding. Sinais de excelência: timeline clara, prazos definidos, tranquilidade transmitida.)
-
-                    13. **Gestão de Tempo:**
-                        - **O que foi avaliado:** Duração e aproveitamento do tempo da reunião. Analise a transcrição para estimar o ritmo e a duração efetiva.
-                        - **Critérios de Nota (use como guia para o ritmo percebido):**
-                            - ⏱️ Até 20 min: Nota 5 (insuficiente, superficial).
-                            - ⏱️ 21-30 min: Nota 7 (bom, mas pode evoluir).
-                            - ⏱️ 31-40 min: Nota 8 (ótimo, com aprofundamento).
-                            - ⏱️ 41-50 min: Nota 10 (excelente, ideal).
-                            - ⏱️ Acima de 1h: Nota 6 + recomendação (excesso, perda de foco).
-                        - **Justificativa:** Justifique a nota citando o aproveitamento do tempo, se houve dispersão ou aprofundamento excessivo, ou se o tempo curto impactou a argumentação.
-
-                    14. **Encantamento Comercial:** (O que foi avaliado: energia, brilho nos olhos, crença no impacto da solução. Sinais de excelência: entusiasmo genuíno, emoção ao falar dos benefícios.)
-                    15. **Postura Profissional:** (O que foi avaliado: maturidade emocional, reação a objeções, tom de voz. Sinais de excelência: compostura, elegância na fala, controle emocional.)
-                    16. **Domínio de Produto:** (O que foi avaliado: segurança técnica ao apresentar o Nibo, usando a base de conhecimento (ajuda.nibo.com.br) como referência para precisão. Sinais de excelência: explicações fluidas, analogias, domínio de dúvidas comuns.)
-                    17. **Portfólio Estratégico:** (O que foi avaliado: ampliação do escopo com visão de cross-sell/upsell para outros produtos do portfólio. Sinais de excelência: identificação de fit para GF, COF, WhatsApp, Emissor, etc.)
+                    11. **Conexão com o Negócio do Cliente:** (O que foi avaliado: profundidade no entendimento do modelo operacional e estratégia do cliente.)
+                    12. **Jornada do Cliente:** (O que foi avaliado: clareza nos próximos passos, expectativas de onboarding.)
+                    13. **Gestão de Tempo:** (O que foi avaliado: Duração e aproveitamento do tempo da reunião.)
+                    14. **Encantamento Comercial:** (O que foi avaliado: energia, brilho nos olhos, crença no impacto da solução.)
+                    15. **Postura Profissional:** (O que foi avaliado: maturidade emocional, reação a objeções, tom de voz.)
+                    16. **Domínio de Produto:** (O que foi avaliado: segurança técnica ao apresentar o produto.)
+                    17. **Portfólio Estratégico:** (O que foi avaliado: ampliação do escopo com visão de cross-sell/upsell.)
 
                     ---
                     **ANÁLISE DE PERFIL COMPORTAMENTAL DO CLIENTE (OBRIGATÓRIO):**
-                    - **Tipos:** Analítico (cauteloso, quer dados), Pragmático (direto, foca no ROI), Afável (relacional, evita conflitos), Expressivo (emocional, valoriza propósito).
-                    - **Avaliação:** Identifique o perfil do cliente, como o consultor lidou com ele, e dê sugestões de como a abordagem poderia ser mais bem adaptada a esse perfil.
+                    - **Tipos:** Analítico, Pragmático, Afável, Expressivo.
+                    - **Avaliação:** Identifique o perfil do cliente, como o consultor lidou com ele, e dê sugestões de como a abordagem poderia ser mais bem adaptada.
 
                     ---
                     **TRANSCRIÇÃO PARA ANÁLISE:**
@@ -355,7 +458,7 @@
                     ---
                 `;
 
-                const schema = { type: "OBJECT", properties: { "notaGeral": { "type": "NUMBER" }, "evaluation": { type: "ARRAY", items: { type: "OBJECT", properties: { "criterio": { "type": "STRING" }, "nota": { "type": "NUMBER" }, "justificativa": { "type": "STRING" } }, required: ["criterio", "nota", "justificativa"] } }, "speakingTime": { type: "OBJECT", properties: { "cc": { "type": "NUMBER" }, "client": { "type": "NUMBER" } }, required: ["cc", "client"] }, "profileAnalysis": { type: "OBJECT", properties: { "profile": { "type": "STRING" }, "handling": { "type": "STRING" }, "suggestions": { "type": "STRING" } }, required: ["profile", "handling", "suggestions"] }, "competitorAnalysis": { type: "OBJECT", properties: { "mentioned": { "type": "BOOLEAN" }, "competitorName": { "type": "STRING" } }, required: ["mentioned", "competitorName"] }, "summary": { type: "OBJECT", properties: { "strengths": { "type": "ARRAY", "items": { "type": "STRING" } }, "specificErrors": { "type": "ARRAY", "items": { "type": "STRING" } }, "suggestions": { "type": "ARRAY", items: { "type": "STRING" } } }, required: ["strengths", "specificErrors", "suggestions"] }, "cancellationAlert": { type: "OBJECT", properties: { "risk": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["risk", "reason"] }, "meetingHighlight": { "type": "STRING" }, "opportunities": { type: "ARRAY", items: { type: "OBJECT", properties: { "product": { "type": "STRING" }, "reason": { "type": "STRING" } }, required: ["product", "reason"] } } }, required: ["notaGeral", "evaluation", "speakingTime", "profileAnalysis", "competitorAnalysis", "summary", "cancellationAlert", "meetingHighlight", "opportunities"] };
+                const schema = { type: "OBJECT", properties: { "notaGeral": { "type": "NUMBER" }, "evaluation": { type: "ARRAY", items: { type: "OBJECT", properties: { "criterio": { "type": "STRING" }, "nota": { "type": "NUMBER" }, "justificativa": { "type": "STRING" } }, required: ["criterio", "nota", "justificativa"] } }, "speakingTime": { type: "OBJECT", properties: { "cc": { "type": "NUMBER" }, "client": { "type": "NUMBER" } }, required: ["cc", "client"] }, "profileAnalysis": { type: "OBJECT", properties: { "profile": { "type": "STRING" }, "handling": { "type": "STRING" }, "suggestions": { "type": "STRING" } }, required: ["profile", "handling", "suggestions"] }, "competitorAnalysis": { type: "OBJECT", properties: { "mentioned": { "type": "BOOLEAN" }, "competitorName": { "type": "STRING" } }, required: ["mentioned", "competitorName"] }, "summary": { type: "OBJECT", properties: { "strengths": { "type": "ARRAY", "items": { "type": "STRING" } }, "specificErrors": { "type": "ARRAY", "items": { "type": "STRING" } }, "suggestions": { "type": "ARRAY", items: { "type": "STRING" } } }, required: ["strengths", "specificErrors", "suggestions"] }, "cancellationAlert": { type: "OBJECT", properties: { "risk": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["risk", "reason"] }, "meetingHighlight": { "type": "STRING" }, "opportunities": { type: "ARRAY", items: { type: "OBJECT", properties: { "product": { "type": "STRING" }, "reason": { "type": "STRING" } }, required: ["product", "reason"] } }, "closingStatus": { type: "OBJECT", properties: { "closed": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["closed", "reason"] } }, required: ["notaGeral", "evaluation", "speakingTime", "profileAnalysis", "competitorAnalysis", "summary", "cancellationAlert", "meetingHighlight", "opportunities", "closingStatus"] };
                 const payload = { contents: [{ role: "user", parts: [{ text: evaluationPrompt }] }], generationConfig: { responseMimeType: "application/json", responseSchema: schema } };
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 
@@ -389,11 +492,11 @@
         function displayResults(data) {
             loadingSpinner.classList.add('hidden');
             
+            displayClosingStatus(data.closingStatus);
             displayGeneralScore(data.notaGeral);
             displayCancellationAlert(data.cancellationAlert);
             displayCompetitorAnalysis(data.competitorAnalysis);
             
-            // Sort criteria by score for display (highest first), but keep N/A at the bottom
             const sortedForDisplay = [...data.evaluation].sort((a, b) => (b.nota === -1 ? -Infinity : b.nota) - (a.nota === -1 ? -Infinity : a.nota));
 
             detailedReport.innerHTML = '<h3 class="text-xl font-semibold mb-4 text-center lg:text-left">Avaliação Detalhada</h3>';
@@ -410,24 +513,12 @@
                 const scoreColor = item.nota >= 9 ? 'text-green-600' : item.nota >= 7 ? 'text-blue-600' : item.nota >= 5 ? 'text-yellow-600' : 'text-red-600';
                 const scoreDisplay = isNotApplicable 
                     ? `<span class="text-gray-500 font-medium">N/A</span>` 
-                    : `
-                        <span class="font-bold text-lg ${scoreColor}">${item.nota.toFixed(1)}</span>
-                        <span class="text-sm text-gray-500">/ 10</span>
-                    `;
+                    : `<span class="font-bold text-lg ${scoreColor}">${item.nota.toFixed(1)}</span><span class="text-sm text-gray-500">/ 10</span>`;
 
-                reportItem.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <h4 class="${titleClass}">${item.criterio}</h4>
-                        <div class="text-right">
-                            ${scoreDisplay}
-                        </div>
-                    </div>
-                    <p class="${justificationClass}">${item.justificativa.replace(/\n/g, '<br>')}</p>
-                `;
+                reportItem.innerHTML = `<div class="flex justify-between items-center"><h4 class="${titleClass}">${item.criterio}</h4><div class="text-right">${scoreDisplay}</div></div><p class="${justificationClass}">${item.justificativa.replace(/\n/g, '<br>')}</p>`;
                 detailedReport.appendChild(reportItem);
             });
 
-            // Filter out N/A criteria for the radar chart
             const radarData = data.evaluation.filter(item => item.nota !== -1);
             const radarLabels = radarData.map(item => item.criterio);
             const radarScores = radarData.map(item => item.nota);
@@ -435,16 +526,7 @@
             if (radarChartInstance) radarChartInstance.destroy();
             radarChartInstance = new Chart(radarChartCanvas, {
                 type: 'radar',
-                data: { 
-                    labels: radarLabels, 
-                    datasets: [{ 
-                        label: 'Performance', 
-                        data: radarScores,
-                        backgroundColor: 'rgba(0, 45, 114, 0.2)', 
-                        borderColor: '#002d72', 
-                        borderWidth: 2 
-                    }] 
-                },
+                data: { labels: radarLabels, datasets: [{ label: 'Performance', data: radarScores, backgroundColor: 'rgba(0, 45, 114, 0.2)', borderColor: '#002d72', borderWidth: 2 }] },
                 options: { responsive: true, maintainAspectRatio: false, scales: { r: { beginAtZero: true, min: 0, max: 10, stepSize: 2 } }, plugins: { legend: { display: false } } }
             });
 
@@ -456,34 +538,35 @@
             analysisResults.classList.remove('hidden');
         }
 
+        function displayClosingStatus(status) {
+            closingStatusSection.innerHTML = '';
+            if (status && status.closed) {
+                closingStatusSection.innerHTML = `
+                    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg" role="alert">
+                        <div class="flex">
+                            <div class="py-1"><svg class="w-6 h-6 text-green-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                            <div>
+                                <p class="font-bold text-lg">Negócio Fechado!</p>
+                                <p class="text-sm mt-1">${status.reason}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
         function displayGeneralScore(score) {
             if (score === null || isNaN(score)) return;
             const scoreColor = score >= 9 ? 'text-green-600' : score >= 7 ? 'text-blue-600' : score >= 5 ? 'text-yellow-600' : 'text-red-600';
             const scoreText = score >= 9 ? 'Excelente' : score >= 7 ? 'Muito Bom' : score >= 5 ? 'Razoável' : score >= 3 ? 'Fraco' : 'Insuficiente';
-            generalScoreSection.innerHTML = `
-                <div class="text-center bg-gray-50 p-4 rounded-lg">
-                    <h3 class="text-xl font-semibold text-primary">Nota Geral da Reunião</h3>
-                    <p class="text-5xl font-bold ${scoreColor} mt-2">${score.toFixed(1)}</p>
-                    <p class="text-lg font-medium ${scoreColor} mt-1">${scoreText}</p>
-                </div>
-            `;
+            generalScoreSection.innerHTML = `<div class="text-center bg-gray-50 p-4 rounded-lg"><h3 class="text-xl font-semibold text-primary">Nota Geral da Reunião</h3><p class="text-5xl font-bold ${scoreColor} mt-2">${score.toFixed(1)}</p><p class="text-lg font-medium ${scoreColor} mt-1">${scoreText}</p></div>`;
         }
 
         function displayCancellationAlert(alertData) {
             cancellationAlertSection.innerHTML = '';
             cancellationAlertSection.classList.add('hidden');
             if (alertData && alertData.risk) {
-                cancellationAlertSection.innerHTML = `
-                    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert">
-                        <div class="flex">
-                            <div class="py-1"><svg class="fill-current h-6 w-6 text-red-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10 0C4.48 0 0 4.48 0 10s4.48 10 10 10 10-4.48 10-10S15.52 0 10 0zm-1 15H9v-2h2v2zm0-4H9V5h2v6z"/></svg></div>
-                            <div>
-                                <p class="font-bold">Alerta de Risco de Não-Fechamento!</p>
-                                <p class="text-sm">${alertData.reason}</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                cancellationAlertSection.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert"><div class="flex"><div class="py-1"><svg class="fill-current h-6 w-6 text-red-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10 0C4.48 0 0 4.48 0 10s4.48 10 10 10 10-4.48 10-10S15.52 0 10 0zm-1 15H9v-2h2v2zm0-4H9V5h2v6z"/></svg></div><div><p class="font-bold">Alerta de Risco de Não-Fechamento!</p><p class="text-sm">${alertData.reason}</p></div></div></div>`;
                 cancellationAlertSection.classList.remove('hidden');
             }
         }
@@ -492,17 +575,7 @@
             competitorAlertSection.innerHTML = '';
             competitorAlertSection.classList.add('hidden');
             if (competitorData && competitorData.mentioned) {
-                competitorAlertSection.innerHTML = `
-                    <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg" role="alert">
-                        <div class="flex">
-                            <div class="py-1"><svg class="fill-current h-6 w-6 text-yellow-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10 0C4.48 0 0 4.48 0 10s4.48 10 10 10 10-4.48 10-10S15.52 0 10 0zm-1 15H9v-2h2v2zm0-4H9V5h2v6z"/></svg></div>
-                            <div>
-                                <p class="font-bold">Concorrente Mencionado!</p>
-                                <p class="text-sm">O cliente mencionou o uso da plataforma: <strong>${competitorData.competitorName}</strong>.</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                competitorAlertSection.innerHTML = `<div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg" role="alert"><div class="flex"><div class="py-1"><svg class="fill-current h-6 w-6 text-yellow-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10 0C4.48 0 0 4.48 0 10s4.48 10 10 10 10-4.48 10-10S15.52 0 10 0zm-1 15H9v-2h2v2zm0-4H9V5h2v6z"/></svg></div><div><p class="font-bold">Concorrente Mencionado!</p><p class="text-sm">O cliente mencionou o uso da plataforma: <strong>${competitorData.competitorName}</strong>.</p></div></div></div>`;
                 competitorAlertSection.classList.remove('hidden');
             }
         }
@@ -512,38 +585,19 @@
                 speakingTimeAnalysis.innerHTML = `<p class="text-center text-gray-500 text-sm">Dados de fala indisponíveis.</p>`;
                 return;
             }
-
             const total = cc + client;
             if (total === 0) {
                 speakingTimeAnalysis.innerHTML = `<p class="text-center text-gray-500 text-sm">Não foi possível analisar a distribuição de fala.</p>`;
                 return;
             }
-
             const ccPercent = (cc / total) * 100;
             const clientPercent = 100 - ccPercent;
-
-            speakingTimeAnalysis.innerHTML = `
-                <div class="w-full">
-                    <div class="flex justify-between mb-1 text-sm font-medium">
-                        <span class="text-primary">Consultor (${Math.round(ccPercent)}%)</span>
-                        <span class="text-secondary-pink">Cliente (${Math.round(clientPercent)}%)</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-4 flex overflow-hidden">
-                        <div class="h-full bg-primary transition-all duration-500" style="width: ${ccPercent}%" title="Consultor: ${ccPercent.toFixed(1)}%"></div>
-                        <div class="h-full bg-secondary-pink transition-all duration-500" style="width: ${clientPercent}%" title="Cliente: ${clientPercent.toFixed(1)}%"></div>
-                    </div>
-                </div>
-            `;
+            speakingTimeAnalysis.innerHTML = `<div class="w-full"><div class="flex justify-between mb-1 text-sm font-medium"><span class="text-primary">Consultor (${Math.round(ccPercent)}%)</span><span class="text-secondary-pink">Cliente (${Math.round(clientPercent)}%)</span></div><div class="w-full bg-gray-200 rounded-full h-4 flex overflow-hidden"><div class="h-full bg-primary transition-all duration-500" style="width: ${ccPercent}%"></div><div class="h-full bg-secondary-pink transition-all duration-500" style="width: ${clientPercent}%"></div></div></div>`;
         }
         
         function displayMeetingHighlight(highlight) {
             if (!highlight) return;
-            highlightSection.innerHTML = `
-                <h3 class="text-2xl font-bold text-center text-primary">Ponto Alto da Reunião</h3>
-                <div class="mt-6 bg-green-50/50 p-6 rounded-lg">
-                     <p class="text-gray-700">${highlight}</p>
-                </div>
-            `;
+            highlightSection.innerHTML = `<h3 class="text-2xl font-bold text-center text-primary">Ponto Alto da Reunião</h3><div class="mt-6 bg-green-50/50 p-6 rounded-lg"><p class="text-gray-700">${highlight}</p></div>`;
         }
 
         function displayOpportunities(opportunities) {
@@ -552,17 +606,8 @@
                 opportunitiesSection.classList.add('hidden');
                 return;
             };
-            const opportunitiesList = opportunities.map(op => `
-                <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                    <h4 class="text-md font-semibold text-gray-800">${op.product}</h4>
-                    <p class="text-gray-600 mt-2 pl-1 text-sm">${op.reason}</p>
-                </div>
-            `).join('');
-
-            opportunitiesSection.innerHTML = `
-                <h3 class="text-2xl font-bold text-center text-primary">Oportunidades de Upsell Identificadas</h3>
-                <div class="mt-6 space-y-4">${opportunitiesList}</div>
-            `;
+            const opportunitiesList = opportunities.map(op => `<div class="p-4 border border-gray-200 rounded-lg bg-gray-50"><h4 class="text-md font-semibold text-gray-800">${op.product}</h4><p class="text-gray-600 mt-2 pl-1 text-sm">${op.reason}</p></div>`).join('');
+            opportunitiesSection.innerHTML = `<h3 class="text-2xl font-bold text-center text-primary">Oportunidades de Upsell Identificadas</h3><div class="mt-6 space-y-4">${opportunitiesList}</div>`;
             opportunitiesSection.classList.remove('hidden');
         }
 
@@ -571,17 +616,7 @@
                  profileAnalysisSection.innerHTML = '';
                  return;
             }
-            profileAnalysisSection.innerHTML = `
-                <h3 class="text-2xl font-bold text-center text-primary">Análise de Perfil do Cliente</h3>
-                <div class="mt-6 bg-yellow-50/60 p-6 rounded-lg">
-                    <h4 class="text-lg font-semibold mb-2 text-primary">Perfil Identificado</h4>
-                    <p class="text-gray-700">${profileData.profile}</p>
-                    <h4 class="text-lg font-semibold mt-6 mb-2 text-primary">Como o Consultor Lidou</h4>
-                    <p class="text-gray-700">${profileData.handling}</p>
-                    <h4 class="text-lg font-semibold mt-6 mb-2 text-primary">Sugestões de Abordagem</h4>
-                    <p class="text-gray-700">${profileData.suggestions}</p>
-                </div>
-            `;
+            profileAnalysisSection.innerHTML = `<h3 class="text-2xl font-bold text-center text-primary">Análise de Perfil do Cliente</h3><div class="mt-6 bg-yellow-50/60 p-6 rounded-lg"><h4 class="text-lg font-semibold mb-2 text-primary">Perfil Identificado</h4><p class="text-gray-700">${profileData.profile}</p><h4 class="text-lg font-semibold mt-6 mb-2 text-primary">Como o Consultor Lidou</h4><p class="text-gray-700">${profileData.handling}</p><h4 class="text-lg font-semibold mt-6 mb-2 text-primary">Sugestões de Abordagem</h4><p class="text-gray-700">${profileData.suggestions}</p></div>`;
         }
 
         function displaySummary(summaryData) {
@@ -590,37 +625,11 @@
                 return;
             }
             const ccName = ccNameInput.value.trim();
-            const strengthsList = (summaryData.strengths && summaryData.strengths.length > 0)
-                ? summaryData.strengths.map(s => `<li class="flex items-start"><span class="text-green-500 mr-2 mt-1">&#10003;</span><span>${s}</span></li>`).join('')
-                : '<li class="text-gray-500">Nenhuma força específica foi destacada.</li>';
-
-            const errorsList = (summaryData.specificErrors && summaryData.specificErrors.length > 0)
-                ? summaryData.specificErrors.map(e => `<li class="flex items-start"><span class="text-red-500 mr-2 mt-1">&#10007;</span><span>${e.replace(/\n/g, '<br>')}</span></li>`).join('')
-                : '<li class="text-gray-500">Nenhum ponto de melhoria crítico foi identificado.</li>';
-
-            const suggestionsList = (summaryData.suggestions && summaryData.suggestions.length > 0)
-                ? summaryData.suggestions.map(s => `<li class="flex items-start"><span class="text-primary mr-2 mt-1">&#10148;</span><span>${s.replace(/\n/g, '<br>')}</span></li>`).join('')
-                : '<li class="text-gray-500">Nenhuma sugestão adicional.</li>';
-            
-            summarySection.innerHTML = `
-                <h3 class="text-2xl font-bold text-center text-primary">Resumo Executivo para <span class="text-secondary-pink">${ccName}</span></h3>
-                <div class="mt-6 bg-blue-50/50 p-6 rounded-lg space-y-6">
-                    <div>
-                        <h4 class="text-lg font-semibold mb-3 text-primary">Forças do Consultor</h4>
-                        <ul class="space-y-2 text-gray-700">${strengthsList}</ul>
-                    </div>
-                    <div>
-                        <h4 class="text-lg font-semibold mb-3 text-primary">Pontos a Melhorar</h4>
-                        <ul class="space-y-2 text-gray-700">${errorsList}</ul>
-                    </div>
-                    <div>
-                        <h4 class="text-lg font-semibold mb-3 text-primary">Sugestões Práticas</h4>
-                        <ul class="space-y-2 text-gray-700">${suggestionsList}</ul>
-                    </div>
-                </div>
-            `;
+            const strengthsList = (summaryData.strengths && summaryData.strengths.length > 0) ? summaryData.strengths.map(s => `<li class="flex items-start"><span class="text-green-500 mr-2 mt-1">&#10003;</span><span>${s}</span></li>`).join('') : '<li class="text-gray-500">Nenhuma força específica foi destacada.</li>';
+            const errorsList = (summaryData.specificErrors && summaryData.specificErrors.length > 0) ? summaryData.specificErrors.map(e => `<li class="flex items-start"><span class="text-red-500 mr-2 mt-1">&#10007;</span><span>${e.replace(/\n/g, '<br>')}</span></li>`).join('') : '<li class="text-gray-500">Nenhum ponto de melhoria crítico foi identificado.</li>';
+            const suggestionsList = (summaryData.suggestions && summaryData.suggestions.length > 0) ? summaryData.suggestions.map(s => `<li class="flex items-start"><span class="text-primary mr-2 mt-1">&#10148;</span><span>${s.replace(/\n/g, '<br>')}</span></li>`).join('') : '<li class="text-gray-500">Nenhuma sugestão adicional.</li>';
+            summarySection.innerHTML = `<h3 class="text-2xl font-bold text-center text-primary">Resumo Executivo para <span class="text-secondary-pink">${ccName}</span></h3><div class="mt-6 bg-blue-50/50 p-6 rounded-lg space-y-6"><div><h4 class="text-lg font-semibold mb-3 text-primary">Forças do Consultor</h4><ul class="space-y-2 text-gray-700">${strengthsList}</ul></div><div><h4 class="text-lg font-semibold mb-3 text-primary">Pontos a Melhorar</h4><ul class="space-y-2 text-gray-700">${errorsList}</ul></div><div><h4 class="text-lg font-semibold mb-3 text-primary">Sugestões Práticas</h4><ul class="space-y-2 text-gray-700">${suggestionsList}</ul></div></div>`;
         }
     </script>
 </body>
 </html>
-
