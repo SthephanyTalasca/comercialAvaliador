@@ -64,6 +64,24 @@
                 </div>
 
                 <div class="mb-6">
+                    <label class="block text-lg font-medium text-gray-700 mb-2">Tipo de Análise</label>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <label class="flex items-center p-3 border border-gray-300 rounded-lg flex-1 cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="analysis-type" value="full-analysis" class="h-4 w-4 text-primary focus:ring-primary" checked>
+                            <span class="ml-3 text-gray-700">Análise de Performance Completa</span>
+                        </label>
+                        <label class="flex items-center p-3 border border-gray-300 rounded-lg flex-1 cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="analysis-type" value="rapport-analysis" class="h-4 w-4 text-primary focus:ring-primary">
+                            <span class="ml-3 text-gray-700">Rapport e Conexão</span>
+                        </label>
+                        <label class="flex items-center p-3 border border-gray-300 rounded-lg flex-1 cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="analysis-type" value="pitch-analysis" class="h-4 w-4 text-primary focus:ring-primary">
+                            <span class="ml-3 text-gray-700">Personalização do Pitch (vs. Acessórias)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-6">
                     <label for="transcript-input" class="block text-lg font-medium text-gray-700 mb-2">Colar Transcrição Manualmente</label>
                     <textarea id="transcript-input" rows="10" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 ring-primary" placeholder="Cole aqui a transcrição..."></textarea>
                     <p class="text-sm text-gray-500 mt-2"><b>Dica:</b> Para uma análise de fala mais precisa, formate a transcrição com marcadores claros, como "Consultor:" e "Cliente:" antes de cada fala.</p>
@@ -91,7 +109,7 @@
 
             <div id="results-section" class="mt-10 hidden">
                 <div class="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-gray-200">
-                    <h2 class="text-2xl font-semibold mb-6 text-center text-primary">2. Relatório de Performance</h2>
+                    <h2 class="text-2xl font-semibold mb-6 text-center text-primary">2. Relatório de Análise</h2>
                     
                     <div id="loading-spinner" class="flex justify-center items-center my-16 hidden">
                         <div class="loader"></div>
@@ -101,35 +119,39 @@
                     <div id="error-message" class="hidden text-center my-8 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg" role="alert"></div>
 
                     <div id="analysis-results" class="hidden">
-                        <div id="general-score-section" class="mb-8"></div>
-                        
-                        <div id="deal-status-section" class="mb-8 hidden"></div>
-                        <div id="cancellation-alert-section" class="mb-8 hidden"></div>
-                        <div id="competitor-alert-section" class="mb-8 hidden"></div>
+                        <div id="simple-report-section" class="mb-8 hidden"></div>
 
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                            <div class="flex flex-col space-y-8">
-                                <div class="w-full">
-                                    <h3 class="text-xl font-semibold mb-4 text-center">Gráfico Radar de Habilidades</h3>
-                                    <div class="relative h-96 md:h-[450px]">
-                                        <canvas id="radar-chart"></canvas>
+                        <div id="full-analysis-section">
+                            <div id="general-score-section" class="mb-8"></div>
+                            
+                            <div id="deal-status-section" class="mb-8 hidden"></div>
+                            <div id="cancellation-alert-section" class="mb-8 hidden"></div>
+                            <div id="competitor-alert-section" class="mb-8 hidden"></div>
+
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                                <div class="flex flex-col space-y-8">
+                                    <div class="w-full">
+                                        <h3 class="text-xl font-semibold mb-4 text-center">Gráfico Radar de Habilidades</h3>
+                                        <div class="relative h-96 md:h-[450px]">
+                                            <canvas id="radar-chart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="w-full">
+                                        <h3 class="text-xl font-semibold mb-4 text-center">Distribuição de Fala</h3>
+                                        <div id="speaking-time-analysis" class="px-4"></div>
                                     </div>
                                 </div>
-                                <div class="w-full">
-                                    <h3 class="text-xl font-semibold mb-4 text-center">Distribuição de Fala</h3>
-                                    <div id="speaking-time-analysis" class="px-4"></div>
+                                <div id="detailed-report" class="lg:col-span-1 space-y-4">
+                                    <h3 class="text-xl font-semibold mb-4 text-center lg:text-left">Avaliação Detalhada</h3>
                                 </div>
                             </div>
-                            <div id="detailed-report" class="lg:col-span-1 space-y-4">
-                                <h3 class="text-xl font-semibold mb-4 text-center lg:text-left">Avaliação Detalhada</h3>
-                            </div>
+                            
+                            <div id="highlight-section" class="mt-12 pt-8 border-t border-gray-200"></div>
+                            <div id="opportunities-section" class="mt-12 pt-8 border-t border-gray-200"></div>
+                            <div id="key-moments-section" class="mt-12 pt-8 border-t border-gray-200 hidden"></div>
+                            <div id="profile-analysis-section" class="mt-12 pt-8 border-t border-gray-200"></div>
+                            <div id="summary-section" class="mt-12 pt-8 border-t border-gray-200"></div>
                         </div>
-                        
-                        <div id="highlight-section" class="mt-12 pt-8 border-t border-gray-200"></div>
-                        <div id="opportunities-section" class="mt-12 pt-8 border-t border-gray-200"></div>
-                        <div id="key-moments-section" class="mt-12 pt-8 border-t border-gray-200 hidden"></div>
-                        <div id="profile-analysis-section" class="mt-12 pt-8 border-t border-gray-200"></div>
-                        <div id="summary-section" class="mt-12 pt-8 border-t border-gray-200"></div>
                     </div>
                 </div>
             </div>
@@ -148,7 +170,6 @@
         const ccNameInput = document.getElementById('cc-name-input');
         const transcriptInput = document.getElementById('transcript-input');
         const analyzeBtn = document.getElementById('analyze-btn');
-        // ... (resto das suas constantes de elementos)
         const fileDropZone = document.getElementById('file-drop-zone');
         const fileInput = document.getElementById('file-input');
         const fileList = document.getElementById('file-list');
@@ -167,6 +188,8 @@
         const highlightSection = document.getElementById('highlight-section');
         const generalScoreSection = document.getElementById('general-score-section');
         const opportunitiesSection = document.getElementById('opportunities-section');
+        const simpleReportSection = document.getElementById('simple-report-section');
+        const fullAnalysisSection = document.getElementById('full-analysis-section');
         
         let radarChartInstance = null;
         let uploadedFiles = [];
@@ -247,7 +270,7 @@
         }
 
         async function handleAnalysis() {
-            if (!apiKey || apiKey === "SUA_API_KEY_DO_GOOGLE_AI_STUDIO_AQUI") {
+            if (!apiKey || apiKey.includes("SUBSTITUA")) {
                 resultsSection.classList.remove('hidden');
                 loadingSpinner.classList.add('hidden');
                 analysisResults.classList.add('hidden');
@@ -281,7 +304,12 @@
                     throw new Error("Nenhum conteúdo de transcrição foi fornecido. Verifique os ficheiros ou o texto colado.");
                 }
 
-                const evaluationPrompt = `
+                const analysisType = document.querySelector('input[name="analysis-type"]:checked').value;
+                let evaluationPrompt;
+                let schema;
+
+                // Prompts
+                const fullAnalysisPromptText = `
                     Você é um avaliador sênior de performance comercial, especialista em vendas de software B2B, extremamente crítico e detalhista. Sua tarefa é analisar a performance do Consultor Comercial (CC), "${ccName}", com base na transcrição da reunião, seguindo rigorosamente as regras abaixo.
 
                     **INSTRUÇÕES GERAIS E REGRAS CRÍTICAS:**
@@ -342,7 +370,71 @@
                     ---
                 `;
 
-                const schema = { type: "OBJECT", properties: { "notaGeral": { "type": "NUMBER" }, "evaluation": { type: "ARRAY", items: { type: "OBJECT", properties: { "criterio": { "type": "STRING" }, "nota": { "type": "NUMBER" }, "justificativa": { "type": "STRING" } }, required: ["criterio", "nota", "justificativa"] } }, "speakingTime": { type: "OBJECT", properties: { "cc": { "type": "NUMBER" }, "client": { "type": "NUMBER" } }, required: ["cc", "client"] }, "profileAnalysis": { type: "OBJECT", properties: { "profile": { "type": "STRING" }, "handling": { "type": "STRING" }, "suggestions": { "type": "STRING" } }, required: ["profile", "handling", "suggestions"] }, "competitorAnalysis": { type: "OBJECT", properties: { "mentioned": { "type": "BOOLEAN" }, "competitorName": { "type": "STRING" } }, required: ["mentioned", "competitorName"] }, "summary": { type: "OBJECT", properties: { "strengths": { "type": "ARRAY", "items": { "type": "STRING" } }, "specificErrors": { "type": "ARRAY", "items": { "type": "STRING" } }, "suggestions": { "type": "ARRAY", items: { "type": "STRING" } } }, required: ["strengths", "specificErrors", "suggestions"] }, "cancellationAlert": { type: "OBJECT", properties: { "risk": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["risk", "reason"] }, "dealStatus": { type: "OBJECT", properties: { "closed": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["closed", "reason"] }, "meetingHighlight": { "type": "STRING" }, "opportunities": { type: "ARRAY", items: { type: "OBJECT", properties: { "product": { "type": "STRING" }, "reason": { "type": "STRING" } }, required: ["product", "reason"] } }, "momentosChave": { type: "OBJECT", properties: { "cenarioAtual": { "type": "STRING" }, "cenarioIdeal": { "type": "STRING" } }, required: ["cenarioAtual", "cenarioIdeal"] } }, required: ["notaGeral", "evaluation", "speakingTime", "profileAnalysis", "competitorAnalysis", "summary", "cancellationAlert", "dealStatus", "meetingHighlight", "opportunities", "momentosChave"] };
+                const rapportPromptText = `
+                    Prompt de calibragem: Rapport e conexão.
+                    Sua tarefa é analisar a reunião transcrita com foco exclusivo em rapport e conexão com o cliente.
+                    Avalie os seguintes pontos de forma objetiva e detalhada:
+                    1.  **Nível de abertura do cliente:** identifique sinais verbais de conforto (ex.: risadas, perguntas espontâneas, uso de um tom mais pessoal) ou de resistência (respostas curtas, silêncio, mudanças bruscas de assunto).
+                    2.  **Qualidade da empatia do consultor:** verifique se o consultor demonstrou escuta ativa, interesse genuíno, personalização da conversa e uso de linguagem alinhada ao perfil do cliente.
+                    3.  **Profundidade da conexão emocional:** identifique se o consultor conseguiu sair do campo puramente formal e gerar proximidade (ex.: referências pessoais, identificação com dores, histórias ou metáforas que engajaram o cliente).
+                    4.  **Impacto no cliente:** avalie se o cliente aparentou se sentir seguro e à vontade para compartilhar informações ou se manteve postura defensiva ou distante.
+                    5.  **Nota final (0–10):** atribua uma nota que reflita o equilíbrio entre formalidade e verdadeira conexão emocional.
+
+                    A sua resposta deve ser um único objeto JSON, contendo as chaves: "nota", "sintese", "pontosFortes", e "pontosMelhoria".
+                    - "nota": um número de 0 a 10.
+                    - "sintese": 2 a 3 frases diretas descrevendo se houve conexão genuína ou apenas formalidade.
+                    - "pontosFortes": uma lista (array de strings) com os pontos fortes observados.
+                    - "pontosMelhoria": uma lista (array de strings) com os pontos de melhoria recomendados.
+
+                    **Transcrição para análise:**
+                    ---
+                    ${combinedTranscript}
+                    ---
+                `;
+
+                const pitchPromptText = `
+                    Prompt de calibragem: Personalização do pitch clientes acessórias.
+                    Sua tarefa é analisar a transcrição da reunião com foco em Personalização do Pitch. Verifique se o consultor conseguiu destacar os diferenciais do Nibo em relação à Acessórias, conforme descrito no manual abaixo.
+
+                    **Manual de diferenciais Nibo vs Acessórias:**
+                    - **Centralização:** Tela única e visual simples, com obrigações e tarefas em um só lugar vs. visual confuso e várias telas da Acessórias.
+                    - **Automação de envios:** Robô Nibo (arrasta e solta, Nibo Assistente, qualquer arquivo) vs. Acessórias limitada a PDFs texto com configuração manual.
+                    - **Monitoramento de entrega:** Visual limpo e cirúrgico vs. tela poluída na Acessórias.
+                    - **Diferenciais do aplicativo:** Design moderno, integração ECAC, emissão de NFS-e, cobrança automática, formulários, integração bancária.
+                    - **Cobrança automática de documentos:** Notificação no app/portal, painel de acompanhamento vs. processo manual e limitado da Acessórias.
+                    - **Comunicação com o cliente:** Centralizada em uma aba, com áudio, tratativas internas, etc. vs. solicitações poluídas na Acessórias.
+                    - **Gestão de tarefas:** Checklist, seguidores, anexos, visão centralizada vs. gestão limitada na Acessórias.
+                    - **Accounting Tech:** Nibo como plataforma completa (gestão financeira, notas, conciliação, WhatsApp) vs. Acessórias como gestor de tarefas.
+                    - **Gestão financeira gratuita:** Como condição especial.
+
+                    A sua resposta deve ser um único objeto JSON com as chaves: "nota", "diferenciaisCitados", "diferenciaisOmitidos", "clarezaComparativo", "recomendacaoPratica".
+                    - "nota": um número de 0 a 10 para a personalização do pitch.
+                    - "diferenciaisCitados": uma lista (array de strings) com os tópicos do manual mencionados corretamente.
+                    - "diferenciaisOmitidos": uma lista (array de strings) com os tópicos do manual que o consultor deixou de apresentar.
+                    - "clarezaComparativo": uma avaliação em texto sobre se o consultor reforçou suficientemente a fraqueza da Acessórias em contraste com o diferencial do Nibo.
+                    - "recomendacaoPratica": um texto indicando quais diferenciais devem ser trabalhados em próximas reuniões.
+
+                    **Transcrição para análise:**
+                    ---
+                    ${combinedTranscript}
+                    ---
+                `;
+
+                switch (analysisType) {
+                    case 'rapport-analysis':
+                        evaluationPrompt = rapportPromptText;
+                        schema = { type: "OBJECT", properties: { "nota": { "type": "NUMBER" }, "sintese": { "type": "STRING" }, "pontosFortes": { "type": "ARRAY", items: { "type": "STRING" } }, "pontosMelhoria": { "type": "ARRAY", items: { "type": "STRING" } } }, required: ["nota", "sintese", "pontosFortes", "pontosMelhoria"] };
+                        break;
+                    case 'pitch-analysis':
+                        evaluationPrompt = pitchPromptText;
+                        schema = { type: "OBJECT", properties: { "nota": { "type": "NUMBER" }, "diferenciaisCitados": { "type": "ARRAY", items: { "type": "STRING" } }, "diferenciaisOmitidos": { "type": "ARRAY", items: { "type": "STRING" } }, "clarezaComparativo": { "type": "STRING" }, "recomendacaoPratica": { "type": "STRING" } }, required: ["nota", "diferenciaisCitados", "diferenciaisOmitidos", "clarezaComparativo", "recomendacaoPratica"] };
+                        break;
+                    default: // 'full-analysis'
+                        evaluationPrompt = fullAnalysisPromptText;
+                        schema = { type: "OBJECT", properties: { "notaGeral": { "type": "NUMBER" }, "evaluation": { type: "ARRAY", items: { type: "OBJECT", properties: { "criterio": { "type": "STRING" }, "nota": { "type": "NUMBER" }, "justificativa": { "type": "STRING" } }, required: ["criterio", "nota", "justificativa"] } }, "speakingTime": { type: "OBJECT", properties: { "cc": { "type": "NUMBER" }, "client": { "type": "NUMBER" } }, required: ["cc", "client"] }, "profileAnalysis": { type: "OBJECT", properties: { "profile": { "type": "STRING" }, "handling": { "type": "STRING" }, "suggestions": { "type": "STRING" } }, required: ["profile", "handling", "suggestions"] }, "competitorAnalysis": { type: "OBJECT", properties: { "mentioned": { "type": "BOOLEAN" }, "competitorName": { "type": "STRING" } }, required: ["mentioned", "competitorName"] }, "summary": { type: "OBJECT", properties: { "strengths": { "type": "ARRAY", "items": { "type": "STRING" } }, "specificErrors": { "type": "ARRAY", "items": { "type": "STRING" } }, "suggestions": { "type": "ARRAY", items: { "type": "STRING" } } }, required: ["strengths", "specificErrors", "suggestions"] }, "cancellationAlert": { type: "OBJECT", properties: { "risk": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["risk", "reason"] }, "dealStatus": { type: "OBJECT", properties: { "closed": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["closed", "reason"] }, "meetingHighlight": { "type": "STRING" }, "opportunities": { type: "ARRAY", items: { type: "OBJECT", properties: { "product": { "type": "STRING" }, "reason": { "type": "STRING" } }, required: ["product", "reason"] } }, "momentosChave": { type: "OBJECT", properties: { "cenarioAtual": { "type": "STRING" }, "cenarioIdeal": { "type": "STRING" } }, required: ["cenarioAtual", "cenarioIdeal"] } }, required: ["notaGeral", "evaluation", "speakingTime", "profileAnalysis", "competitorAnalysis", "summary", "cancellationAlert", "dealStatus", "meetingHighlight", "opportunities", "momentosChave"] };
+                        break;
+                }
+
                 const payload = { contents: [{ role: "user", parts: [{ text: evaluationPrompt }] }], generationConfig: { responseMimeType: "application/json", responseSchema: schema } };
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 
@@ -358,7 +450,7 @@
                 
                 if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0]) {
                     const analysisData = JSON.parse(result.candidates[0].content.parts[0].text);
-                    displayResults(analysisData);
+                    displayResults(analysisData, analysisType);
                 } else {
                     throw new Error("A resposta da API está malformada ou vazia.");
                 }
@@ -373,11 +465,96 @@
             }
         }
 
-        function displayResults(data) {
+        function displayResults(data, analysisType) {
             loadingSpinner.classList.add('hidden');
             
+            // Esconde todas as seções de resultado antes de mostrar a correta
+            fullAnalysisSection.classList.add('hidden');
+            simpleReportSection.classList.add('hidden');
+            simpleReportSection.innerHTML = '';
+            
+            switch (analysisType) {
+                case 'rapport-analysis':
+                    displayRapportResults(data);
+                    break;
+                case 'pitch-analysis':
+                    displayPitchResults(data);
+                    break;
+                default:
+                    displayFullAnalysisResults(data);
+                    break;
+            }
+
+            analysisResults.classList.remove('hidden');
+        }
+
+        function displayRapportResults(data) {
+            simpleReportSection.classList.remove('hidden');
+            const scoreColor = data.nota >= 8 ? 'text-green-600' : data.nota >= 6 ? 'text-yellow-600' : 'text-red-600';
+            
+            const strengthsList = data.pontosFortes.map(item => `<li class="flex items-start"><span class="text-green-500 mr-2 mt-1">&#10003;</span><span>${item}</span></li>`).join('');
+            const improvementsList = data.pontosMelhoria.map(item => `<li class="flex items-start"><span class="text-yellow-500 mr-2 mt-1">&#9658;</span><span>${item}</span></li>`).join('');
+
+            simpleReportSection.innerHTML = `
+                <div class="space-y-6">
+                    <div class="text-center bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-xl font-semibold text-primary">Nota de Rapport & Conexão</h3>
+                        <p class="text-5xl font-bold ${scoreColor} mt-2">${data.nota}<span class="text-3xl text-gray-400">/10</span></p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-primary">Síntese da Análise</h4>
+                        <p class="text-gray-700 mt-2">${data.sintese}</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-green-700">Pontos Fortes Observados</h4>
+                        <ul class="mt-2 space-y-2 text-gray-700">${strengthsList}</ul>
+                    </div>
+                    <div class="bg-yellow-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-yellow-700">Pontos de Melhoria Recomendados</h4>
+                        <ul class="mt-2 space-y-2 text-gray-700">${improvementsList}</ul>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function displayPitchResults(data) {
+            simpleReportSection.classList.remove('hidden');
+            const scoreColor = data.nota >= 8 ? 'text-green-600' : data.nota >= 6 ? 'text-yellow-600' : 'text-red-600';
+
+            const citedList = data.diferenciaisCitados.map(item => `<li class="flex items-start"><span class="text-green-500 mr-2 mt-1">&#10003;</span><span>${item}</span></li>`).join('');
+            const omittedList = data.diferenciaisOmitidos.map(item => `<li class="flex items-start"><span class="text-red-500 mr-2 mt-1">&#10007;</span><span>${item}</span></li>`).join('');
+            
+            simpleReportSection.innerHTML = `
+                <div class="space-y-6">
+                    <div class="text-center bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-xl font-semibold text-primary">Nota de Personalização do Pitch (vs. Acessórias)</h3>
+                        <p class="text-5xl font-bold ${scoreColor} mt-2">${data.nota}<span class="text-3xl text-gray-400">/10</span></p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-green-700">Diferenciais Citados</h4>
+                        <ul class="mt-2 space-y-2 text-gray-700">${citedList || '<li class="text-gray-500">Nenhum diferencial do manual foi citado corretamente.</li>'}</ul>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-red-700">Diferenciais Omitidos</h4>
+                        <ul class="mt-2 space-y-2 text-gray-700">${omittedList || '<li class="text-gray-500">Todos os diferenciais foram citados.</li>'}</ul>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-primary">Clareza do Comparativo</h4>
+                        <p class="text-gray-700 mt-2">${data.clarezaComparativo}</p>
+                    </div>
+                    <div class="bg-yellow-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-yellow-700">Recomendação Prática</h4>
+                        <p class="text-gray-700 mt-2">${data.recomendacaoPratica}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayFullAnalysisResults(data) {
+            fullAnalysisSection.classList.remove('hidden');
+            
             displayGeneralScore(data.notaGeral);
-            displayDealStatusFlag(data.dealStatus); // <-- NOVA CHAMADA
+            displayDealStatusFlag(data.dealStatus);
             displayCancellationAlert(data.cancellationAlert);
             displayCompetitorAnalysis(data.competitorAnalysis);
             
@@ -425,9 +602,9 @@
             displayKeyMoments(data.momentosChave);
             displayProfileAnalysis(data.profileAnalysis);
             displaySummary(data.summary);
-            analysisResults.classList.remove('hidden');
         }
 
+        // Funções auxiliares para displayFullAnalysisResults
         function displayGeneralScore(score) {
             if (score === null || isNaN(score)) return;
             const scoreColor = score >= 9 ? 'text-green-600' : score >= 7 ? 'text-blue-600' : score >= 5 ? 'text-yellow-600' : 'text-red-600';
@@ -440,7 +617,6 @@
                 </div>`;
         }
         
-        // <-- NOVA FUNÇÃO PARA EXIBIR A FLAG DE NEGÓCIO FECHADO -->
         function displayDealStatusFlag(dealStatus) {
             const dealStatusSection = document.getElementById('deal-status-section');
             dealStatusSection.innerHTML = '';
@@ -625,4 +801,3 @@
     </script>
 </body>
 </html>
-
