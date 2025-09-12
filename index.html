@@ -313,7 +313,7 @@
                     Você é um avaliador sênior de performance comercial, especialista em vendas de software B2B, extremamente crítico e detalhista. Sua tarefa é analisar a performance do Consultor Comercial (CC), "${ccName}", com base na transcrição da reunião, seguindo rigorosamente as regras abaixo.
 
                     **INSTRUÇÕES GERAIS E REGRAS CRÍTICAS:**
-                    1.  **Análise de Critérios:** Avalie o CC em CADA um dos 17 critérios listados abaixo.
+                    1.  **Análise de Critérios:** Avalie o CC em CADA um dos 16 critérios listados abaixo.
                     2.  **Estrutura de Feedback para Falhas (Prontuário – OBRIGATÓRIO):** Ao identificar que o consultor não atingiu a nota máxima (9 ou 10) em QUALQUER critério, sua justificativa DEVE seguir esta estrutura de 4 partes, com clareza:
                         - **Momento da Falha:** Identifique com precisão o momento da falha.
                         - **Comportamento Atual:** Descreva o que o consultor fez ou deixou de fazer.
@@ -321,28 +321,46 @@
                         - **Sugestões Práticas (X, Y, Z):** Adicione sugestões concretas e acionáveis.
                     3.  **Análise de Concorrentes:** No campo "competitorAnalysis", identifique se o cliente menciona um concorrente.
                     4.  **Análise de Perfil do CLIENTE:** No campo "profileAnalysis", analise o perfil comportamental do **CLIENTE**, não do consultor.
-                    5.  **Regras de Pontuação Específicas:**
-                        - **Objeções:** Se não houver objeções, a nota de 'Contorno de Objeções' deve ser **-1** (N/A).
-                        - **Técnicas Ativas (Gatilhos, Fechamento):** A ausência completa de uso é uma falha grave (nota **entre 4 e 5**).
-                        - **Rapport:** Se for apenas formal, a nota de 'Rapport' deve ser **6**.
+                    5.  **Análise de Fechamento de Negócio:** Analise o final da conversa para determinar se o negócio foi fechado. Procure por frases de confirmação explícita do cliente ("vamos fechar", "pode mandar o contrato", "negócio fechado", "me envia o link para pagamento"). O resultado deve ser um objeto 'dealStatus' com 'closed' (boolean) e 'reason' (uma breve justificativa com a evidência encontrada).
                     6.  **Formato de Saída:** A resposta DEVE ser um único objeto JSON.
                     7.  **Análise de Momentos-Chave:** No final da sua análise, identifique o momento MAIS CRÍTICO da reunião (objeção ou fechamento). Crie um objeto 'momentosChave' com 'cenarioAtual' (transcrição exata) e 'cenarioIdeal' (script reescrito).
-                    8.  **Análise de Fechamento de Negócio (NOVO):** Analise o final da conversa para determinar se o negócio foi fechado. Procure por frases de confirmação explícita do cliente ("vamos fechar", "pode mandar o contrato", "negócio fechado", "me envia o link para pagamento"). O resultado deve ser um objeto 'dealStatus' com 'closed' (boolean) e 'reason' (uma breve justificativa com a evidência encontrada).
+                    8.  **Regra de Objeções:** Se não houver objeções, a nota de 'Contorno de Objeções' deve ser **-1** (N/A).
 
                     ---
                     **CRITÉRIOS DE AVALIAÇÃO COMERCIAL (Escala de 1 a 10):**
 
                     1.  **Rapport e Conexão:** (conexão emocional, empatia inicial.)
+                        - **Regra de Pontuação:**
+                            - **Nota 5:** Não trouxe nenhuma conexão pessoal (geografia, esporte, vida, etc.).
+                            - **Nota 7:** Trouxe pelo menos 1 ponto de conexão.
+                            - **Nota 8:** Trouxe mais de 1 ponto de conexão.
+                            - **Nota 10:** Trouxe mais de 1 conexão e fez o cliente se abrir, sorrir e sentir-se à vontade.
+
                     2.  **Autoridade Comercial:** (postura de liderança, condução do ritmo.)
                     3.  **Clareza da Apresentação:** (didática, linguagem simplificada.)
-                    4.  **Gatilhos Mentais:** (Uso estratégico de urgência, autoridade, prova social, etc. Indique oportunidades perdidas com exemplos de frases.)
-                    5.  **Pré-Fechamento:** (Adesão ESTRITA ao manual de pré-fechamento. Avalie o fluxo passo a passo.)
-                    
-                    6.  **Técnicas de Fechamento:**
-                        - **O que foi avaliado:** A adesão ESTRITA ao processo obrigatório de Negociação de Valores.
-                        - **Manual Obrigatório de Negociação:** Avalie passo a passo (Explicação, Apresentação do Valor, Tratamento de Objeção Nível 1 e 2, Fechamento Condicional, etc.).
-                        - **REGRA DE PONTUAÇÃO CRÍTICA (NOVO):** Se a sua 'Análise de Fechamento de Negócio' concluir que o negócio foi fechado, a nota para este critério 'Técnicas de Fechamento' DEVE ser no mínimo 8. A justificativa deve refletir que, apesar de possíveis desvios do manual, o resultado final (o fechamento) foi alcançado com sucesso. A nota pode ser 9 ou 10 se o fechamento foi conduzido de forma exemplar.
-                        - **REGRA DE SUGESTÃO PRÁTICA:** Se o consultor falhou em algum passo, a sua "Sugestão Prática" DEVE incluir um mini-script de diálogo ideal.
+
+                    4.  **Gatilhos Mentais:** (Uso estratégico de urgência, autoridade, prova social, etc.)
+                        - **Regra de Pontuação:**
+                            - **Nota 4:** Não usou nenhum gatilho.
+                            - **Nota 6:** Usou 1 gatilho.
+                            - **Nota 8:** Usou 2 gatilhos.
+                            - **Nota 10:** Usou 3 ou mais gatilhos.
+
+                    5.  **Pré-Fechamento:** (Adesão ao manual de pré-fechamento, perguntas de validação.)
+                        - **Regra de Pontuação:**
+                            - **Nota 5:** Não usou nenhuma técnica de pré-fechamento.
+                            - **Nota 8:** Não usou a técnica do manual, mas encaminhou bem com perguntas de validação.
+                            - **Nota 9:** Usou técnica parecida com o manual.
+                            - **Nota 10:** A venda foi fechada (verificado em 'dealStatus').
+                        - **REGRA DE FEEDBACK PARA NOTA 10 (FECHAMENTO):** Se a nota for 10, **NÃO aponte melhorias**. A justificativa DEVE ser uma análise 100% positiva, destacando: as ações mais assertivas, as estratégias de persuasão, como gerou confiança, e o que foi exemplar para servir de benchmark para o time.
+
+                    6.  **Técnicas de Fechamento:** (Adesão ao manual de negociação de valores.)
+                        - **Regra de Pontuação:**
+                            - **Nota 5:** Não usou nenhuma técnica de fechamento.
+                            - **Nota 8:** Não usou técnica do manual, mas conseguiu trazer percepção de valor.
+                            - **Nota 9:** Usou técnica parecida com o manual.
+                            - **Nota 10:** A venda foi fechada (verificado em 'dealStatus').
+                        - **REGRA DE FEEDBACK PARA NOTA 10 (FECHAMENTO):** Se a nota for 10, **NÃO aponte melhorias**. A justificativa DEVE ser uma análise 100% positiva, destacando: quais foram as ações mais assertivas, as estratégias de persuasão, como eliminou objeções, que gatilhos aplicou, e o que foi exemplar para servir de benchmark.
 
                     7.  **Contorno de Objeções:**
                         - **O que foi avaliado:** Antecipação, escuta, técnica de espelhamento, argumento estruturado.
@@ -357,7 +375,6 @@
                     14. **Encantamento Comercial:** (energia, crença na solução.)
                     15. **Postura Profissional:** (maturidade emocional, tom de voz.)
                     16. **Domínio de Produto:** (segurança técnica.)
-                    17. **Portfólio Estratégico:** (visão de cross-sell/upsell.)
 
                     ---
                     **ANÁLISE DE PERFIL COMPORTAMENTAL DO CLIENTE (OBRIGATÓRIO):**
@@ -431,7 +448,7 @@
                         break;
                     default: // 'full-analysis'
                         evaluationPrompt = fullAnalysisPromptText;
-                        schema = { type: "OBJECT", properties: { "notaGeral": { "type": "NUMBER" }, "evaluation": { type: "ARRAY", items: { type: "OBJECT", properties: { "criterio": { "type": "STRING" }, "nota": { "type": "NUMBER" }, "justificativa": { "type": "STRING" } }, required: ["criterio", "nota", "justificativa"] } }, "speakingTime": { type: "OBJECT", properties: { "cc": { "type": "NUMBER" }, "client": { "type": "NUMBER" } }, required: ["cc", "client"] }, "profileAnalysis": { type: "OBJECT", properties: { "profile": { "type": "STRING" }, "handling": { "type": "STRING" }, "suggestions": { "type": "STRING" } }, required: ["profile", "handling", "suggestions"] }, "competitorAnalysis": { type: "OBJECT", properties: { "mentioned": { "type": "BOOLEAN" }, "competitorName": { "type": "STRING" } }, required: ["mentioned", "competitorName"] }, "summary": { type: "OBJECT", properties: { "strengths": { "type": "ARRAY", "items": { "type": "STRING" } }, "specificErrors": { "type": "ARRAY", "items": { "type": "STRING" } }, "suggestions": { "type": "ARRAY", items: { "type": "STRING" } } }, required: ["strengths", "specificErrors", "suggestions"] }, "cancellationAlert": { type: "OBJECT", properties: { "risk": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["risk", "reason"] }, "dealStatus": { type: "OBJECT", properties: { "closed": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["closed", "reason"] }, "meetingHighlight": { "type": "STRING" }, "opportunities": { type: "ARRAY", items: { type: "OBJECT", properties: { "product": { "type": "STRING" }, "reason": { "type": "STRING" } }, required: ["product", "reason"] } }, "momentosChave": { type: "OBJECT", properties: { "cenarioAtual": { "type": "STRING" }, "cenarioIdeal": { "type": "STRING" } }, required: ["cenarioAtual", "cenarioIdeal"] } }, required: ["notaGeral", "evaluation", "speakingTime", "profileAnalysis", "competitorAnalysis", "summary", "cancellationAlert", "dealStatus", "meetingHighlight", "opportunities", "momentosChave"] };
+                        schema = { type: "OBJECT", properties: { "evaluation": { type: "ARRAY", items: { type: "OBJECT", properties: { "criterio": { "type": "STRING" }, "nota": { "type": "NUMBER" }, "justificativa": { "type": "STRING" } }, required: ["criterio", "nota", "justificativa"] } }, "speakingTime": { type: "OBJECT", properties: { "cc": { "type": "NUMBER" }, "client": { "type": "NUMBER" } }, required: ["cc", "client"] }, "profileAnalysis": { type: "OBJECT", properties: { "profile": { "type": "STRING" }, "handling": { "type": "STRING" }, "suggestions": { "type": "STRING" } }, required: ["profile", "handling", "suggestions"] }, "competitorAnalysis": { type: "OBJECT", properties: { "mentioned": { "type": "BOOLEAN" }, "competitorName": { "type": "STRING" } }, required: ["mentioned", "competitorName"] }, "summary": { type: "OBJECT", properties: { "strengths": { "type": "ARRAY", "items": { "type": "STRING" } }, "specificErrors": { "type": "ARRAY", "items": { "type": "STRING" } }, "suggestions": { "type": "ARRAY", items: { "type": "STRING" } } }, required: ["strengths", "specificErrors", "suggestions"] }, "cancellationAlert": { type: "OBJECT", properties: { "risk": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["risk", "reason"] }, "dealStatus": { type: "OBJECT", properties: { "closed": { "type": "BOOLEAN" }, "reason": { "type": "STRING" } }, required: ["closed", "reason"] }, "meetingHighlight": { "type": "STRING" }, "opportunities": { type: "ARRAY", items: { "type": "OBJECT", properties: { "product": { "type": "STRING" }, "reason": { "type": "STRING" } }, required: ["product", "reason"] } }, "momentosChave": { type: "OBJECT", properties: { "cenarioAtual": { "type": "STRING" }, "cenarioIdeal": { "type": "STRING" } }, required: ["cenarioAtual", "cenarioIdeal"] } }, required: ["evaluation", "speakingTime", "profileAnalysis", "competitorAnalysis", "summary", "cancellationAlert", "dealStatus", "meetingHighlight", "opportunities", "momentosChave"] };
                         break;
                 }
 
@@ -553,7 +570,13 @@
         function displayFullAnalysisResults(data) {
             fullAnalysisSection.classList.remove('hidden');
             
-            displayGeneralScore(data.notaGeral);
+            // --- NOVA LÓGICA DE CÁLCULO DA MÉDIA ---
+            const validEvaluations = data.evaluation.filter(item => item.nota !== -1);
+            const totalScore = validEvaluations.reduce((sum, item) => sum + item.nota, 0);
+            const averageScore = validEvaluations.length > 0 ? totalScore / validEvaluations.length : 0;
+            displayGeneralScore(averageScore);
+            // --- FIM DA NOVA LÓGICA ---
+
             displayDealStatusFlag(data.dealStatus);
             displayCancellationAlert(data.cancellationAlert);
             displayCompetitorAnalysis(data.competitorAnalysis);
