@@ -164,9 +164,15 @@
 
     <script>
         // =====================================================================================
-        // ATENÇÃO: COLOQUE SUA CHAVE DE API AQUI
+        // CONFIGURAÇÕES DA API
         // =====================================================================================
-        const apiKey = "AIzaSyCMPiiDthASMYbMAEOtxpmkBq9c4tF9bmo"; // <--- COLE SUA CHAVE AQUI
+        
+        // 1. INSIRA SUA CHAVE DE API AQUI:
+        const apiKey = "AIzaSyAWvGg1fhM1ViUaZnmrhTkWniPviai2jiI"; // <--- COLE SUA CHAVE DENTRO DAS ASPAS
+
+        // 2. MODELO SELECIONADO (Se der erro 404, altere para "gemini-1.5-flash-001" ou "gemini-1.5-pro-002")
+        const modelId = "gemini-1.5-flash-002"; 
+        
         // =====================================================================================
 
         const ccNameInput = document.getElementById('cc-name-input');
@@ -456,8 +462,8 @@
 
                 const payload = { contents: [{ role: "user", parts: [{ text: evaluationPrompt }] }], generationConfig: { responseMimeType: "application/json", responseSchema: schema } };
                 
-                // --- CORREÇÃO APLICADA AQUI: MODELO ATUALIZADO PARA gemini-1.5-flash ---
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                // --- CORREÇÃO APLICADA: Usando o ID específico 'gemini-1.5-flash-002' para evitar erro 404 ---
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
                 
                 const response = await fetchWithRetry(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 
@@ -828,4 +834,3 @@
     </script>
 </body>
 </html>
-
