@@ -163,10 +163,12 @@
     </div>
 
     <script>
-        // NOTA: Para que a aplicação funcione, você precisa inserir sua própria chave de API do Google AI Studio.
-        // Em um ambiente de produção, é crucial gerenciar as chaves de API de forma segura, 
-        // por exemplo, usando um proxy de backend para evitar expor a chave no lado do cliente.
-        const apiKey = "AIzaSyCMPiiDthASMYbMAEOtxpmkBq9c4tF9bmo"; // <-- SUBSTITUA PELA SUA CHAVE DE API
+        // =====================================================================================
+        // ATENÇÃO: COLOQUE SUA CHAVE DE API AQUI
+        // =====================================================================================
+        const apiKey = "SUA_CHAVE_API_AQUI"; // <--- COLE SUA CHAVE AQUI
+        // =====================================================================================
+
         const ccNameInput = document.getElementById('cc-name-input');
         const transcriptInput = document.getElementById('transcript-input');
         const analyzeBtn = document.getElementById('analyze-btn');
@@ -270,7 +272,7 @@
         }
 
         async function handleAnalysis() {
-            if (!apiKey || apiKey.includes("SUBSTITUA")) {
+            if (!apiKey || apiKey.includes("SUA_CHAVE")) {
                 resultsSection.classList.remove('hidden');
                 loadingSpinner.classList.add('hidden');
                 analysisResults.classList.add('hidden');
@@ -454,8 +456,8 @@
 
                 const payload = { contents: [{ role: "user", parts: [{ text: evaluationPrompt }] }], generationConfig: { responseMimeType: "application/json", responseSchema: schema } };
                 
-                // --- CORREÇÃO APLICADA AQUI ---
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+                // --- CORREÇÃO APLICADA AQUI: MODELO ATUALIZADO PARA gemini-1.5-flash ---
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 
                 const response = await fetchWithRetry(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 
@@ -826,4 +828,3 @@
     </script>
 </body>
 </html>
-
