@@ -1,40 +1,171 @@
-// Substitua a sua função handleAnalysis antiga por esta:
-async function handleAnalysis() {
-    analysisResults.classList.add('hidden');
-    errorMessage.classList.add('hidden');
-    loadingSpinner.classList.remove('hidden');
-    analyzeBtn.disabled = true;
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avaliação de Reunião Comercial - Gemini 2.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
+        .bg-primary { background-color: #002d72; }
+        .text-primary { color: #002d72; }
+        .loader {
+            border: 4px solid #e0e0e0; border-top: 4px solid #002d72;
+            border-radius: 50%; width: 40px; height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #file-drop-zone { border: 2px dashed #cbd5e1; transition: all 0.2s; }
+        #file-drop-zone.dragover { background-color: #eef2ff; border-color: #002d72; }
+    </style>
+</head>
+<body class="text-gray-800">
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-primary">Avaliação Comercial 2.0</h1>
+            <p class="text-lg text-gray-600 mt-2">Análise de Performance com Gemini 2.0 Flash</p>
+        </header>
 
-    try {
-        const manualTranscript = transcriptInput.value.trim();
-        const ccName = ccNameInput.value.trim();
-        const readPromises = uploadedFiles.map(file => file.text());
-        const fileTranscripts = await Promise.all(readPromises);
-        const combinedTranscript = [manualTranscript, ...fileTranscripts].filter(Boolean).join('\n\n---\n\n');
-        const analysisType = document.querySelector('input[name="analysis-type"]:checked').value;
+        <main class="max-w-4xl mx-auto">
+            <div class="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-gray-200">
+                <h2 class="text-2xl font-semibold mb-4 text-primary">1. Dados da Reunião</h2>
+                
+                <div class="mb-6">
+                    <label class="block text-lg font-medium text-gray-700 mb-2">Nome do Consultor</label>
+                    <input type="text" id="cc-name-input" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 ring-blue-500" placeholder="Nome do consultor">
+                </div>
 
-        // Chamada para a sua API na Vercel
-        const response = await fetch('/api/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                transcript: combinedTranscript,
-                ccName: ccName,
-                analysisType: analysisType
-            })
-        });
+                <div class="mb-6">
+                    <label class="block text-lg font-medium text-gray-700 mb-2">Tipo de Análise</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="analysis-type" value="full-analysis" class="h-4 w-4" checked>
+                            <span class="ml-2 text-sm">Completa</span>
+                        </label>
+                        <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="analysis-type" value="rapport-analysis" class="h-4 w-4">
+                            <span class="ml-2 text-sm">Rapport</span>
+                        </label>
+                        <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="analysis-type" value="pitch-analysis" class="h-4 w-4">
+                            <span class="ml-2 text-sm">Pitch Nibo</span>
+                        </label>
+                    </div>
+                </div>
 
-        if (!response.ok) throw new Error("Erro na comunicação com o servidor.");
+                <div class="mb-6">
+                    <label class="block text-lg font-medium text-gray-700 mb-2">Transcrição</label>
+                    <textarea id="transcript-input" rows="8" class="w-full p-4 border border-gray-300 rounded-lg" placeholder="Cole a transcrição aqui..."></textarea>
+                </div>
 
-        const analysisData = await response.json();
-        displayResults(analysisData, analysisType);
+                <div id="file-drop-zone" class="p-8 text-center rounded-lg cursor-pointer mb-6">
+                    <input type="file" id="file-input" multiple accept=".txt" class="hidden">
+                    <p class="text-gray-600">Arraste arquivos .txt ou <span class="text-primary font-bold">clique aqui</span></p>
+                    <div id="file-list" class="mt-2 text-sm text-blue-600"></div>
+                </div>
 
-    } catch (error) {
-        console.error("Erro:", error);
-        loadingSpinner.classList.add('hidden');
-        errorMessage.textContent = error.message;
-        errorMessage.classList.remove('hidden');
-    } finally {
-        analyzeBtn.disabled = false;
-    }
-}
+                <button id="analyze-btn" class="w-full bg-primary text-white font-bold py-4 rounded-lg hover:opacity-90 disabled:bg-gray-400" disabled>
+                    Analisar com Gemini 2.0 Flash
+                </button>
+            </div>
+
+            <div id="results-section" class="mt-10 hidden">
+                <div id="loading-spinner" class="flex flex-col items-center my-10">
+                    <div class="loader"></div>
+                    <p class="mt-4 text-gray-600">A IA está analisando a reunião...</p>
+                </div>
+                <div id="error-message" class="hidden p-4 bg-red-100 text-red-700 rounded-lg mb-6"></div>
+                <div id="analysis-results" class="bg-white p-6 rounded-2xl shadow-lg border hidden">
+                    <div id="report-content" class="prose max-w-none"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const ccNameInput = document.getElementById('cc-name-input');
+        const transcriptInput = document.getElementById('transcript-input');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const fileInput = document.getElementById('file-input');
+        const fileDropZone = document.getElementById('file-drop-zone');
+        const fileListDisplay = document.getElementById('file-list');
+        let uploadedFiles = [];
+
+        // Validação simples para ativar o botão
+        function validate() {
+            analyzeBtn.disabled = !(ccNameInput.value.trim() && (transcriptInput.value.trim() || uploadedFiles.length > 0));
+        }
+
+        ccNameInput.addEventListener('input', validate);
+        transcriptInput.addEventListener('input', validate);
+
+        fileDropZone.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => {
+            uploadedFiles = Array.from(e.target.files);
+            fileListDisplay.textContent = uploadedFiles.map(f => f.name).join(', ');
+            validate();
+        };
+
+        // FUNÇÃO PRINCIPAL: CONECTA COM O BACKEND NA VERCEL
+        async function handleAnalysis() {
+            const resultsSection = document.getElementById('results-section');
+            const analysisResults = document.getElementById('analysis-results');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const errorMessage = document.getElementById('error-message');
+
+            resultsSection.classList.remove('hidden');
+            loadingSpinner.classList.remove('hidden');
+            analysisResults.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            analyzeBtn.disabled = true;
+
+            try {
+                let fullText = transcriptInput.value.trim();
+                
+                // Lê arquivos se houver
+                for (let file of uploadedFiles) {
+                    const content = await file.text();
+                    fullText += "\n" + content;
+                }
+
+                const payload = {
+                    ccName: ccNameInput.value.trim(),
+                    transcript: fullText,
+                    analysisType: document.querySelector('input[name="analysis-type"]:checked').value
+                };
+
+                // CHAMA A API QUE VOCÊ CRIOU NA VERCEL
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error('Falha na análise. Verifique se a API Key está configurada na Vercel.');
+
+                const data = await response.json();
+                
+                loadingSpinner.classList.add('hidden');
+                analysisResults.classList.remove('hidden');
+                
+                // Exemplo simples de exibição (você pode usar suas funções de gráfico aqui)
+                document.getElementById('report-content').innerHTML = `
+                    <h3 class="text-2xl font-bold mb-4">Resultado da Análise</h3>
+                    <pre class="bg-gray-50 p-4 rounded overflow-auto text-sm">${JSON.stringify(data, null, 2)}</pre>
+                `;
+
+            } catch (err) {
+                loadingSpinner.classList.add('hidden');
+                errorMessage.textContent = err.message;
+                errorMessage.classList.remove('hidden');
+            } finally {
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        analyzeBtn.addEventListener('click', handleAnalysis);
+    </script>
+</body>
+</html>
