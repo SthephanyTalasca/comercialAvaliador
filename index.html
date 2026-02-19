@@ -1,20 +1,20 @@
-// 1. Configuração: Não precisamos mais da API Key ou ModelID aqui no HTML!
-const apiEndpoint = "/api/analyze"; // Rota que criaremos na Vercel
-
+// Substitua a sua função handleAnalysis antiga por esta:
 async function handleAnalysis() {
-    // ... (mantenha a lógica de carregamento e limpeza de erros)
-    
+    analysisResults.classList.add('hidden');
+    errorMessage.classList.add('hidden');
+    loadingSpinner.classList.remove('hidden');
+    analyzeBtn.disabled = true;
+
     try {
         const manualTranscript = transcriptInput.value.trim();
         const ccName = ccNameInput.value.trim();
         const readPromises = uploadedFiles.map(file => file.text());
         const fileTranscripts = await Promise.all(readPromises);
         const combinedTranscript = [manualTranscript, ...fileTranscripts].filter(Boolean).join('\n\n---\n\n');
-
         const analysisType = document.querySelector('input[name="analysis-type"]:checked').value;
 
-        // Chamada para o SEU backend na Vercel
-        const response = await fetch(apiEndpoint, {
+        // Chamada para a sua API na Vercel
+        const response = await fetch('/api/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -24,15 +24,17 @@ async function handleAnalysis() {
             })
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || "Erro na análise.");
-        }
+        if (!response.ok) throw new Error("Erro na comunicação com o servidor.");
 
-        const data = await response.json();
-        displayResults(data, analysisType);
+        const analysisData = await response.json();
+        displayResults(analysisData, analysisType);
 
     } catch (error) {
-        // ... (mantenha seu tratamento de erro atual)
+        console.error("Erro:", error);
+        loadingSpinner.classList.add('hidden');
+        errorMessage.textContent = error.message;
+        errorMessage.classList.remove('hidden');
+    } finally {
+        analyzeBtn.disabled = false;
     }
 }
