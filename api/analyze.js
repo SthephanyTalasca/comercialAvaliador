@@ -6,7 +6,8 @@ export default async function handler(req, res) {
 
     if (req.method === 'OPTIONS') return res.status(200).end();
 
-    const API_KEY = process.env.GEMINI_API_KEY;
+    // Atenção: Mudei o nome da variável de ambiente para a chave da OpenAI
+    const API_KEY = process.env.OPENAI_API_KEY; 
     if (!API_KEY) return res.status(500).json({ error: 'Chave de API ausente.' });
 
     try {
@@ -14,20 +15,25 @@ export default async function handler(req, res) {
         // Limpa a transcrição removendo o prefixo se existir
         const transcriptText = userPrompt.includes("TRANSCRIÇÃO:") ? userPrompt.split("TRANSCRIÇÃO:")[1] : userPrompt;
 
-        // DEFINIÇÃO DO SCHEMA (ESTRUTURA DE NOTAS SEPARADAS)
+        // DEFINIÇÃO DO SCHEMA (Adaptado para o formato "Structured Outputs" da OpenAI)
         const responseSchema = {
-            type: "object",
-            properties: {
-                nota_postura: { type: "number", description: "Nota de 0 a 10 para Postura e Empatia" },
-                nota_conhecimento: { type: "number", description: "Nota de 0 a 10 para Conhecimento Contábil" },
-                nota_escuta: { type: "number", description: "Nota de 0 a 10 para Escuta Ativa" },
-                nota_expansao: { type: "number", description: "Nota de 0 a 10 para Radar de Expansão" },
-                nota_fechamento: { type: "number", description: "Nota de 0 a 10 para Fechamento" },
-                soma_total: { type: "number", description: "Soma das 5 notas acima" },
-                media_final: { type: "number", description: "Soma total dividida por 5" },
-                justificativa_detalhada: { type: "string", description: "Explicação detalhada para cada nota aplicada" }
-            },
-            required: ["nota_postura", "nota_conhecimento", "nota_escuta", "nota_expansao", "nota_fechamento", "soma_total", "media_final", "justificativa_detalhada"]
+            name: "avaliacao_cs",
+            strict: true,
+            schema: {
+                type: "object",
+                properties: {
+                    nota_postura: { type: "number", description: "Nota de 0 a 10 para Postura e Empatia" },
+                    nota_conhecimento: { type: "number", description: "Nota de 0 a 10 para Conhecimento Contábil" },
+                    nota_escuta: { type: "number", description: "Nota de 0 a 10 para Escuta Ativa" },
+                    nota_expansao: { type: "number", description: "Nota de 0 a 10 para Radar de Expansão" },
+                    nota_fechamento: { type: "number", description: "Nota de 0 a 10 para Fechamento" },
+                    soma_total: { type: "number", description: "Soma das 5 notas acima" },
+                    media_final: { type: "number", description: "Soma total dividida por 5" },
+                    justificativa_detalhada: { type: "string", description: "Explicação detalhada para cada nota aplicada" }
+                },
+                required: ["nota_postura", "nota_conhecimento", "nota_escuta", "nota_expansao", "nota_fechamento", "soma_total", "media_final", "justificativa_detalhada"],
+                additionalProperties: false // Obrigatório na OpenAI quando 'strict' é true
+            }
         };
 
         const enhancedPrompt = `
@@ -47,29 +53,40 @@ export default async function handler(req, res) {
         ${transcriptText}
         `;
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // URL da API da OpenAI
+        const url = 'https://api.openai.com/v1/chat/completions';
 
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}` // Padrão de autenticação OpenAI
+            },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: enhancedPrompt }] }],
-                generationConfig: {
-                    response_mime_type: "application/json",
-                    response_schema: responseSchema,
-                    temperature: 0.1 
+                model: "gpt-4o-mini", // Modelo equivalente de baixo custo e alta velocidade
+                temperature: 0.1,
+                messages: [
+                    { role: "user", content: enhancedPrompt }
+                ],
+                response_format: {
+                    type: "json_schema",
+                    json_schema: responseSchema
                 }
             })
         });
 
         const data = await response.json();
 
+        // Tratamento de erro retornado pela API da OpenAI
         if (data.error) {
             return res.status(response.status).json({ error: data.error.message });
         }
 
-        // Retorna o objeto JSON estruturado com todas as notas
-        res.status(200).json(data);
+        // A OpenAI retorna o JSON como uma string dentro de choices[0].message.content
+        // Precisamos fazer o parse para devolver um objeto JSON limpo para o seu frontend
+        const resultadoFormatado = JSON.parse(data.choices[0].message.content);
+
+        res.status(200).json(resultadoFormatado);
 
     } catch (error) {
         console.error("Erro no Handler:", error);
