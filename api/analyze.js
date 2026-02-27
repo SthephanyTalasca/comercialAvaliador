@@ -6,34 +6,34 @@ export default async function handler(req, res) {
 
     if (req.method === 'OPTIONS') return res.status(200).end();
 
-    // Atenção: Mudei o nome da variável de ambiente para a chave da OpenAI
-    const API_KEY = process.env.OPENAI_API_KEY; 
-    if (!API_KEY) return res.status(500).json({ error: 'Chave de API ausente.' });
+    // 1. Voltamos para a variável da chave do Gemini!
+    const API_KEY = process.env.GEMINI_API_KEY;
+    if (!API_KEY) return res.status(500).json({ error: 'Chave de API do Gemini ausente.' });
 
     try {
-        const { prompt: userPrompt } = req.body;
-        // Limpa a transcrição removendo o prefixo se existir
+        const { prompt: userPrompt } = req.body; 
+
+        // 2. Trava de segurança mantida! (Impede o erro do .includes)
+        if (!userPrompt) {
+            return res.status(400).json({ error: "O texto da transcrição não foi enviado." });
+        }
+
         const transcriptText = userPrompt.includes("TRANSCRIÇÃO:") ? userPrompt.split("TRANSCRIÇÃO:")[1] : userPrompt;
 
-        // DEFINIÇÃO DO SCHEMA (Adaptado para o formato "Structured Outputs" da OpenAI)
+        // 3. SCHEMA do Gemini
         const responseSchema = {
-            name: "avaliacao_cs",
-            strict: true,
-            schema: {
-                type: "object",
-                properties: {
-                    nota_postura: { type: "number", description: "Nota de 0 a 10 para Postura e Empatia" },
-                    nota_conhecimento: { type: "number", description: "Nota de 0 a 10 para Conhecimento Contábil" },
-                    nota_escuta: { type: "number", description: "Nota de 0 a 10 para Escuta Ativa" },
-                    nota_expansao: { type: "number", description: "Nota de 0 a 10 para Radar de Expansão" },
-                    nota_fechamento: { type: "number", description: "Nota de 0 a 10 para Fechamento" },
-                    soma_total: { type: "number", description: "Soma das 5 notas acima" },
-                    media_final: { type: "number", description: "Soma total dividida por 5" },
-                    justificativa_detalhada: { type: "string", description: "Explicação detalhada para cada nota aplicada" }
-                },
-                required: ["nota_postura", "nota_conhecimento", "nota_escuta", "nota_expansao", "nota_fechamento", "soma_total", "media_final", "justificativa_detalhada"],
-                additionalProperties: false // Obrigatório na OpenAI quando 'strict' é true
-            }
+            type: "object",
+            properties: {
+                nota_postura: { type: "number", description: "Nota de 0 a 10 para Postura e Empatia" },
+                nota_conhecimento: { type: "number", description: "Nota de 0 a 10 para Conhecimento Contábil" },
+                nota_escuta: { type: "number", description: "Nota de 0 a 10 para Escuta Ativa" },
+                nota_expansao: { type: "number", description: "Nota de 0 a 10 para Radar de Expansão" },
+                nota_fechamento: { type: "number", description: "Nota de 0 a 10 para Fechamento" },
+                soma_total: { type: "number", description: "Soma das 5 notas acima" },
+                media_final: { type: "number", description: "Soma total dividida por 5" },
+                justificativa_detalhada: { type: "string", description: "Explicação detalhada para cada nota aplicada" }
+            },
+            required: ["nota_postura", "nota_conhecimento", "nota_escuta", "nota_expansao", "nota_fechamento", "soma_total", "media_final", "justificativa_detalhada"]
         };
 
         const enhancedPrompt = `
@@ -53,38 +53,30 @@ export default async function handler(req, res) {
         ${transcriptText}
         `;
 
-        // URL da API da OpenAI
-        const url = 'https://api.openai.com/v1/chat/completions';
+        // 4. URL de volta para o Gemini
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${API_KEY}` // Padrão de autenticação OpenAI
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: "gpt-4o-mini", // Modelo equivalente de baixo custo e alta velocidade
-                temperature: 0.1,
-                messages: [
-                    { role: "user", content: enhancedPrompt }
-                ],
-                response_format: {
-                    type: "json_schema",
-                    json_schema: responseSchema
+                contents: [{ parts: [{ text: enhancedPrompt }] }],
+                generationConfig: {
+                    response_mime_type: "application/json",
+                    response_schema: responseSchema,
+                    temperature: 0.1 
                 }
             })
         });
 
         const data = await response.json();
 
-        // Tratamento de erro retornado pela API da OpenAI
         if (data.error) {
             return res.status(response.status).json({ error: data.error.message });
         }
 
-        // A OpenAI retorna o JSON como uma string dentro de choices[0].message.content
-        // Precisamos fazer o parse para devolver um objeto JSON limpo para o seu frontend
-        const resultadoFormatado = JSON.parse(data.choices[0].message.content);
+        // O Gemini retorna o JSON como string na propriedade text, precisamos parsear
+        const resultadoFormatado = JSON.parse(data.candidates[0].content.parts[0].text);
 
         res.status(200).json(resultadoFormatado);
 
