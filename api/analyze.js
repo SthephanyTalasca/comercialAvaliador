@@ -1,26 +1,33 @@
 export default async function handler(req, res) {
+    // Configuração de Headers CORS para permitir chamadas do Frontend
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
+    // Resposta rápida para o pre-flight do navegador
     if (req.method === 'OPTIONS') return res.status(200).end();
 
-    // 1. Voltamos para a variável da chave do Gemini!
+    // Verificação da Chave de API nas variáveis de ambiente
     const API_KEY = process.env.GEMINI_API_KEY;
-    if (!API_KEY) return res.status(500).json({ error: 'Chave de API do Gemini ausente.' });
+    if (!API_KEY) {
+        return res.status(500).json({ error: 'Chave de API (GEMINI_API_KEY) não configurada no servidor.' });
+    }
 
     try {
-        const { prompt: userPrompt } = req.body; 
+        const { prompt: userPrompt } = req.body;
 
-        // 2. Trava de segurança mantida! (Impede o erro do .includes)
+        // Validação de segurança para garantir que o texto foi enviado
         if (!userPrompt) {
-            return res.status(400).json({ error: "O texto da transcrição não foi enviado." });
+            return res.status(400).json({ error: "O campo 'prompt' está vazio ou não foi enviado corretamente." });
         }
 
-        const transcriptText = userPrompt.includes("TRANSCRIÇÃO:") ? userPrompt.split("TRANSCRIÇÃO:")[1] : userPrompt;
+        // Limpeza básica da transcrição
+        const transcriptText = userPrompt.includes("TRANSCRIÇÃO:") 
+            ? userPrompt.split("TRANSCRIÇÃO:")[1] 
+            : userPrompt;
 
-        // 3. SCHEMA do Gemini
+        // Definição do Schema de Resposta para garantir JSON estruturado
         const responseSchema = {
             type: "object",
             properties: {
@@ -29,38 +36,38 @@ export default async function handler(req, res) {
                 nota_escuta: { type: "number", description: "Nota de 0 a 10 para Escuta Ativa" },
                 nota_expansao: { type: "number", description: "Nota de 0 a 10 para Radar de Expansão" },
                 nota_fechamento: { type: "number", description: "Nota de 0 a 10 para Fechamento" },
-                soma_total: { type: "number", description: "Soma das 5 notas acima" },
-                media_final: { type: "number", description: "Soma total dividida por 5" },
-                justificativa_detalhada: { type: "string", description: "Explicação detalhada para cada nota aplicada" }
+                soma_total: { type: "number", description: "Soma das 5 notas individuais" },
+                media_final: { type: "number", description: "Média final (Soma / 5)" },
+                justificativa_detalhada: { type: "string", description: "Explicação em português de cada nota aplicada" }
             },
-            required: ["nota_postura", "nota_conhecimento", "nota_escuta", "nota_expansao", "nota_fechamento", "soma_total", "media_final", "justificativa_detalhada"]
+            required: [
+                "nota_postura", "nota_conhecimento", "nota_escuta", 
+                "nota_expansao", "nota_fechamento", "soma_total", 
+                "media_final", "justificativa_detalhada"
+            ]
         };
 
-        const enhancedPrompt = `
-        VOCÊ É UM AUDITOR MATEMÁTICO DE QUALIDADE. 
-        Sua missão é analisar a transcrição e atribuir notas de 0 a 10 para cada critério.
+        const systemInstruction = `
+            VOCÊ É UM AUDITOR MATEMÁTICO DE QUALIDADE ESPECIALIZADO EM VENDAS.
+            Sua missão é analisar a transcrição da reunião e atribuir notas de 0 a 10.
 
-        ### REGRA DE OURO:
-        - Problemas técnicos (Bugs, lentidão, erro de sistema) = Nota 10 no critério técnico (Conhecimento Contábil), pois a falha não é do CS.
-        - Se não houver oportunidade de expansão (venda/gatilho) = Nota 10 automático no Radar de Expansão.
-
-        ### MÉTODO DE CÁLCULO OBRIGATÓRIO:
-        1. Atribua as 5 notas individuais.
-        2. Realize a SOMA de todas as notas.
-        3. Realize a MÉDIA (Soma / 5).
-        
-        TRANSCRIÇÃO:
-        ${transcriptText}
+            REGRAS CRÍTICAS:
+            1. Problemas técnicos do sistema = Nota 10 em Conhecimento Contábil (a falha não é do consultor).
+            2. Sem oportunidade de expansão detectada = Nota 10 automático em Radar de Expansão.
+            3. O cálculo da média deve ser rigoroso (Soma das 5 notas / 5).
+            4. Responda estritamente em Português no campo de justificativa.
         `;
 
-        // 4. URL de volta para o Gemini
-       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // URL da API do Gemini atualizada para gemini-2.5-flash-lite
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`;
 
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: enhancedPrompt }] }],
+                contents: [{ 
+                    parts: [{ text: `INSTRUÇÃO: ${systemInstruction}\n\nTRANSCRIÇÃO:\n${transcriptText}` }] 
+                }],
                 generationConfig: {
                     response_mime_type: "application/json",
                     response_schema: responseSchema,
@@ -71,17 +78,24 @@ export default async function handler(req, res) {
 
         const data = await response.json();
 
+        // Tratamento de erros vindos da API do Google
         if (data.error) {
-            return res.status(response.status).json({ error: data.error.message });
+            console.error("Erro Google API:", data.error);
+            return res.status(response.status || 500).json({ 
+                error: data.error.message || "Erro na comunicação com a IA." 
+            });
         }
 
-        // O Gemini retorna o JSON como string na propriedade text, precisamos parsear
-        const resultadoFormatado = JSON.parse(data.candidates[0].content.parts[0].text);
-
-        res.status(200).json(resultadoFormatado);
+        // Extração do conteúdo JSON gerado
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+            const aiResponse = JSON.parse(data.candidates[0].content.parts[0].text);
+            return res.status(200).json(aiResponse);
+        } else {
+            throw new Error("Resposta da IA formatada incorretamente.");
+        }
 
     } catch (error) {
         console.error("Erro no Handler:", error);
-        res.status(500).json({ error: "Erro interno no servidor." });
+        res.status(500).json({ error: "Erro interno no servidor ao processar a análise." });
     }
 }
