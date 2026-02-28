@@ -81,7 +81,7 @@ export default async function handler(req, res) {
         const systemInstruction = `VOCÊ É O AUDITOR CHEFE DA NIBO. IDIOMA: Português Brasil. BASE TÉCNICA: ${NIBO_KNOWLEDGE_BASE}`;
 
         // Correção na URL do modelo
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-09-2025:generateContent?key=${API_KEY}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-2025:generateContent?key=${API_KEY}`;
 
         const response = await fetchWithRetry(url, {
             method: 'POST',
