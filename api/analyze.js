@@ -23,27 +23,21 @@ export default async function handler(req, res) {
         const { prompt: userPrompt } = req.body;
         if (!userPrompt) return res.status(400).json({ error: "Transcrição vazia." });
 
-        // --- BASE DE CONHECIMENTO NIBO OBRIGAÇÕES (FONTE: AJUDA.NIBO.COM.BR) ---
         const NIBO_KNOWLEDGE_BASE = `
         1. NIBO OBRIGAÇÕES - FUNCIONALIDADES CHAVE:
-           - TELA DE CONFERÊNCIA: Coração do sistema. Valida automaticamente guias (DARF, GPS, DAS, etc.), identificando cliente, competência e valor. Permite "Drag and Drop" para processamento em massa.
-           - RECÁLCULO AUTOMÁTICO: O cliente pode atualizar guias vencidas com 1 clique. Suporta Simples Nacional (DAS), DAS MEI, DARF Sicalc e DCTFWeb. O sistema valida se o valor recalculado bate com o original antes de liberar.
-           - CALENDÁRIO DINÂMICO: Diferencia "Vencimento Legal" de "Meta Interna" (prazo de segurança do escritório). Permite filtros por responsável ou departamento.
-           - ARMAZENAMENTO E SEGURANÇA: Usa nuvem Microsoft Azure. Armazenamento ilimitado. Possui "Arquivo Permanente" para documentos como Contratos Sociais que não expiram.
-           - RELATÓRIOS GERENCIAIS: Mapa de Pendências (visualização por cores), Relatório de Produtividade, Relatório Completo de Protocolos e Auditoria de processos.
-
-        2. AUTOMAÇÃO E INTEGRAÇÃO:
-           - NIBO ASSISTENTE: Substitui robôs locais. Mapeia pastas do computador diretamente para a nuvem. Detecta automaticamente obrigações geradas pelo sistema contábil.
-           - INTEGRAÇÃO DOMÍNIO: Botão exclusivo "Publicar na pasta" dentro da Domínio que envia o documento direto para a conferência do Nibo.
-           - NIBO IMPRESSORA: Driver virtual que permite enviar qualquer PDF de qualquer site/sistema para o Nibo via CTRL+P.
-
-        3. CONCORRENTES (ARGUMENTOS DE COMBATE):
-           - ACESSÓRIAS: Nibo não precisa de robô local (Nuvem pura). Visual moderno vs. Visual "Matrix". Nibo aceita qualquer arquivo; Acessórias foca em PDF/TXT.
-           - GCLICK / GESTTA / VERI: O diferencial do Nibo é o ECOSSISTEMA integrado (Financeiro + Obrigações + App + WhatsApp). Nibo permite áudio no atendimento; os outros geralmente não.
-
-        4. SCRIPT DE FECHAMENTO (OBRIGATÓRIO):
-           - Voto de Confiança: Deve usar a frase sobre o orçamento e a "foto de referência na cidade".
-           - Objeção Financeira: Isolar entre "Mensalidade" e "Setup". Oferecer Gestão Financeira Gratuita como bônus final ("Cereja do bolo").
+           - TELA DE CONFERÊNCIA: Coração do sistema. Valida automaticamente guias (DARF, GPS, DAS, etc.). Permite "Drag and Drop".
+           - RECÁLCULO AUTOMÁTICO: Atualiza guias vencidas com 1 clique (Sicalc, DCTFWeb, DAS).
+           - CALENDÁRIO DINÂMICO: Diferencia "Vencimento Legal" de "Meta Interna".
+           - ARMAZENAMENTO: Nuvem Microsoft Azure. Armazenamento ilimitado.
+        2. AUTOMAÇÃO:
+           - NIBO ASSISTENTE: Sem robô local. Mapeia pastas para a nuvem.
+           - INTEGRAÇÃO DOMÍNIO: Botão "Publicar na pasta" envia direto ao Nibo.
+        3. CONCORRENTES:
+           - ACESSÓRIAS: Nibo é Nuvem pura (sem robô local) e visual moderno.
+           - GCLICK / GESTTA / VERI: Nibo é ECOSSISTEMA integrado. Permite ÁUDIO.
+        4. SCRIPT DE FECHAMENTO:
+           - Voto de Confiança: Foto de referência e orçamento.
+           - Negociação: Isolar Mensalidade vs Setup.
         `;
 
         const responseSchema = {
@@ -54,7 +48,7 @@ export default async function handler(req, res) {
                 nota_postura: { type: "number" },
                 porque_postura: { type: "string" },
                 nota_conhecimento: { type: "number" },
-                porque_conhecimento: { type: "string", description: "Avalie se o consultor usou os detalhes técnicos da base de conhecimento (Recálculo DCTFWeb, Nibo Assistente, etc)." },
+                porque_conhecimento: { type: "string" },
                 nota_escuta: { type: "number" },
                 porque_escuta: { type: "string" },
                 nota_expansao: { type: "number" },
@@ -84,23 +78,10 @@ export default async function handler(req, res) {
             required: ["resumo_executivo", "concorrentes_detectados", "nota_postura", "porque_postura", "nota_conhecimento", "porque_conhecimento", "nota_escuta", "porque_escuta", "nota_expansao", "porque_expansao", "nota_fechamento", "porque_fechamento", "media_final", "chance_fechamento", "tempo_fala_consultor", "tempo_fala_cliente", "alerta_cancelamento", "pontos_fortes", "pontos_atencao", "checklist_fechamento", "justificativa_detalhada"]
         };
 
-        const systemInstruction = `
-            VOCÊ É O AUDITOR CHEFE DA NIBO.
-            Sua missão é garantir que o consultor use TODO o potencial técnico do Nibo Obrigações.
+        const systemInstruction = `VOCÊ É O AUDITOR CHEFE DA NIBO. IDIOMA: Português Brasil. BASE TÉCNICA: ${NIBO_KNOWLEDGE_BASE}`;
 
-            BASE TÉCNICA ATUALIZADA:
-            ${NIBO_KNOWLEDGE_BASE}
-
-            DIRETRIZES:
-            1. Se o cliente falar de 'Multas', verifique se o consultor falou do 'Recálculo Automático (Sicalc/DCTFWeb)' e da 'Meta Interna' no calendário.
-            2. Se o cliente usar 'Domínio', o consultor DEVE mencionar o botão de publicar direto.
-            3. Analise se o consultor combateu a 'Acessórias' citando a ausência de robô local e o visual moderno.
-            4. Desconte pontos se o consultor for vago. Ele deve ser um especialista técnico.
-            
-            IDIOMA: Português Brasil.
-        `;
-
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/2.5-flash-lite:generateContent?key=${API_KEY}`;
+        // Correção na URL do modelo
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-09-2025:generateContent?key=${API_KEY}`;
 
         const response = await fetchWithRetry(url, {
             method: 'POST',
@@ -113,9 +94,30 @@ export default async function handler(req, res) {
         });
 
         const data = await response.json();
-        res.status(200).json(JSON.parse(data.candidates[0].content.parts[0].text));
+
+        // Verificação robusta da resposta
+        if (data.error) {
+            return res.status(500).json({ error: `Erro na API do Google: ${data.error.message}` });
+        }
+
+        if (!data.candidates || data.candidates.length === 0) {
+            return res.status(500).json({ error: "A IA não gerou uma resposta. Verifique se a transcrição não viola as políticas de segurança." });
+        }
+
+        const candidate = data.candidates[0];
+        if (candidate.finishReason === "SAFETY") {
+            return res.status(500).json({ error: "A análise foi bloqueada pelos filtros de segurança do Google." });
+        }
+
+        const textResponse = candidate.content?.parts?.[0]?.text;
+        if (!textResponse) {
+            return res.status(500).json({ error: "Resposta da IA veio vazia ou em formato inesperado." });
+        }
+
+        res.status(200).json(JSON.parse(textResponse));
 
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("Erro no Handler:", error);
+        res.status(500).json({ error: "Erro interno: " + error.message });
     }
 }
