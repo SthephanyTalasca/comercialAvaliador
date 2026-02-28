@@ -3,218 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nibo AI Auditor - Dashboard de Performance</title>
+    <title>Nibo AI - Auditoria de Vendas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #0f172a; }
-        .glass-card { background: white; border: 1px solid #e2e8f0; border-radius: 2.5rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); transition: all 0.3s ease; }
-        .glass-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #2563eb; border-radius: 50%; width: 28px; height: 28px; animation: spin 1s linear infinite; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; color: #0f172a; }
+        .glass-card { background: white; border: 1px solid #e2e8f0; border-radius: 2.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); transition: all 0.3s ease; }
+        .glass-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .markdown-content h1, .markdown-content h2 { font-weight: 800; color: #1e3a8a; margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1rem; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; }
         .markdown-content p { margin-bottom: 1rem; color: #475569; line-height: 1.6; font-size: 0.9rem; }
         .markdown-content ul { list-style-type: none; padding-left: 0; margin-bottom: 1.25rem; }
         .markdown-content li { position: relative; padding-left: 1.5rem; margin-bottom: 0.4rem; color: #475569; font-size: 0.85rem; }
         .markdown-content li::before { content: "•"; position: absolute; left: 0; color: #2563eb; font-weight: bold; }
-        .animate-fade-up { animation: fadeUp 0.6s ease-out forwards; }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .tag-concorrente { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     </style>
 </head>
 <body class="pb-20 antialiased">
 
-    <!-- Navbar Futurista -->
-    <nav class="bg-[#002d72] text-white py-5 px-8 sticky top-0 z-50 shadow-2xl border-b border-blue-400">
+    <!-- Navbar -->
+    <nav class="bg-[#002d72] text-white py-4 px-8 sticky top-0 z-50 shadow-xl border-b border-blue-400">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
                 <div class="bg-white p-2.5 rounded-2xl shadow-inner">
-                    <i data-lucide="bar-chart-3" class="text-[#002d72] w-6 h-6"></i>
+                    <i data-lucide="shield-check" class="text-[#002d72] w-6 h-6"></i>
                 </div>
                 <div>
-                    <h1 class="font-extrabold text-xl leading-none tracking-tight">NIBO <span class="text-blue-400">AUDITOR IA</span></h1>
-                    <p class="text-[9px] text-blue-200 uppercase tracking-[0.2em] font-bold mt-1">Inteligência Comercial Estratégica</p>
+                    <h1 class="font-extrabold text-lg uppercase tracking-tight">Nibo <span class="text-blue-400">Auditor de Vendas</span></h1>
+                    <p class="text-[9px] text-blue-200 uppercase tracking-widest font-bold mt-1">Análise de Performance Baseada no Manual</p>
                 </div>
             </div>
-            <div class="flex items-center gap-4">
-                <div class="relative group">
-                    <i data-lucide="user-search" class="absolute left-4 top-3 w-4 h-4 text-blue-300 group-focus-within:text-blue-100 transition-colors"></i>
-                    <input type="text" id="cc-name-input" placeholder="Nome do Consultor" class="pl-11 pr-5 py-2.5 rounded-2xl bg-blue-900/40 border border-blue-400/50 text-white placeholder-blue-300 focus:outline-none focus:ring-4 ring-blue-400/20 transition-all text-sm w-64">
-                </div>
+            <div class="relative">
+                <i data-lucide="user" class="absolute left-3 top-2.5 w-4 h-4 text-blue-300"></i>
+                <input type="text" id="cc-name-input" placeholder="Consultor" class="pl-10 pr-5 py-2 rounded-xl bg-blue-900/40 border border-blue-400/50 text-white text-sm focus:outline-none focus:ring-2 ring-blue-300 transition-all">
             </div>
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto px-4 mt-12">
+    <main class="max-w-6xl mx-auto px-4 mt-8">
         
         <!-- Input Section -->
-        <section class="mb-12 animate-fade-up">
-            <div class="glass-card p-10 relative overflow-hidden">
-                <div class="absolute -right-20 -top-20 w-64 h-64 bg-blue-50 rounded-full opacity-50"></div>
-                <div class="relative z-10">
-                    <div class="flex items-center gap-3 mb-8">
-                        <i data-lucide="file-audio-2" class="text-blue-600 w-6 h-6"></i>
-                        <h2 class="font-extrabold text-slate-800 text-xl tracking-tight uppercase">Análise de Transcrição</h2>
-                    </div>
-                    <textarea id="transcript-input" rows="6" class="w-full p-8 bg-slate-50 border border-slate-200 rounded-[2.5rem] focus:ring-8 ring-blue-500/5 focus:outline-none transition-all text-sm leading-relaxed mb-8 shadow-inner" placeholder="Cole aqui o diálogo completo da reunião para que a IA gere o infográfico de performance..."></textarea>
-                    <div class="flex justify-end">
-                        <button id="analyze-btn" class="group flex items-center gap-4 bg-blue-600 hover:bg-[#002d72] text-white px-16 py-5 rounded-[2rem] font-black text-sm shadow-2xl shadow-blue-200 transition-all active:scale-95 disabled:opacity-50">
-                            <span>INICIAR AUDITORIA IA</span>
-                            <i data-lucide="rocket" class="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"></i>
-                        </button>
-                    </div>
+        <section class="mb-10">
+            <div class="glass-card p-8 md:p-10">
+                <div class="flex items-center gap-3 mb-6">
+                    <i data-lucide="message-square" class="text-blue-600"></i>
+                    <h2 class="font-bold text-slate-800 text-lg">Submeter Transcrição</h2>
+                </div>
+                <textarea id="transcript-input" rows="5" class="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] focus:ring-4 ring-blue-500/5 focus:outline-none transition-all text-sm mb-6" placeholder="Cole aqui o diálogo completo da reunião..."></textarea>
+                <div class="flex justify-end">
+                    <button id="analyze-btn" class="group flex items-center gap-3 bg-blue-600 hover:bg-[#002d72] text-white px-10 py-4 rounded-2xl font-bold text-sm shadow-xl transition-all active:scale-95">
+                        <span>Gerar Infográfico de Performance</span>
+                        <i data-lucide="zap" class="w-4 h-4"></i>
+                    </button>
                 </div>
             </div>
         </section>
 
-        <!-- Painel de Resultados -->
-        <div id="results-section" class="hidden space-y-10">
+        <!-- Resultados -->
+        <div id="results-section" class="hidden space-y-8">
             
-            <!-- Loading -->
-            <div id="loading-spinner" class="flex flex-col items-center py-24">
-                <div class="loader mb-8 w-12 h-12"></div>
-                <p class="text-slate-400 font-black text-xs uppercase tracking-widest animate-pulse">Auditando Manual Nibo & Calculando Scores...</p>
+            <div id="loading-spinner" class="flex flex-col items-center py-20">
+                <div class="loader mb-4"></div>
+                <p class="text-slate-400 font-bold text-xs uppercase tracking-widest animate-pulse">Auditando Manual Nibo...</p>
             </div>
 
-            <!-- Dashboard Real -->
-            <div id="analysis-content" class="hidden space-y-8 animate-fade-up">
+            <div id="analysis-content" class="hidden space-y-8 animate-in fade-in duration-1000">
                 
-                <!-- Top Row: Score & Resume -->
-                <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                    <!-- Global Score -->
-                    <div class="lg:col-span-1 glass-card p-10 flex flex-col items-center justify-center text-center border-b-[12px] border-blue-600">
-                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Performance Nibo</span>
-                        <div id="media-final" class="text-8xl font-black text-[#002d72] leading-none mb-6 tracking-tighter">0.0</div>
-                        <div id="status-tag" class="px-8 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg transition-colors">---</div>
+                <!-- Headline Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div class="lg:col-span-1 glass-card p-10 flex flex-col items-center justify-center text-center border-b-[10px] border-blue-600">
+                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Média Global</span>
+                        <div id="media-final" class="text-7xl font-black text-[#002d72] mb-3">0.0</div>
+                        <div id="status-tag" class="px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">---</div>
                     </div>
                     
-                    <!-- Executive Diagnostic -->
-                    <div class="lg:col-span-3 glass-card p-12 bg-gradient-to-br from-blue-700 to-blue-900 text-white relative flex flex-col justify-center">
-                        <i data-lucide="zap" class="absolute top-8 right-12 w-24 h-24 text-white/10 rotate-12"></i>
-                        <h3 class="font-bold text-blue-200 text-[10px] uppercase tracking-widest mb-6 flex items-center gap-2">
-                             <span class="w-2 h-2 bg-blue-400 rounded-full animate-ping"></span>
-                             Diagnóstico Geral do Auditor
-                        </h3>
-                        <p id="resumo-text" class="text-2xl md:text-3xl font-extrabold leading-tight mb-10 pr-16 drop-shadow-md"></p>
-                        
-                        <!-- Closing Chance Badge -->
-                        <div class="p-6 bg-white/10 rounded-[2rem] border border-white/20 backdrop-blur-md flex items-center justify-between">
-                            <div>
-                                <span class="text-[9px] font-black text-blue-300 uppercase block mb-1 tracking-widest italic">Chance de Fechamento:</span>
-                                <p id="chance-text" class="text-lg font-bold text-white uppercase"></p>
-                            </div>
-                            <div id="chance-icon" class="w-12 h-12 rounded-full flex items-center justify-center bg-white/20">
-                                <i data-lucide="trending-up" class="w-6 h-6 text-white"></i>
-                            </div>
+                    <div class="lg:col-span-3 glass-card p-10 bg-gradient-to-br from-blue-700 to-blue-900 text-white relative flex flex-col justify-center">
+                        <div id="concorrentes-tags" class="flex flex-wrap gap-2 mb-4"></div>
+                        <h3 class="font-bold text-blue-200 text-[10px] uppercase tracking-widest mb-4">Diagnóstico Geral</h3>
+                        <p id="resumo-text" class="text-xl md:text-2xl font-bold leading-tight mb-8"></p>
+                        <div class="p-4 bg-white/10 rounded-2xl border border-white/20">
+                            <span class="text-[9px] font-black text-blue-300 uppercase block mb-1 tracking-widest italic">Probabilidade de Fechamento:</span>
+                            <p id="chance-text" class="text-base font-bold text-white"></p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Score Grid with "Whys" -->
-                <div id="notas-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                    <!-- Injected by JS -->
-                </div>
+                <!-- Grid de Notas com Porquês -->
+                <div id="notas-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4"></div>
 
-                <!-- Middle Section: Radar, Talk Time & Alert -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <!-- Radar Chart Card -->
-                    <div class="glass-card p-10 min-h-[400px] flex items-center justify-center bg-slate-50/30">
-                        <div class="w-full h-full relative">
-                            <canvas id="radarChart"></canvas>
-                        </div>
+                <!-- Radar e Talk Time -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="glass-card p-8 min-h-[350px] flex items-center justify-center">
+                        <canvas id="radarChart"></canvas>
                     </div>
-
-                    <!-- Talk Time Card -->
-                    <div class="glass-card p-12 flex flex-col justify-center">
-                        <h4 class="text-[10px] font-black uppercase text-slate-400 mb-10 tracking-widest flex items-center gap-2">
-                             <i data-lucide="timer" class="w-3 h-3 text-blue-500"></i> Equilíbrio da Conversa
-                        </h4>
-                        <div id="talk-time-container" class="space-y-10">
-                            <!-- Injected by JS -->
-                        </div>
+                    <div class="glass-card p-8">
+                        <h4 class="text-[10px] font-black uppercase text-slate-400 mb-10 tracking-widest">Tempo de Fala (Equilíbrio)</h4>
+                        <div id="talk-time-container" class="space-y-10"></div>
                     </div>
-
-                    <!-- Risk Alert Card -->
-                    <div id="alerta-card" class="bg-red-50 p-12 rounded-[3rem] border border-red-100 flex flex-col justify-center shadow-xl shadow-red-100/50">
-                        <div class="flex items-center gap-3 mb-6">
-                            <div class="bg-red-200 p-2 rounded-xl">
-                                <i data-lucide="alert-triangle" class="text-red-600 w-5 h-5"></i>
-                            </div>
-                            <h4 class="text-[10px] font-black uppercase text-red-600 tracking-widest">Alerta Crítico</h4>
+                    <div id="alerta-card" class="bg-red-50 p-8 rounded-[2rem] border border-red-100 flex flex-col justify-center">
+                        <div class="flex items-center gap-2 mb-4">
+                            <i data-lucide="alert-octagon" class="text-red-600 w-5 h-5"></i>
+                            <h4 class="text-[10px] font-black uppercase text-red-600 tracking-widest italic">Alerta de Risco</h4>
                         </div>
-                        <p id="alerta-text" class="text-sm font-bold text-red-900 leading-relaxed italic"></p>
+                        <p id="alerta-text" class="text-xs font-bold text-red-900 leading-relaxed"></p>
                     </div>
                 </div>
 
-                <!-- Bottom Section: Checklist & Feedback Lists -->
+                <!-- Checklist e Listas de Feedback -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Sales Manual Checklist -->
-                    <div class="glass-card p-12">
-                        <div class="flex items-center gap-3 mb-10">
-                            <i data-lucide="clipboard-check" class="text-blue-600 w-6 h-6"></i>
-                            <h3 class="font-black text-slate-800 text-xl tracking-tight">Manual de Vendas Nibo</h3>
-                        </div>
-                        <div id="checklist-container" class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <!-- Injected by JS -->
-                        </div>
+                    <div class="glass-card p-10">
+                        <h3 class="font-bold text-slate-800 text-lg mb-8 flex items-center gap-3">
+                            <i data-lucide="clipboard-check" class="text-blue-600"></i>
+                            Checklist do Manual Nibo
+                        </h3>
+                        <div id="checklist-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                     </div>
 
-                    <!-- Strengths and Weaknesses -->
-                    <div class="grid grid-cols-1 gap-6">
-                        <div class="bg-emerald-50/60 p-8 rounded-[3rem] border border-emerald-100 shadow-sm">
-                            <h4 class="text-[10px] font-black text-emerald-700 mb-6 uppercase tracking-widest flex items-center gap-2">
-                                <i data-lucide="thumbs-up" class="w-4 h-4"></i> Pontos Fortes do Consultor
-                            </h4>
-                            <ul id="lista-fortes" class="space-y-4 text-[11px] font-bold text-emerald-900 leading-snug"></ul>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-emerald-50/60 p-8 rounded-[2rem] border border-emerald-100 shadow-sm">
+                            <h4 class="text-[10px] font-black text-emerald-700 mb-6 uppercase tracking-widest">Pontos Fortes</h4>
+                            <ul id="lista-fortes" class="space-y-3 text-[11px] font-bold text-emerald-900"></ul>
                         </div>
-                        <div class="bg-amber-50/60 p-8 rounded-[3rem] border border-amber-100 shadow-sm">
-                            <h4 class="text-[10px] font-black text-amber-700 mb-6 uppercase tracking-widest flex items-center gap-2">
-                                <i data-lucide="thumbs-down" class="w-4 h-4"></i> Melhorias Necessárias
-                            </h4>
-                            <ul id="lista-atencao" class="space-y-4 text-[11px] font-bold text-amber-900 leading-snug"></ul>
+                        <div class="bg-amber-50/60 p-8 rounded-[2rem] border border-amber-100 shadow-sm">
+                            <h4 class="text-[10px] font-black text-amber-700 mb-6 uppercase tracking-widest">Melhoria Imediata</h4>
+                            <ul id="lista-atencao" class="space-y-3 text-[11px] font-bold text-amber-900"></ul>
                         </div>
                     </div>
                 </div>
 
-                <!-- Full Structural Audit Report -->
-                <div class="glass-card p-12 md:p-20 shadow-2xl border-t-[12px] border-[#002d72]">
-                    <div class="flex flex-col md:flex-row justify-between items-center gap-6 mb-16 border-b pb-10">
-                        <div class="flex items-center gap-5 text-center md:text-left">
-                            <div class="bg-blue-600 p-4 rounded-[1.5rem] shadow-lg shadow-blue-200">
-                                <i data-lucide="scroll-text" class="text-white w-8 h-8"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-2xl font-black text-[#002d72] uppercase tracking-wider">Auditoria Estrutural Completa</h3>
-                                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Análise Linha a Linha</p>
-                            </div>
-                        </div>
-                        <div class="text-[10px] font-bold text-slate-400 border px-6 py-2 rounded-full uppercase">Relatório Gerado por IA</div>
-                    </div>
+                <!-- Auditoria Estrutural Markdown -->
+                <div class="glass-card p-12 md:p-16 shadow-2xl border-t-[10px] border-[#002d72]">
+                    <h3 class="text-xl font-extrabold text-[#002d72] uppercase tracking-widest mb-10 border-b pb-6 flex items-center gap-4">
+                        <i data-lucide="scroll-text"></i>
+                        Relatório de Auditoria Estrutural
+                    </h3>
                     <div id="markdown-body" class="markdown-content"></div>
                 </div>
-
             </div>
         </div>
     </main>
 
     <script>
-        // Init Icons
         lucide.createIcons();
-
         const analyzeBtn = document.getElementById('analyze-btn');
         const transcriptInput = document.getElementById('transcript-input');
         const resultsSection = document.getElementById('results-section');
         const loadingSpinner = document.getElementById('loading-spinner');
         const analysisContent = document.getElementById('analysis-content');
-        
         let radarChartInstance = null;
 
         async function handleAnalysis() {
             const prompt = transcriptInput.value.trim();
             if(!prompt) return;
-
             resultsSection.classList.remove('hidden');
             loadingSpinner.classList.remove('hidden');
             analysisContent.classList.add('hidden');
@@ -226,14 +171,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ prompt })
                 });
-
                 const data = await response.json();
                 if(data.error) throw new Error(data.error);
-
                 renderDashboard(data);
             } catch (err) {
-                console.error(err);
-                alert("Falha na Auditoria: " + err.message);
+                alert("Erro: " + err.message);
                 resultsSection.classList.add('hidden');
             } finally {
                 analyzeBtn.disabled = false;
@@ -244,27 +186,27 @@
             loadingSpinner.classList.add('hidden');
             analysisContent.classList.remove('hidden');
 
-            // 1. Core Metrics
+            // 1. Headline & Score
             const media = data.media_final || 0;
             document.getElementById('media-final').textContent = media.toFixed(1);
             document.getElementById('resumo-text').textContent = data.resumo_executivo;
-            document.getElementById('chance-text').textContent = data.chance_fechamento || "N/A";
-            document.getElementById('alerta-text').textContent = data.alerta_cancelamento || "Nenhum risco imediato detectado.";
+            document.getElementById('chance-text').textContent = data.chance_fechamento || "Análise insuficiente";
+            document.getElementById('alerta-text').textContent = data.alerta_cancelamento;
 
-            // Status Tag Branding
+            // 2. Concorrentes Tags
+            const tagContainer = document.getElementById('concorrentes-tags');
+            tagContainer.innerHTML = (data.concorrentes_detectados || []).map(c => `
+                <span class="px-3 py-1 bg-red-600 text-white text-[10px] font-black rounded-lg shadow-lg uppercase tracking-widest flex items-center gap-1.5 tag-concorrente">
+                    <i data-lucide="alert-circle" class="w-3 h-3"></i> ${c}
+                </span>
+            `).join('');
+
             const status = document.getElementById('status-tag');
-            if(media >= 9) { 
-                status.textContent = "Elite Sales Performance"; 
-                status.className = "px-8 py-2.5 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-xl shadow-emerald-200"; 
-            } else if(media >= 7) { 
-                status.textContent = "Alta Performance"; 
-                status.className = "px-8 py-2.5 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700 shadow-md shadow-blue-100"; 
-            } else { 
-                status.textContent = "Plano de Recuperação"; 
-                status.className = "px-8 py-2.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; 
-            }
+            if(media >= 9) { status.textContent = "Elite Sales"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg"; }
+            else if(media >= 7) { status.textContent = "Alta Performance"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700"; }
+            else { status.textContent = "Acompanhamento"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; }
 
-            // 2. Individual Score Cards with "WHYS"
+            // 3. Grid de Notas
             const fields = [
                 { l: 'Postura', k: 'postura' },
                 { l: 'Produto', k: 'conhecimento' },
@@ -274,121 +216,69 @@
             ];
             document.getElementById('notas-grid').innerHTML = fields.map(f => {
                 const n = data[`nota_${f.k}`];
-                const p = data[`porque_${f.k}`] || "Justificativa não fornecida.";
+                const p = data[`porque_${f.k}`];
                 const c = n >= 8 ? 'text-emerald-500' : n >= 5 ? 'text-blue-600' : 'text-red-500';
                 return `
-                    <div class="glass-card p-8 flex flex-col items-center text-center">
-                        <span class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-[0.2em]">${f.l}</span>
-                        <div class="text-5xl font-black ${c} mb-6 leading-none">${n}</div>
-                        <div class="w-full h-[2px] bg-slate-50 mb-4 rounded-full"></div>
-                        <p class="text-[10px] text-slate-500 font-medium leading-relaxed italic line-clamp-4" title="${p}">${p}</p>
+                    <div class="glass-card p-6 flex flex-col items-center text-center">
+                        <span class="text-[9px] font-black text-slate-400 uppercase mb-3 tracking-widest">${f.l}</span>
+                        <div class="text-3xl font-black ${c} mb-3 leading-none">${n}</div>
+                        <p class="text-[9px] text-slate-500 italic leading-tight font-medium">${p}</p>
                     </div>
                 `;
             }).join('');
 
-            // 3. Talk Time (Dynamic Progress Bars)
+            // 4. Talk Time
             document.getElementById('talk-time-container').innerHTML = `
                 <div>
-                    <div class="flex justify-between text-[11px] font-black mb-3">
-                        <span class="text-blue-700 uppercase">Consultor</span>
-                        <span class="text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">${data.tempo_fala_consultor}</span>
-                    </div>
-                    <div class="h-4 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
-                        <div class="h-full bg-blue-600 transition-all duration-1000 shadow-[0_0_15px_rgba(37,99,235,0.4)]" style="width: ${data.tempo_fala_consultor}"></div>
-                    </div>
+                    <div class="flex justify-between text-[11px] font-bold mb-2"><span>Consultor</span><span class="text-blue-600">${data.tempo_fala_consultor}</span></div>
+                    <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600 transition-all duration-1000 shadow-[0_0_10px_rgba(37,99,235,0.4)]" style="width: ${data.tempo_fala_consultor}"></div></div>
                 </div>
                 <div>
-                    <div class="flex justify-between text-[11px] font-black mb-3">
-                        <span class="text-emerald-700 uppercase">Cliente</span>
-                        <span class="text-emerald-500 bg-emerald-50 px-3 py-1 rounded-lg">${data.tempo_fala_cliente}</span>
-                    </div>
-                    <div class="h-4 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
-                        <div class="h-full bg-emerald-500 transition-all duration-1000 shadow-[0_0_15px_rgba(16,185,129,0.4)]" style="width: ${data.tempo_fala_cliente}"></div>
-                    </div>
+                    <div class="flex justify-between text-[11px] font-bold mb-2"><span>Cliente</span><span class="text-emerald-500">${data.tempo_fala_cliente}</span></div>
+                    <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500 transition-all duration-1000 shadow-[0_0_10px_rgba(16,185,129,0.4)]" style="width: ${data.tempo_fala_cliente}"></div></div>
                 </div>
             `;
 
-            // 4. Manual Nibo Checklist (Visual Boolean Cards)
+            // 5. Checklist
             const ck = data.checklist_fechamento || {};
-            const ckLabels = { 
-                resolveu_pontos_iniciais: "Retomou problemas X, Y, Z", 
-                pediu_feedback_ferramenta: "Pediu Feedback ferramenta", 
-                pediu_voto_confianca: "Pediu Voto de Confiança", 
-                tratou_objecao_socio: "Identificou Objeção Sócio", 
-                validou_mensalidade_vs_setup: "Isolou Mensalidade vs Setup", 
-                mencionou_gestao_financeira_gratuita: "Cereja do Bolo (G.F.)" 
-            };
+            const ckLabels = { resolveu_pontos_iniciais: "Retomou problemas", pediu_feedback_ferramenta: "Pediu Feedback", pediu_voto_confianca: "Voto de Confiança", tratou_objecao_socio: "Alinhou Sócios", validou_mensalidade_vs_setup: "Isolou Objecção", mencionou_gestao_financeira_gratuita: "Cereja do Bolo" };
             document.getElementById('checklist-container').innerHTML = Object.entries(ckLabels).map(([key, label]) => `
-                <div class="flex items-center justify-between p-5 bg-slate-50/50 rounded-[1.5rem] border border-slate-100 hover:bg-white transition-all group">
+                <div class="flex items-center justify-between p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100 transition-all hover:bg-white group">
                     <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tight group-hover:text-slate-800 transition-colors">${label}</span>
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center transition-all ${ck[key] ? 'bg-emerald-500 shadow-lg shadow-emerald-200' : 'bg-slate-200'}">
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center ${ck[key] ? 'bg-emerald-500' : 'bg-slate-200'} shadow-sm">
                         <i data-lucide="${ck[key] ? 'check' : 'minus'}" class="text-white w-4 h-4"></i>
                     </div>
                 </div>
             `).join('');
 
-            // 5. Strengths & Weaknesses (Bullet Lists)
-            document.getElementById('lista-fortes').innerHTML = (data.pontos_fortes || ["Nenhum ponto forte identificado."]).map(i => `
-                <li class="flex items-start gap-3"><span class="bg-emerald-500 rounded-full p-0.5 mt-0.5"><i data-lucide="check" class="w-3 h-3 text-white"></i></span> <span>${i}</span></li>
-            `).join('');
-            document.getElementById('lista-atencao').innerHTML = (data.pontos_atencao || ["Nenhuma melhoria urgente identificada."]).map(i => `
-                <li class="flex items-start gap-3"><span class="bg-amber-500 rounded-full p-0.5 mt-0.5"><i data-lucide="chevron-right" class="w-3 h-3 text-white"></i></span> <span>${i}</span></li>
-            `).join('');
-
-            // 6. Markdown Audit Rendering
-            document.getElementById('markdown-body').innerHTML = marked.parse(data.justificativa_detalhada || "_A análise detalhada não pôde ser gerada._");
+            document.getElementById('lista-fortes').innerHTML = (data.pontos_fortes || []).map(i => `<li class="flex items-start gap-2"><span>▶</span> ${i}</li>`).join('');
+            document.getElementById('lista-atencao').innerHTML = (data.pontos_atencao || []).map(i => `<li class="flex items-start gap-2"><span>▶</span> ${i}</li>`).join('');
+            document.getElementById('markdown-body').innerHTML = marked.parse(data.justificativa_detalhada);
             
-            // 7. Radar Chart Generation
             renderRadar(data);
-
-            // Re-init Lucide Icons
             lucide.createIcons();
         }
 
         function renderRadar(data) {
             const ctx = document.getElementById('radarChart').getContext('2d');
             if(radarChartInstance) radarChartInstance.destroy();
-            
             radarChartInstance = new Chart(ctx, {
                 type: 'radar',
                 data: {
                     labels: ['Postura', 'Produto', 'Escuta', 'Expansão', 'Fechamento'],
                     datasets: [{
-                        label: 'Performance Real',
+                        label: 'Desempenho',
                         data: [data.nota_postura, data.nota_conhecimento, data.nota_escuta, data.nota_expansao, data.nota_fechamento],
-                        backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
                         borderColor: '#2563eb',
-                        borderWidth: 4,
-                        pointRadius: 6,
-                        pointBackgroundColor: '#1e3a8a',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 3,
-                        pointHoverRadius: 8
+                        borderWidth: 2,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#1e3a8a'
                     }]
                 },
-                options: { 
-                    scales: { 
-                        r: { 
-                            min: 0, 
-                            max: 10, 
-                            ticks: { display: false, stepSize: 2 }, 
-                            grid: { color: '#f1f5f9' }, 
-                            angleLines: { color: '#f1f5f9' }, 
-                            pointLabels: { 
-                                font: { size: 10, weight: '800', family: 'Plus Jakarta Sans' }, 
-                                color: '#64748b' 
-                            } 
-                        } 
-                    }, 
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: { backgroundColor: '#002d72', padding: 12, titleFont: { size: 14 } }
-                    }, 
-                    maintainAspectRatio: false 
-                }
+                options: { scales: { r: { min: 0, max: 10, ticks: { display: false }, grid: { color: '#f1f5f9' }, angleLines: { color: '#f1f5f9' }, pointLabels: { font: { size: 9, weight: '700' }, color: '#64748b' } } }, plugins: { legend: { display: false } }, maintainAspectRatio: false }
             });
         }
-
         analyzeBtn.addEventListener('click', handleAnalysis);
     </script>
 </body>
