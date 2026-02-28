@@ -27,38 +27,73 @@ export default async function handler(req, res) {
             ? userPrompt.split("TRANSCRIÇÃO:")[1] 
             : userPrompt;
 
-        // Definição do Schema de Resposta para garantir JSON estruturado
+        // Definição do Schema de Resposta Dinâmico e Detalhado
         const responseSchema = {
             type: "object",
             properties: {
                 nota_postura: { type: "number", description: "Nota de 0 a 10 para Postura e Empatia" },
-                nota_conhecimento: { type: "number", description: "Nota de 0 a 10 para Conhecimento Contábil" },
+                nota_conhecimento: { type: "number", description: "Nota de 0 a 10 para Conhecimento Contábil/Nibo" },
                 nota_escuta: { type: "number", description: "Nota de 0 a 10 para Escuta Ativa" },
                 nota_expansao: { type: "number", description: "Nota de 0 a 10 para Radar de Expansão" },
-                nota_fechamento: { type: "number", description: "Nota de 0 a 10 para Fechamento" },
-                soma_total: { type: "number", description: "Soma das 5 notas individuais" },
-                media_final: { type: "number", description: "Média final (Soma / 5)" },
-                justificativa_detalhada: { type: "string", description: "Explicação em português de cada nota aplicada" }
+                nota_fechamento: { type: "number", description: "Nota de 0 a 10 para Técnica de Fechamento" },
+                soma_total: { type: "number" },
+                media_final: { type: "number" },
+                tempo_fala_consultor: { type: "string", description: "Estimativa em % do tempo de fala do consultor" },
+                tempo_fala_cliente: { type: "string", description: "Estimativa em % do tempo de fala do cliente" },
+                alerta_cancelamento: { type: "string", description: "Análise de risco de perda do negócio ou pontos críticos (churn/lost)" },
+                checklist_fechamento: {
+                    type: "object",
+                    properties: {
+                        resolveu_pontos_iniciais: { type: "boolean", description: "Retomou os pontos X, Y, Z resolvidos?" },
+                        pediu_feedback_ferramenta: { type: "boolean", description: "Perguntou 'O que você achou da solução?'" },
+                        pediu_voto_confianca: { type: "boolean", description: "Usou a frase do 'voto de confiança' e menção à 'foto'?" },
+                        tratou_objecao_socio: { type: "boolean", description: "Identificou e agendou com o sócio se necessário?" },
+                        validou_mensalidade_vs_setup: { type: "boolean", description: "Perguntou o que pesou mais (mensalidade ou setup)?" },
+                        mencionou_gestao_financeira_gratuita: { type: "boolean", description: "Ofereceu o Nibo Gestão Financeira como bônus (Cereja do bolo)?" }
+                    }
+                },
+                comparativo_concorrencia: {
+                    type: "object",
+                    properties: {
+                        visual_poluido_vs_moderno: { type: "boolean", description: "Contrastou o visual 'Matrix' da concorrência com o design moderno do Nibo?" },
+                        facilidade_uso_vs_cliques: { type: "boolean", description: "Mencionou a redução de cliques e facilidade operacional?" },
+                        automacao_sem_robo_local: { type: "boolean", description: "Explicou que não precisa de robô instalado localmente?" },
+                        integracao_ecac_app: { type: "boolean", description: "Destacou diferenciais do App como recalcular DAS/DARF e ECAC?" }
+                    }
+                },
+                justificativa_detalhada: { type: "string", description: "Análise crítica completa baseada no manual de vendas, em português de Portugal." }
             },
             required: [
                 "nota_postura", "nota_conhecimento", "nota_escuta", 
                 "nota_expansao", "nota_fechamento", "soma_total", 
-                "media_final", "justificativa_detalhada"
+                "media_final", "tempo_fala_consultor", "tempo_fala_cliente",
+                "alerta_cancelamento", "checklist_fechamento", "justificativa_detalhada"
             ]
         };
 
         const systemInstruction = `
-            VOCÊ É UM AUDITOR MATEMÁTICO DE QUALIDADE ESPECIALIZADO EM VENDAS.
-            Sua missão é analisar a transcrição da reunião e atribuir notas de 0 a 10.
+            VOCÊ É UM AUDITOR DE QUALIDADE DE VENDAS DA NIBO.
+            Analise a transcrição com base no MANUAL DE VENDAS e directrizes de produto.
 
-            REGRAS CRÍTICAS:
-            1. Problemas técnicos do sistema = Nota 10 em Conhecimento Contábil (a falha não é do consultor).
-            2. Sem oportunidade de expansão detectada = Nota 10 automático em Radar de Expansão.
-            3. O cálculo da média deve ser rigoroso (Soma das 5 notas / 5).
-            4. Responda estritamente em Português no campo de justificativa.
+            DIRETRIZES TÉCNICAS:
+            1. **Tempo de Fala**: Estime a percentagem de fala do consultor vs cliente (volume de texto).
+            2. **Argumentação Comparativa**: Verifique se o consultor destacou:
+               - O visual poluído/antigo da concorrência (ex: Acessórias) vs Interface intuitiva do Nibo.
+               - A vantagem de ter automação em nuvem sem necessidade de instalar robôs locais.
+               - Diferenciais exclusivos do App Nibo: Integração direta com ECAC, recálculo de guias e emissão de notas.
+            3. **Script de Fechamento (Obrigatório)**:
+               - Validar se retomou as dores do cliente (pontos X, Y, Z).
+               - Perguntar o feedback sobre a solução antes de falar de valores.
+               - O uso da técnica do "Voto de Confiança".
+               - Na negociação, perguntar o que pesou (Mensalidade vs Setup) para isolar objecções.
+               - Oferecer a Gestão Financeira Gratuita como fechamento especial.
+            4. **Alerta de Perda**: Sinalize se o consultor foi muito agressivo, se o cliente não validou valor ou se faltou alinhar com o sócio.
+
+            REGRAS DE OURO:
+            - Erro de sistema/técnico = Nota 10 em Conhecimento.
+            - Sem oportunidade de expansão na conversa = Nota 10 em Expansão.
         `;
 
-        // URL da API do Gemini atualizada para gemini-2.5-flash-lite
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`;
 
         const response = await fetch(url, {
@@ -78,7 +113,6 @@ export default async function handler(req, res) {
 
         const data = await response.json();
 
-        // Tratamento de erros vindos da API do Google
         if (data.error) {
             console.error("Erro Google API:", data.error);
             return res.status(response.status || 500).json({ 
@@ -86,7 +120,6 @@ export default async function handler(req, res) {
             });
         }
 
-        // Extração do conteúdo JSON gerado
         if (data.candidates && data.candidates[0].content.parts[0].text) {
             const aiResponse = JSON.parse(data.candidates[0].content.parts[0].text);
             return res.status(200).json(aiResponse);
