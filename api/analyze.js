@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-    // Configuração de Headers CORS
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -8,9 +7,8 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
 
     const API_KEY = process.env.GEMINI_API_KEY;
-    if (!API_KEY) return res.status(500).json({ error: 'Chave de API GEMINI_API_KEY não configurada na Vercel.' });
+    if (!API_KEY) return res.status(500).json({ error: 'Chave de API não configurada.' });
 
-    // Lógica de Retry para evitar erros de limite de quota
     const fetchWithRetry = async (url, options, retries = 5) => {
         const delays = [1000, 2000, 4000, 8000, 16000];
         for (let i = 0; i < retries; i++) {
@@ -23,20 +21,40 @@ export default async function handler(req, res) {
 
     try {
         const { prompt: userPrompt } = req.body;
-        if (!userPrompt) return res.status(400).json({ error: "A transcrição é obrigatória para a análise." });
+        if (!userPrompt) return res.status(400).json({ error: "Transcrição vazia." });
 
-        const transcriptText = userPrompt.includes("TRANSCRIÇÃO:") 
-            ? userPrompt.split("TRANSCRIÇÃO:")[1] 
-            : userPrompt;
+        // --- BASE DE CONHECIMENTO NIBO OBRIGAÇÕES (FONTE: AJUDA.NIBO.COM.BR) ---
+        const NIBO_KNOWLEDGE_BASE = `
+        1. NIBO OBRIGAÇÕES - FUNCIONALIDADES CHAVE:
+           - TELA DE CONFERÊNCIA: Coração do sistema. Valida automaticamente guias (DARF, GPS, DAS, etc.), identificando cliente, competência e valor. Permite "Drag and Drop" para processamento em massa.
+           - RECÁLCULO AUTOMÁTICO: O cliente pode atualizar guias vencidas com 1 clique. Suporta Simples Nacional (DAS), DAS MEI, DARF Sicalc e DCTFWeb. O sistema valida se o valor recalculado bate com o original antes de liberar.
+           - CALENDÁRIO DINÂMICO: Diferencia "Vencimento Legal" de "Meta Interna" (prazo de segurança do escritório). Permite filtros por responsável ou departamento.
+           - ARMAZENAMENTO E SEGURANÇA: Usa nuvem Microsoft Azure. Armazenamento ilimitado. Possui "Arquivo Permanente" para documentos como Contratos Sociais que não expiram.
+           - RELATÓRIOS GERENCIAIS: Mapa de Pendências (visualização por cores), Relatório de Produtividade, Relatório Completo de Protocolos e Auditoria de processos.
+
+        2. AUTOMAÇÃO E INTEGRAÇÃO:
+           - NIBO ASSISTENTE: Substitui robôs locais. Mapeia pastas do computador diretamente para a nuvem. Detecta automaticamente obrigações geradas pelo sistema contábil.
+           - INTEGRAÇÃO DOMÍNIO: Botão exclusivo "Publicar na pasta" dentro da Domínio que envia o documento direto para a conferência do Nibo.
+           - NIBO IMPRESSORA: Driver virtual que permite enviar qualquer PDF de qualquer site/sistema para o Nibo via CTRL+P.
+
+        3. CONCORRENTES (ARGUMENTOS DE COMBATE):
+           - ACESSÓRIAS: Nibo não precisa de robô local (Nuvem pura). Visual moderno vs. Visual "Matrix". Nibo aceita qualquer arquivo; Acessórias foca em PDF/TXT.
+           - GCLICK / GESTTA / VERI: O diferencial do Nibo é o ECOSSISTEMA integrado (Financeiro + Obrigações + App + WhatsApp). Nibo permite áudio no atendimento; os outros geralmente não.
+
+        4. SCRIPT DE FECHAMENTO (OBRIGATÓRIO):
+           - Voto de Confiança: Deve usar a frase sobre o orçamento e a "foto de referência na cidade".
+           - Objeção Financeira: Isolar entre "Mensalidade" e "Setup". Oferecer Gestão Financeira Gratuita como bônus final ("Cereja do bolo").
+        `;
 
         const responseSchema = {
             type: "object",
             properties: {
                 resumo_executivo: { type: "string" },
+                concorrentes_detectados: { type: "array", items: { type: "string" } },
                 nota_postura: { type: "number" },
                 porque_postura: { type: "string" },
                 nota_conhecimento: { type: "number" },
-                porque_conhecimento: { type: "string" },
+                porque_conhecimento: { type: "string", description: "Avalie se o consultor usou os detalhes técnicos da base de conhecimento (Recálculo DCTFWeb, Nibo Assistente, etc)." },
                 nota_escuta: { type: "number" },
                 porque_escuta: { type: "string" },
                 nota_expansao: { type: "number" },
@@ -63,44 +81,41 @@ export default async function handler(req, res) {
                 },
                 justificativa_detalhada: { type: "string" }
             },
-            required: ["resumo_executivo", "nota_postura", "porque_postura", "nota_conhecimento", "porque_conhecimento", "nota_escuta", "porque_escuta", "nota_expansao", "porque_expansao", "nota_fechamento", "porque_fechamento", "media_final", "chance_fechamento", "tempo_fala_consultor", "tempo_fala_cliente", "alerta_cancelamento", "pontos_fortes", "pontos_atencao", "checklist_fechamento", "justificativa_detalhada"]
+            required: ["resumo_executivo", "concorrentes_detectados", "nota_postura", "porque_postura", "nota_conhecimento", "porque_conhecimento", "nota_escuta", "porque_escuta", "nota_expansao", "porque_expansao", "nota_fechamento", "porque_fechamento", "media_final", "chance_fechamento", "tempo_fala_consultor", "tempo_fala_cliente", "alerta_cancelamento", "pontos_fortes", "pontos_atencao", "checklist_fechamento", "justificativa_detalhada"]
         };
 
         const systemInstruction = `
-            VOCÊ É UM AUDITOR DE VENDAS NIBO DE ELITE.
-            Analise a transcrição rigorosamente com base no MANUAL DE VENDAS NIBO.
+            VOCÊ É O AUDITOR CHEFE DA NIBO.
+            Sua missão é garantir que o consultor use TODO o potencial técnico do Nibo Obrigações.
 
-            ESTRUTURA DE ANÁLISE:
-            1. **Justificativa Individual**: Para cada uma das 5 notas, escreva uma explicação curta e direta no campo 'porque_...'.
-            2. **Probabilidade de Fecho**: Analise a temperatura do cliente e o uso das técnicas de fechamento para estimar a chance de fechar venda (Baixa, Média, Alta).
-            3. **Pontos Fortes e Fracos**: Identifique o que foi excelente e o que foi um erro técnico ou de script.
-            4. **Argumentos Chave**: Verifique se o consultor usou o 'Voto de Confiança', se isolou a objeção entre 'Setup' e 'Mensalidade', e se contrastou a interface do Nibo com a interface poluída da concorrência (ex: Acessórias).
-            5. **Idioma**: Responda estritamente em Português de Portugal.
+            BASE TÉCNICA ATUALIZADA:
+            ${NIBO_KNOWLEDGE_BASE}
+
+            DIRETRIZES:
+            1. Se o cliente falar de 'Multas', verifique se o consultor falou do 'Recálculo Automático (Sicalc/DCTFWeb)' e da 'Meta Interna' no calendário.
+            2. Se o cliente usar 'Domínio', o consultor DEVE mencionar o botão de publicar direto.
+            3. Analise se o consultor combateu a 'Acessórias' citando a ausência de robô local e o visual moderno.
+            4. Desconte pontos se o consultor for vago. Ele deve ser um especialista técnico.
+            
+            IDIOMA: Português Brasil.
         `;
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/2.5-flash-lite:generateContent?key=${API_KEY}`;
 
         const response = await fetchWithRetry(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: `INSTRUÇÃO: ${systemInstruction}\n\nTRANSCRIÇÃO:\n${transcriptText}` }] }],
-                generationConfig: { 
-                    response_mime_type: "application/json", 
-                    response_schema: responseSchema, 
-                    temperature: 0.1 
-                }
+                contents: [{ parts: [{ text: `TRANSCRIÇÃO:\n${userPrompt}` }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                generationConfig: { response_mime_type: "application/json", response_schema: responseSchema, temperature: 0.1 }
             })
         });
 
         const data = await response.json();
-        if (data.error) throw new Error(data.error.message);
-
-        const aiOutput = JSON.parse(data.candidates[0].content.parts[0].text);
-        res.status(200).json(aiOutput);
+        res.status(200).json(JSON.parse(data.candidates[0].content.parts[0].text));
 
     } catch (error) {
-        console.error("Erro Backend:", error);
         res.status(500).json({ error: error.message });
     }
 }
