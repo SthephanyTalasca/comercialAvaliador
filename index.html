@@ -26,7 +26,6 @@
 </head>
 <body class="pb-20 antialiased">
 
-    <!-- Navbar -->
     <nav class="bg-[#002d72] text-white py-4 px-8 sticky top-0 z-50 shadow-xl border-b border-blue-400">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
@@ -47,7 +46,6 @@
 
     <main class="max-w-6xl mx-auto px-4 mt-8">
         
-        <!-- Input Section -->
         <section class="mb-10">
             <div class="glass-card p-8 md:p-10">
                 <div class="flex items-center gap-3 mb-6">
@@ -64,7 +62,6 @@
             </div>
         </section>
 
-        <!-- Resultados -->
         <div id="results-section" class="hidden space-y-8">
             
             <div id="loading-spinner" class="flex flex-col items-center py-20">
@@ -74,7 +71,6 @@
 
             <div id="analysis-content" class="hidden space-y-8 animate-in fade-in duration-1000">
                 
-                <!-- Headline Row -->
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     <div class="lg:col-span-1 glass-card p-10 flex flex-col items-center justify-center text-center border-b-[10px] border-blue-600">
                         <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Média Global</span>
@@ -93,10 +89,8 @@
                     </div>
                 </div>
 
-                <!-- Grid de Notas com Porquês -->
                 <div id="notas-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4"></div>
 
-                <!-- Radar e Talk Time -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="glass-card p-8 min-h-[350px] flex items-center justify-center">
                         <canvas id="radarChart"></canvas>
@@ -114,7 +108,6 @@
                     </div>
                 </div>
 
-                <!-- Checklist e Listas de Feedback -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div class="glass-card p-10">
                         <h3 class="font-bold text-slate-800 text-lg mb-8 flex items-center gap-3">
@@ -136,7 +129,6 @@
                     </div>
                 </div>
 
-                <!-- Auditoria Estrutural Markdown -->
                 <div class="glass-card p-12 md:p-16 shadow-2xl border-t-[10px] border-[#002d72]">
                     <h3 class="text-xl font-extrabold text-[#002d72] uppercase tracking-widest mb-10 border-b pb-6 flex items-center gap-4">
                         <i data-lucide="scroll-text"></i>
@@ -157,9 +149,16 @@
         const analysisContent = document.getElementById('analysis-content');
         let radarChartInstance = null;
 
+        // Ouvinte de eventos adicionado aqui para fazer o botão funcionar!
+        analyzeBtn.addEventListener('click', handleAnalysis);
+
         async function handleAnalysis() {
             const prompt = transcriptInput.value.trim();
-            if(!prompt) return;
+            if(!prompt) {
+                alert("Por favor, insira a transcrição antes de analisar.");
+                return;
+            }
+            
             resultsSection.classList.remove('hidden');
             loadingSpinner.classList.remove('hidden');
             analysisContent.classList.add('hidden');
@@ -171,8 +170,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ prompt })
                 });
+                
                 const data = await response.json();
+                
                 if(data.error) throw new Error(data.error);
+                
                 renderDashboard(data);
             } catch (err) {
                 alert("Erro: " + err.message);
@@ -183,96 +185,96 @@
         }
 
         function renderDashboard(data) {
-    loadingSpinner.classList.add('hidden');
-    analysisContent.classList.remove('hidden');
+            loadingSpinner.classList.add('hidden');
+            analysisContent.classList.remove('hidden');
 
-    if (!data?.rapport || !data?.produto || !data?.demonstracao) {
-        alert("Estrutura inesperada da resposta da IA.");
-        return;
-    }
+            if (!data?.rapport || !data?.produto || !data?.demonstracao) {
+                alert("Estrutura inesperada da resposta da IA.");
+                return;
+            }
 
-    // ==============================
-    // 1. MÉDIA GLOBAL (0–5)
-    // ==============================
-    const notas = [
-        data.rapport.nota_final || 0,
-        data.produto.nota_final || 0,
-        data.demonstracao.nota_final || 0
-    ];
+            // ==============================
+            // 1. MÉDIA GLOBAL (0–5)
+            // ==============================
+            const notas = [
+                data.rapport.nota_final || 0,
+                data.produto.nota_final || 0,
+                data.demonstracao.nota_final || 0
+            ];
 
-    const media = (notas.reduce((a,b)=>a+b,0) / notas.length) || 0;
-    document.getElementById('media-final').textContent = media.toFixed(1);
+            const media = (notas.reduce((a,b)=>a+b,0) / notas.length) || 0;
+            document.getElementById('media-final').textContent = media.toFixed(1);
 
-    const status = document.getElementById('status-tag');
-    if (media >= 4.5) {
-        status.textContent = "Alta Performance";
-        status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white";
-    } else if (media >= 3) {
-        status.textContent = "Boa Estrutura";
-        status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700";
-    } else {
-        status.textContent = "Ajustes Necessários";
-        status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-red-100 text-red-600";
-    }
+            const status = document.getElementById('status-tag');
+            if (media >= 4.5) {
+                status.textContent = "Alta Performance";
+                status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white";
+            } else if (media >= 3) {
+                status.textContent = "Boa Estrutura";
+                status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700";
+            } else {
+                status.textContent = "Ajustes Necessários";
+                status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-red-100 text-red-600";
+            }
 
-    // ==============================
-    // 2. HEADLINE
-    // ==============================
-    document.getElementById('resumo-text').textContent =
-        "Avaliação consolidada da condução comercial baseada em Rapport, Produto e Demonstração.";
+            // ==============================
+            // 2. HEADLINE
+            // ==============================
+            document.getElementById('resumo-text').textContent =
+                "Avaliação consolidada da condução comercial baseada em Rapport, Produto e Demonstração.";
 
-    document.getElementById('chance-text').textContent =
-        `Rapport: ${data.rapport.nota_final}/5 | Produto: ${data.produto.nota_final}/5 | Demonstração: ${data.demonstracao.nota_final}/5`;
+            document.getElementById('chance-text').textContent =
+                `Rapport: ${data.rapport.nota_final}/5 | Produto: ${data.produto.nota_final}/5 | Demonstração: ${data.demonstracao.nota_final}/5`;
 
-    document.getElementById('alerta-text').textContent =
-        data.produto.houve_divergencia
-            ? "Foram identificadas divergências técnicas na apresentação do produto."
-            : "Nenhuma divergência relevante identificada nos manuais.";
+            document.getElementById('alerta-text').textContent =
+                data.produto.houve_divergencia
+                    ? "Foram identificadas divergências técnicas na apresentação do produto."
+                    : "Nenhuma divergência relevante identificada nos manuais.";
 
-    // ==============================
-    // 3. GRID DE NOTAS (ADAPTADO)
-    // ==============================
-    const fields = [
-        { l: 'Rapport', n: data.rapport.nota_final, p: "Conexão e empatia" },
-        { l: 'Produto', n: data.produto.nota_final, p: data.produto.quais_erros || "Sem divergências" },
-        { l: 'Demonstração', n: data.demonstracao.nota_final, p: "Estratégia e impacto percebido" }
-    ];
+            // ==============================
+            // 3. GRID DE NOTAS (ADAPTADO)
+            // ==============================
+            const fields = [
+                { l: 'Rapport', n: data.rapport.nota_final, p: "Conexão e empatia" },
+                { l: 'Produto', n: data.produto.nota_final, p: data.produto.quais_erros || "Sem divergências" },
+                { l: 'Demonstração', n: data.demonstracao.nota_final, p: "Estratégia e impacto percebido" }
+            ];
 
-    document.getElementById('notas-grid').innerHTML = fields.map(f => {
-        const c = f.n >= 4 ? 'text-emerald-500'
-                : f.n >= 3 ? 'text-blue-600'
-                : 'text-red-500';
+            document.getElementById('notas-grid').innerHTML = fields.map(f => {
+                const c = f.n >= 4 ? 'text-emerald-500'
+                        : f.n >= 3 ? 'text-blue-600'
+                        : 'text-red-500';
 
-        return `
-            <div class="glass-card p-6 flex flex-col items-center text-center">
-                <span class="text-[9px] font-black text-slate-400 uppercase mb-3 tracking-widest">${f.l}</span>
-                <div class="text-3xl font-black ${c} mb-3 leading-none">${f.n}</div>
-                <p class="text-[9px] text-slate-500 italic leading-tight font-medium">${f.p}</p>
-            </div>
-        `;
-    }).join('');
+                return `
+                    <div class="glass-card p-6 flex flex-col items-center text-center">
+                        <span class="text-[9px] font-black text-slate-400 uppercase mb-3 tracking-widest">${f.l}</span>
+                        <div class="text-3xl font-black ${c} mb-3 leading-none">${f.n}</div>
+                        <p class="text-[9px] text-slate-500 italic leading-tight font-medium">${f.p}</p>
+                    </div>
+                `;
+            }).join('');
 
-    // ==============================
-    // 4. LISTAS
-    // ==============================
-    document.getElementById('lista-fortes').innerHTML =
-        (data.demonstracao.pontos_fortes || "")
-        .split("\n")
-        .filter(Boolean)
-        .map(i => `<li class="flex items-start gap-2"><span>▶</span>${i}</li>`)
-        .join('');
+            // ==============================
+            // 4. LISTAS
+            // ==============================
+            document.getElementById('lista-fortes').innerHTML =
+                (data.demonstracao.pontos_fortes || "")
+                .split("\n")
+                .filter(Boolean)
+                .map(i => `<li class="flex items-start gap-2"><span>▶</span>${i}</li>`)
+                .join('');
 
-    document.getElementById('lista-atencao').innerHTML =
-        (data.demonstracao.pontos_melhoria || "")
-        .split("\n")
-        .filter(Boolean)
-        .map(i => `<li class="flex items-start gap-2"><span>▶</span>${i}</li>`)
-        .join('');
+            document.getElementById('lista-atencao').innerHTML =
+                (data.demonstracao.pontos_melhoria || "")
+                .split("\n")
+                .filter(Boolean)
+                .map(i => `<li class="flex items-start gap-2"><span>▶</span>${i}</li>`)
+                .join('');
 
-    // ==============================
-    // 5. MARKDOWN (SEGURO)
-    // ==============================
-    const markdownText = `
+            // ==============================
+            // 5. MARKDOWN (SEGURO)
+            // ==============================
+            const markdownText = `
 # RAPPORT E CONEXÃO
 ${data.rapport.analise_detalhada || ""}
 
@@ -284,53 +286,56 @@ ${data.demonstracao.analise_por_pilar || ""}
 
 ## Sugestões Práticas
 ${data.demonstracao.sugestoes_praticas || ""}
-    `;
+            `;
 
-    document.getElementById('markdown-body').innerHTML =
-        marked.parse(markdownText || "");
+            document.getElementById('markdown-body').innerHTML =
+                marked.parse(markdownText || "");
 
-    renderRadar(data);
-    lucide.createIcons();
-}
+            renderRadar(data);
+            lucide.createIcons();
+        }
 
         function renderRadar(data) {
-    const ctx = document.getElementById('radarChart').getContext('2d');
-    if (radarChartInstance) radarChartInstance.destroy();
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            if (radarChartInstance) radarChartInstance.destroy();
 
-    radarChartInstance = new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels: ['Rapport', 'Produto', 'Demonstração'],
-            datasets: [{
-                label: 'Desempenho',
-                data: [
-                    data.rapport.nota_final || 0,
-                    data.produto.nota_final || 0,
-                    data.demonstracao.nota_final || 0
-                ],
-                backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                borderColor: '#2563eb',
-                borderWidth: 2,
-                pointRadius: 5,
-                pointBackgroundColor: '#1e3a8a'
-            }]
-        },
-        options: {
-            scales: {
-                r: {
-                    min: 0,
-                    max: 5,
-                    ticks: { display: false },
-                    grid: { color: '#f1f5f9' },
-                    angleLines: { color: '#f1f5f9' },
-                    pointLabels: {
-                        font: { size: 10, weight: '700' },
-                        color: '#64748b'
-                    }
+            radarChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Rapport', 'Produto', 'Demonstração'],
+                    datasets: [{
+                        label: 'Desempenho',
+                        data: [
+                            data.rapport.nota_final || 0,
+                            data.produto.nota_final || 0,
+                            data.demonstracao.nota_final || 0
+                        ],
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderColor: '#2563eb',
+                        borderWidth: 2,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#1e3a8a'
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            min: 0,
+                            max: 5,
+                            ticks: { display: false },
+                            grid: { color: '#f1f5f9' },
+                            angleLines: { color: '#f1f5f9' },
+                            pointLabels: {
+                                font: { size: 10, weight: '700' },
+                                color: '#64748b'
+                            }
+                        }
+                    },
+                    plugins: { legend: { display: false } },
+                    maintainAspectRatio: false
                 }
-            },
-            plugins: { legend: { display: false } },
-            maintainAspectRatio: false
+            });
         }
-    });
-}
+    </script>
+</body>
+</html>
