@@ -152,7 +152,7 @@
         // Ouvinte de eventos adicionado aqui para fazer o botão funcionar!
         analyzeBtn.addEventListener('click', handleAnalysis);
 
-        async function handleAnalysis() {
+       async function handleAnalysis() {
             const prompt = transcriptInput.value.trim();
             if(!prompt) {
                 alert("Por favor, insira a transcrição antes de analisar.");
@@ -164,12 +164,22 @@
             analysisContent.classList.add('hidden');
             analyzeBtn.disabled = true;
 
+            // 1. Criamos o controlador de cancelamento
+            const controller = new AbortController();
+            
+            // 2. Definimos o limite de 45 segundos (45000 milissegundos)
+            const timeoutId = setTimeout(() => controller.abort(), 45000);
+
             try {
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt })
+                    body: JSON.stringify({ prompt }),
+                    signal: controller.signal // 3. Conectamos o controlador ao fetch
                 });
+                
+                // 4. Se a resposta chegar a tempo, cancelamos a contagem do cronômetro
+                clearTimeout(timeoutId);
                 
                 const data = await response.json();
                 
@@ -177,7 +187,12 @@
                 
                 renderDashboard(data);
             } catch (err) {
-                alert("Erro: " + err.message);
+                // 5. Verificamos se o erro foi causado pelo tempo limite
+                if (err.name === 'AbortError') {
+                    alert("⏳ A análise demorou mais de 45 segundos e foi interrompida (Tempo Limite). Tente analisar uma transcrição menor.");
+                } else {
+                    alert("Erro: " + err.message);
+                }
                 resultsSection.classList.add('hidden');
             } finally {
                 analyzeBtn.disabled = false;
@@ -339,3 +354,4 @@ ${data.demonstracao.sugestoes_praticas || ""}
     </script>
 </body>
 </html>
+
