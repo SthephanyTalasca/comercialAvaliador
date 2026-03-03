@@ -100,7 +100,7 @@ Analise detalhadamente cada bloco conforme o esquema JSON solicitado.
     };
 
     try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/Gemini-2.5-Pro:generateContent?key=${API_KEY}`;
 
         const response = await fetch(url, {
             method: "POST",
