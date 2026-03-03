@@ -15,13 +15,11 @@
         .glass-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .markdown-content h1, .markdown-content h2 { font-weight: 800; color: #1e3a8a; margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1rem; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; }
+        .markdown-content h1 { font-weight: 800; color: #1e3a8a; margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1rem; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; }
         .markdown-content p { margin-bottom: 1rem; color: #475569; line-height: 1.6; font-size: 0.9rem; }
         .markdown-content ul { list-style-type: none; padding-left: 0; margin-bottom: 1.25rem; }
         .markdown-content li { position: relative; padding-left: 1.5rem; margin-bottom: 0.4rem; color: #475569; font-size: 0.85rem; }
         .markdown-content li::before { content: "•"; position: absolute; left: 0; color: #2563eb; font-weight: bold; }
-        .tag-concorrente { animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     </style>
 </head>
 <body class="pb-20 antialiased">
@@ -33,29 +31,21 @@
                     <i data-lucide="shield-check" class="text-[#002d72] w-6 h-6"></i>
                 </div>
                 <div>
-                    <h1 class="font-extrabold text-lg uppercase tracking-tight">Nibo <span class="text-blue-400">Auditor de Vendas</span></h1>
-                    <p class="text-[9px] text-blue-200 uppercase tracking-widest font-bold mt-1">Análise de Performance Baseada no Manual</p>
+                    <h1 class="font-extrabold text-lg uppercase tracking-tight">Nibo <span class="text-blue-400">Auditor Estratégico</span></h1>
+                    <p class="text-[9px] text-blue-200 uppercase tracking-widest font-bold mt-1">Substituição Acessórias & Fechamento</p>
                 </div>
             </div>
-            <div class="relative">
-                <i data-lucide="user" class="absolute left-3 top-2.5 w-4 h-4 text-blue-300"></i>
-                <input type="text" id="cc-name-input" placeholder="Consultor" class="pl-10 pr-5 py-2 rounded-xl bg-blue-900/40 border border-blue-400/50 text-white text-sm focus:outline-none focus:ring-2 ring-blue-300 transition-all">
-            </div>
+            <input type="text" id="cc-name-input" placeholder="Consultor" class="pl-5 pr-5 py-2 rounded-xl bg-blue-900/40 border border-blue-400/50 text-white text-sm focus:outline-none focus:ring-2 ring-blue-300">
         </div>
     </nav>
 
     <main class="max-w-6xl mx-auto px-4 mt-8">
-        
         <section class="mb-10">
-            <div class="glass-card p-8 md:p-10">
-                <div class="flex items-center gap-3 mb-6">
-                    <i data-lucide="message-square" class="text-blue-600"></i>
-                    <h2 class="font-bold text-slate-800 text-lg">Submeter Transcrição</h2>
-                </div>
-                <textarea id="transcript-input" rows="5" class="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] focus:ring-4 ring-blue-500/5 focus:outline-none transition-all text-sm mb-6" placeholder="Cole aqui o diálogo completo da reunião..."></textarea>
+            <div class="glass-card p-8">
+                <textarea id="transcript-input" rows="5" class="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] focus:outline-none text-sm mb-6" placeholder="Cole a transcrição da reunião de substituição aqui..."></textarea>
                 <div class="flex justify-end">
-                    <button id="analyze-btn" class="group flex items-center gap-3 bg-blue-600 hover:bg-[#002d72] text-white px-10 py-4 rounded-2xl font-bold text-sm shadow-xl transition-all active:scale-95">
-                        <span>Gerar Infográfico de Performance</span>
+                    <button id="analyze-btn" class="flex items-center gap-3 bg-blue-600 hover:bg-[#002d72] text-white px-10 py-4 rounded-2xl font-bold text-sm shadow-xl transition-all">
+                        <span>Auditar Estratégia de Venda</span>
                         <i data-lucide="zap" class="w-4 h-4"></i>
                     </button>
                 </div>
@@ -63,78 +53,42 @@
         </section>
 
         <div id="results-section" class="hidden space-y-8">
-            
             <div id="loading-spinner" class="flex flex-col items-center py-20">
                 <div class="loader mb-4"></div>
-                <p class="text-slate-400 font-bold text-xs uppercase tracking-widest animate-pulse">Auditando Manual Nibo...</p>
+                <p class="text-slate-400 font-bold text-xs uppercase tracking-widest">Analisando substituição e gatilhos...</p>
             </div>
 
             <div id="analysis-content" class="hidden space-y-8 animate-in fade-in duration-1000">
-                
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     <div class="lg:col-span-1 glass-card p-10 flex flex-col items-center justify-center text-center border-b-[10px] border-blue-600">
-                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Média Global</span>
+                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Score de Fechamento</span>
                         <div id="media-final" class="text-7xl font-black text-[#002d72] mb-3">0.0</div>
                         <div id="status-tag" class="px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">---</div>
                     </div>
                     
-                    <div class="lg:col-span-3 glass-card p-10 bg-gradient-to-br from-blue-700 to-blue-900 text-white relative flex flex-col justify-center">
-                        <div id="concorrentes-tags" class="flex flex-wrap gap-2 mb-4"></div>
-                        <h3 class="font-bold text-blue-200 text-[10px] uppercase tracking-widest mb-4">Diagnóstico Geral</h3>
+                    <div class="lg:col-span-3 glass-card p-10 bg-gradient-to-br from-blue-700 to-blue-900 text-white flex flex-col justify-center">
+                        <h3 class="font-bold text-blue-200 text-[10px] uppercase tracking-widest mb-4">Análise de Pontos Fortes</h3>
                         <p id="resumo-text" class="text-xl md:text-2xl font-bold leading-tight mb-8"></p>
                         <div class="p-4 bg-white/10 rounded-2xl border border-white/20">
-                            <span class="text-[9px] font-black text-blue-300 uppercase block mb-1 tracking-widest italic">Probabilidade de Fechamento:</span>
+                            <span class="text-[9px] font-black text-blue-300 uppercase block mb-1 tracking-widest">Oportunidade de Melhoria:</span>
                             <p id="chance-text" class="text-base font-bold text-white"></p>
                         </div>
                     </div>
                 </div>
 
-                <div id="notas-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4"></div>
+                <div id="notas-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="glass-card p-8 min-h-[350px] flex items-center justify-center">
                         <canvas id="radarChart"></canvas>
                     </div>
-                    <div class="glass-card p-8">
-                        <h4 class="text-[10px] font-black uppercase text-slate-400 mb-10 tracking-widest">Tempo de Fala (Equilíbrio)</h4>
-                        <div id="talk-time-container" class="space-y-10"></div>
-                    </div>
-                    <div id="alerta-card" class="bg-red-50 p-8 rounded-[2rem] border border-red-100 flex flex-col justify-center">
-                        <div class="flex items-center gap-2 mb-4">
-                            <i data-lucide="alert-octagon" class="text-red-600 w-5 h-5"></i>
-                            <h4 class="text-[10px] font-black uppercase text-red-600 tracking-widest italic">Alerta de Risco</h4>
-                        </div>
-                        <p id="alerta-text" class="text-xs font-bold text-red-900 leading-relaxed"></p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="glass-card p-10">
-                        <h3 class="font-bold text-slate-800 text-lg mb-8 flex items-center gap-3">
-                            <i data-lucide="clipboard-check" class="text-blue-600"></i>
-                            Checklist do Manual Nibo
+                    <div class="lg:col-span-2 glass-card p-10">
+                        <h3 class="font-bold text-slate-800 text-lg mb-6 flex items-center gap-3">
+                            <i data-lucide="scroll-text" class="text-blue-600"></i>
+                            Relatório Técnico de Auditoria
                         </h3>
-                        <div id="checklist-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                        <div id="markdown-body" class="markdown-content"></div>
                     </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-emerald-50/60 p-8 rounded-[2rem] border border-emerald-100 shadow-sm">
-                            <h4 class="text-[10px] font-black text-emerald-700 mb-6 uppercase tracking-widest">Pontos Fortes</h4>
-                            <ul id="lista-fortes" class="space-y-3 text-[11px] font-bold text-emerald-900"></ul>
-                        </div>
-                        <div class="bg-amber-50/60 p-8 rounded-[2rem] border border-amber-100 shadow-sm">
-                            <h4 class="text-[10px] font-black text-amber-700 mb-6 uppercase tracking-widest">Melhoria Imediata</h4>
-                            <ul id="lista-atencao" class="space-y-3 text-[11px] font-bold text-amber-900"></ul>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="glass-card p-12 md:p-16 shadow-2xl border-t-[10px] border-[#002d72]">
-                    <h3 class="text-xl font-extrabold text-[#002d72] uppercase tracking-widest mb-10 border-b pb-6 flex items-center gap-4">
-                        <i data-lucide="scroll-text"></i>
-                        Relatório de Auditoria Estrutural
-                    </h3>
-                    <div id="markdown-body" class="markdown-content"></div>
                 </div>
             </div>
         </div>
@@ -149,162 +103,71 @@
         const analysisContent = document.getElementById('analysis-content');
         let radarChartInstance = null;
 
-        // Ouvinte de eventos adicionado aqui para fazer o botão funcionar!
-        analyzeBtn.addEventListener('click', handleAnalysis);
-
-       async function handleAnalysis() {
+        analyzeBtn.addEventListener('click', async () => {
             const prompt = transcriptInput.value.trim();
-            if(!prompt) {
-                alert("Por favor, insira a transcrição antes de analisar.");
-                return;
-            }
+            if(!prompt) return alert("Insira a transcrição.");
             
             resultsSection.classList.remove('hidden');
             loadingSpinner.classList.remove('hidden');
             analysisContent.classList.add('hidden');
-            analyzeBtn.disabled = true;
-
-            // 1. Criamos o controlador de cancelamento
-            const controller = new AbortController();
-            
-            // 2. Definimos o limite de 45 segundos (45000 milissegundos)
-            const timeoutId = setTimeout(() => controller.abort(), 45000);
 
             try {
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt }),
-                    signal: controller.signal // 3. Conectamos o controlador ao fetch
+                    body: JSON.stringify({ prompt })
                 });
-                
-                // 4. Se a resposta chegar a tempo, cancelamos a contagem do cronômetro
-                clearTimeout(timeoutId);
-                
                 const data = await response.json();
-                
-                if(data.error) throw new Error(data.error);
-                
                 renderDashboard(data);
             } catch (err) {
-                // 5. Verificamos se o erro foi causado pelo tempo limite
-                if (err.name === 'AbortError') {
-                    alert("⏳ A análise demorou mais de 45 segundos e foi interrompida (Tempo Limite). Tente analisar uma transcrição menor.");
-                } else {
-                    alert("Erro: " + err.message);
-                }
-                resultsSection.classList.add('hidden');
-            } finally {
-                analyzeBtn.disabled = false;
+                alert("Erro na análise.");
             }
-        }
+        });
 
         function renderDashboard(data) {
             loadingSpinner.classList.add('hidden');
             analysisContent.classList.remove('hidden');
 
-            if (!data?.rapport || !data?.produto || !data?.demonstracao) {
-                alert("Estrutura inesperada da resposta da IA.");
-                return;
-            }
-
-            // ==============================
-            // 1. MÉDIA GLOBAL (0–5)
-            // ==============================
-            const notas = [
-                data.rapport.nota_final || 0,
-                data.produto.nota_final || 0,
-                data.demonstracao.nota_final || 0
-            ];
-
-            const media = (notas.reduce((a,b)=>a+b,0) / notas.length) || 0;
+            // Média entre nota de substituição e fechamento
+            const n1 = data.substituicao_acessorias.nota_tecnica || 0;
+            const n2 = data.negociacao_fechamento.nota_final || 0;
+            const media = (n1 + n2) / 2;
+            
             document.getElementById('media-final').textContent = media.toFixed(1);
+            document.getElementById('resumo-text').textContent = data.resumo_executivo.pontos_fortes;
+            document.getElementById('chance-text').textContent = data.resumo_executivo.oportunidades_perdidas;
 
-            const status = document.getElementById('status-tag');
-            if (media >= 4.5) {
-                status.textContent = "Alta Performance";
-                status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white";
-            } else if (media >= 3) {
-                status.textContent = "Boa Estrutura";
-                status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700";
-            } else {
-                status.textContent = "Ajustes Necessários";
-                status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-red-100 text-red-600";
-            }
-
-            // ==============================
-            // 2. HEADLINE
-            // ==============================
-            document.getElementById('resumo-text').textContent =
-                "Avaliação consolidada da condução comercial baseada em Rapport, Produto e Demonstração.";
-
-            document.getElementById('chance-text').textContent =
-                `Rapport: ${data.rapport.nota_final}/5 | Produto: ${data.produto.nota_final}/5 | Demonstração: ${data.demonstracao.nota_final}/5`;
-
-            document.getElementById('alerta-text').textContent =
-                data.produto.houve_divergencia
-                    ? "Foram identificadas divergências técnicas na apresentação do produto."
-                    : "Nenhuma divergência relevante identificada nos manuais.";
-
-            // ==============================
-            // 3. GRID DE NOTAS (ADAPTADO)
-            // ==============================
             const fields = [
-                { l: 'Rapport', n: data.rapport.nota_final, p: "Conexão e empatia" },
-                { l: 'Produto', n: data.produto.nota_final, p: data.produto.quais_erros || "Sem divergências" },
-                { l: 'Demonstração', n: data.demonstracao.nota_final, p: "Estratégia e impacto percebido" }
+                { l: 'Substituição', n: n1, p: "Ataque técnico à Acessórias" },
+                { l: 'Negociação', n: n2, p: "Manejo de valores e sócios" },
+                { l: 'Gatilhos', n: data.pre_fechamento.execucao_voto_confianca ? 5 : 1, p: "Voto de Confiança" }
             ];
 
-            document.getElementById('notas-grid').innerHTML = fields.map(f => {
-                const c = f.n >= 4 ? 'text-emerald-500'
-                        : f.n >= 3 ? 'text-blue-600'
-                        : 'text-red-500';
+            document.getElementById('notas-grid').innerHTML = fields.map(f => `
+                <div class="glass-card p-6 text-center">
+                    <span class="text-[9px] font-black text-slate-400 uppercase mb-3 block">${f.l}</span>
+                    <div class="text-3xl font-black ${f.n >= 4 ? 'text-emerald-500' : 'text-blue-600'} mb-2">${f.n}</div>
+                    <p class="text-[10px] text-slate-500">${f.p}</p>
+                </div>
+            `).join('');
 
-                return `
-                    <div class="glass-card p-6 flex flex-col items-center text-center">
-                        <span class="text-[9px] font-black text-slate-400 uppercase mb-3 tracking-widest">${f.l}</span>
-                        <div class="text-3xl font-black ${c} mb-3 leading-none">${f.n}</div>
-                        <p class="text-[9px] text-slate-500 italic leading-tight font-medium">${f.p}</p>
-                    </div>
-                `;
-            }).join('');
+            const mdText = `
+# 🎯 Estratégia de Substituição
+${data.substituicao_acessorias.diagnostico_estrategico}
+**Ataque:** ${data.substituicao_acessorias.ataque_vulnerabilidades}
 
-            // ==============================
-            // 4. LISTAS
-            // ==============================
-            document.getElementById('lista-fortes').innerHTML =
-                (data.demonstracao.pontos_fortes || "")
-                .split("\n")
-                .filter(Boolean)
-                .map(i => `<li class="flex items-start gap-2"><span>▶</span>${i}</li>`)
-                .join('');
+# 🚀 Pré-Fechamento
+**Dores:** ${data.pre_fechamento.validacao_das_dores}
+**Feedback:** ${data.pre_fechamento.coleta_de_feedback}
 
-            document.getElementById('lista-atencao').innerHTML =
-                (data.demonstracao.pontos_melhoria || "")
-                .split("\n")
-                .filter(Boolean)
-                .map(i => `<li class="flex items-start gap-2"><span>▶</span>${i}</li>`)
-                .join('');
+# 💸 Negociação Final
+**Objeções:** ${data.negociacao_fechamento.manejo_de_objecoes}
+**Gatilhos:** ${data.negociacao_fechamento.uso_de_gatilhos}
 
-            // ==============================
-            // 5. MARKDOWN (SEGURO)
-            // ==============================
-            const markdownText = `
-# RAPPORT E CONEXÃO
-${data.rapport.analise_detalhada || ""}
-
-# VALIDAÇÃO DE PRODUTO
-${data.produto.quais_erros || "Nenhuma divergência encontrada."}
-
-# DEMONSTRAÇÃO ESTRATÉGICA
-${data.demonstracao.analise_por_pilar || ""}
-
-## Sugestões Práticas
-${data.demonstracao.sugestoes_praticas || ""}
+# 💡 Sugestão Prática
+${data.resumo_executivo.sugestao_pratica}
             `;
-
-            document.getElementById('markdown-body').innerHTML =
-                marked.parse(markdownText || "");
+            document.getElementById('markdown-body').innerHTML = marked.parse(mdText);
 
             renderRadar(data);
             lucide.createIcons();
@@ -313,45 +176,23 @@ ${data.demonstracao.sugestoes_praticas || ""}
         function renderRadar(data) {
             const ctx = document.getElementById('radarChart').getContext('2d');
             if (radarChartInstance) radarChartInstance.destroy();
-
             radarChartInstance = new Chart(ctx, {
                 type: 'radar',
                 data: {
-                    labels: ['Rapport', 'Produto', 'Demonstração'],
+                    labels: ['Substituição', 'Pré-Fechamento', 'Negociação'],
                     datasets: [{
-                        label: 'Desempenho',
                         data: [
-                            data.rapport.nota_final || 0,
-                            data.produto.nota_final || 0,
-                            data.demonstracao.nota_final || 0
+                            data.substituicao_acessorias.nota_tecnica,
+                            data.pre_fechamento.execucao_voto_confianca ? 5 : 1,
+                            data.negociacao_fechamento.nota_final
                         ],
                         backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                        borderColor: '#2563eb',
-                        borderWidth: 2,
-                        pointRadius: 5,
-                        pointBackgroundColor: '#1e3a8a'
+                        borderColor: '#2563eb'
                     }]
                 },
-                options: {
-                    scales: {
-                        r: {
-                            min: 0,
-                            max: 5,
-                            ticks: { display: false },
-                            grid: { color: '#f1f5f9' },
-                            angleLines: { color: '#f1f5f9' },
-                            pointLabels: {
-                                font: { size: 10, weight: '700' },
-                                color: '#64748b'
-                            }
-                        }
-                    },
-                    plugins: { legend: { display: false } },
-                    maintainAspectRatio: false
-                }
+                options: { plugins: { legend: { display: false } }, scales: { r: { min: 0, max: 5 } } }
             });
         }
     </script>
 </body>
 </html>
-
