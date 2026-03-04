@@ -26,7 +26,6 @@
 </head>
 <body class="pb-20 antialiased">
 
-    <!-- Navbar -->
     <nav class="bg-[#002d72] text-white py-4 px-8 sticky top-0 z-50 shadow-xl border-b border-blue-400">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
@@ -47,7 +46,6 @@
 
     <main class="max-w-6xl mx-auto px-4 mt-8">
         
-        <!-- Input Section -->
         <section class="mb-10">
             <div class="glass-card p-8 md:p-10">
                 <div class="flex items-center gap-3 mb-6">
@@ -64,7 +62,6 @@
             </div>
         </section>
 
-        <!-- Resultados -->
         <div id="results-section" class="hidden space-y-8">
             
             <div id="loading-spinner" class="flex flex-col items-center py-20">
@@ -74,7 +71,6 @@
 
             <div id="analysis-content" class="hidden space-y-8 animate-in fade-in duration-1000">
                 
-                <!-- Headline Row -->
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     <div class="lg:col-span-1 glass-card p-10 flex flex-col items-center justify-center text-center border-b-[10px] border-blue-600">
                         <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Média Global</span>
@@ -93,10 +89,8 @@
                     </div>
                 </div>
 
-                <!-- Grid de Notas com Porquês -->
-                <div id="notas-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4"></div>
+                <div id="notas-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4"></div>
 
-                <!-- Radar e Talk Time -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="glass-card p-8 min-h-[350px] flex items-center justify-center">
                         <canvas id="radarChart"></canvas>
@@ -114,7 +108,6 @@
                     </div>
                 </div>
 
-                <!-- Checklist e Listas de Feedback -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div class="glass-card p-10">
                         <h3 class="font-bold text-slate-800 text-lg mb-8 flex items-center gap-3">
@@ -136,7 +129,6 @@
                     </div>
                 </div>
 
-                <!-- Auditoria Estrutural Markdown -->
                 <div class="glass-card p-12 md:p-16 shadow-2xl border-t-[10px] border-[#002d72]">
                     <h3 class="text-xl font-extrabold text-[#002d72] uppercase tracking-widest mb-10 border-b pb-6 flex items-center gap-4">
                         <i data-lucide="scroll-text"></i>
@@ -149,137 +141,163 @@
     </main>
 
     <script>
-        lucide.createIcons();
-        const analyzeBtn = document.getElementById('analyze-btn');
-        const transcriptInput = document.getElementById('transcript-input');
-        const resultsSection = document.getElementById('results-section');
-        const loadingSpinner = document.getElementById('loading-spinner');
-        const analysisContent = document.getElementById('analysis-content');
-        let radarChartInstance = null;
+    lucide.createIcons();
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const transcriptInput = document.getElementById('transcript-input');
+    const resultsSection = document.getElementById('results-section');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const analysisContent = document.getElementById('analysis-content');
+    let radarChartInstance = null;
 
-        async function handleAnalysis() {
-            const prompt = transcriptInput.value.trim();
-            if(!prompt) return;
-            resultsSection.classList.remove('hidden');
-            loadingSpinner.classList.remove('hidden');
-            analysisContent.classList.add('hidden');
-            analyzeBtn.disabled = true;
+    async function handleAnalysis() {
+        const prompt = transcriptInput.value.trim();
+        if(!prompt) return;
+        resultsSection.classList.remove('hidden');
+        loadingSpinner.classList.remove('hidden');
+        analysisContent.classList.add('hidden');
+        analyzeBtn.disabled = true;
 
-            try {
-                const response = await fetch('/api/analyze', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt })
-                });
-                const data = await response.json();
-                if(data.error) throw new Error(data.error);
-                renderDashboard(data);
-            } catch (err) {
-                alert("Erro: " + err.message);
-                resultsSection.classList.add('hidden');
-            } finally {
-                analyzeBtn.disabled = false;
-            }
+        try {
+            const response = await fetch('/api/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt })
+            });
+            const data = await response.json();
+            if(data.error) throw new Error(data.error);
+            renderDashboard(data);
+        } catch (err) {
+            alert("Erro: " + err.message);
+            resultsSection.classList.add('hidden');
+        } finally {
+            analyzeBtn.disabled = false;
         }
+    }
 
-        function renderDashboard(data) {
-            loadingSpinner.classList.add('hidden');
-            analysisContent.classList.remove('hidden');
+    function renderDashboard(data) {
+        loadingSpinner.classList.add('hidden');
+        analysisContent.classList.remove('hidden');
 
-            // 1. Headline & Score
-            const media = data.media_final || 0;
-            document.getElementById('media-final').textContent = media.toFixed(1);
-            document.getElementById('resumo-text').textContent = data.resumo_executivo;
-            document.getElementById('chance-text').textContent = data.chance_fechamento || "Análise insuficiente";
-            document.getElementById('alerta-text').textContent = data.alerta_cancelamento;
+        // 1. Headline & Score
+        const media = data.media_final || 0;
+        document.getElementById('media-final').textContent = media.toFixed(1);
+        document.getElementById('resumo-text').textContent = data.resumo_executivo;
+        document.getElementById('chance-text').textContent = data.chance_fechamento || "Análise insuficiente";
+        document.getElementById('alerta-text').textContent = data.alerta_cancelamento;
 
-            // 2. Concorrentes Tags
-            const tagContainer = document.getElementById('concorrentes-tags');
-            tagContainer.innerHTML = (data.concorrentes_detectados || []).map(c => `
-                <span class="px-3 py-1 bg-red-600 text-white text-[10px] font-black rounded-lg shadow-lg uppercase tracking-widest flex items-center gap-1.5 tag-concorrente">
-                    <i data-lucide="alert-circle" class="w-3 h-3"></i> ${c}
-                </span>
-            `).join('');
+        // 2. Concorrentes Tags
+        const tagContainer = document.getElementById('concorrentes-tags');
+        tagContainer.innerHTML = (data.concorrentes_detectados || []).map(c => `
+            <span class="px-3 py-1 bg-red-600 text-white text-[10px] font-black rounded-lg shadow-lg uppercase tracking-widest flex items-center gap-1.5 tag-concorrente">
+                <i data-lucide="alert-circle" class="w-3 h-3"></i> ${c}
+            </span>
+        `).join('');
 
-            const status = document.getElementById('status-tag');
-            if(media >= 9) { status.textContent = "Elite Sales"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg"; }
-            else if(media >= 7) { status.textContent = "Alta Performance"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700"; }
-            else { status.textContent = "Acompanhamento"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; }
+        const status = document.getElementById('status-tag');
+        if(media >= 9) { status.textContent = "Elite Sales"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg"; }
+        else if(media >= 7) { status.textContent = "Alta Performance"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700"; }
+        else { status.textContent = "Acompanhamento"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; }
 
-            // 3. Grid de Notas
-            const fields = [
-                { l: 'Postura', k: 'postura' },
-                { l: 'Produto', k: 'conhecimento' },
-                { l: 'Escuta', k: 'escuta' },
-                { l: 'Expansão', k: 'expansao' },
-                { l: 'Fechamento', k: 'fechamento' }
-            ];
-            document.getElementById('notas-grid').innerHTML = fields.map(f => {
-                const n = data[`nota_${f.k}`];
-                const p = data[`porque_${f.k}`];
-                const c = n >= 8 ? 'text-emerald-500' : n >= 5 ? 'text-blue-600' : 'text-red-500';
-                return `
-                    <div class="glass-card p-6 flex flex-col items-center text-center">
-                        <span class="text-[9px] font-black text-slate-400 uppercase mb-3 tracking-widest">${f.l}</span>
-                        <div class="text-3xl font-black ${c} mb-3 leading-none">${n}</div>
-                        <p class="text-[9px] text-slate-500 italic leading-tight font-medium">${p}</p>
-                    </div>
-                `;
-            }).join('');
+        // 3. Grid de Notas (6 Colunas)
+        const fields = [
+            { l: 'Postura', k: 'postura' },
+            { l: 'Produto', k: 'conhecimento' },
+            { l: 'Escuta', k: 'escuta' },
+            { l: 'Expansão', k: 'expansao' },
+            { l: 'Fechamento', k: 'fechamento' },
+            { l: 'Rapport', k: 'rapport' }
+        ];
 
-            // 4. Talk Time
-            document.getElementById('talk-time-container').innerHTML = `
-                <div>
-                    <div class="flex justify-between text-[11px] font-bold mb-2"><span>Consultor</span><span class="text-blue-600">${data.tempo_fala_consultor}</span></div>
-                    <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600 transition-all duration-1000 shadow-[0_0_10px_rgba(37,99,235,0.4)]" style="width: ${data.tempo_fala_consultor}"></div></div>
-                </div>
-                <div>
-                    <div class="flex justify-between text-[11px] font-bold mb-2"><span>Cliente</span><span class="text-emerald-500">${data.tempo_fala_cliente}</span></div>
-                    <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500 transition-all duration-1000 shadow-[0_0_10px_rgba(16,185,129,0.4)]" style="width: ${data.tempo_fala_cliente}"></div></div>
+        const gridElement = document.getElementById('notas-grid');
+        gridElement.className = "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4"; 
+        
+        gridElement.innerHTML = fields.map(f => {
+            const n = data[`nota_${f.k}`] || 0;
+            const p = data[`porque_${f.k}`] || "";
+            const c = n >= 8 ? 'text-emerald-500' : n >= 5 ? 'text-blue-600' : 'text-red-500';
+            return `
+                <div class="glass-card p-6 flex flex-col items-center text-center">
+                    <span class="text-[9px] font-black text-slate-400 uppercase mb-3 tracking-widest">${f.l}</span>
+                    <div class="text-3xl font-black ${c} mb-3 leading-none">${n}</div>
+                    <p class="text-[9px] text-slate-500 italic leading-tight font-medium">${p}</p>
                 </div>
             `;
+        }).join('');
 
-            // 5. Checklist
-            const ck = data.checklist_fechamento || {};
-            const ckLabels = { resolveu_pontos_iniciais: "Retomou problemas", pediu_feedback_ferramenta: "Pediu Feedback", pediu_voto_confianca: "Voto de Confiança", tratou_objecao_socio: "Alinhou Sócios", validou_mensalidade_vs_setup: "Isolou Objecção", mencionou_gestao_financeira_gratuita: "Cereja do Bolo" };
-            document.getElementById('checklist-container').innerHTML = Object.entries(ckLabels).map(([key, label]) => `
-                <div class="flex items-center justify-between p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100 transition-all hover:bg-white group">
-                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tight group-hover:text-slate-800 transition-colors">${label}</span>
-                    <div class="w-7 h-7 rounded-full flex items-center justify-center ${ck[key] ? 'bg-emerald-500' : 'bg-slate-200'} shadow-sm">
-                        <i data-lucide="${ck[key] ? 'check' : 'minus'}" class="text-white w-4 h-4"></i>
-                    </div>
+        // 4. Talk Time
+        document.getElementById('talk-time-container').innerHTML = `
+            <div>
+                <div class="flex justify-between text-[11px] font-bold mb-2"><span>Consultor</span><span class="text-blue-600">${data.tempo_fala_consultor}</span></div>
+                <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600 transition-all duration-1000 shadow-[0_0_10px_rgba(37,99,235,0.4)]" style="width: ${data.tempo_fala_consultor}"></div></div>
+            </div>
+            <div>
+                <div class="flex justify-between text-[11px] font-bold mb-2"><span>Cliente</span><span class="text-emerald-500">${data.tempo_fala_cliente}</span></div>
+                <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500 transition-all duration-1000 shadow-[0_0_10px_rgba(16,185,129,0.4)]" style="width: ${data.tempo_fala_cliente}"></div></div>
+            </div>
+        `;
+
+        // 5. Checklist
+        const ck = data.checklist_fechamento || {};
+        const ckLabels = { resolveu_pontos_iniciais: "Retomou problemas", pediu_feedback_ferramenta: "Pediu Feedback", pediu_voto_confianca: "Voto de Confiança", tratou_objecao_socio: "Alinhou Sócios", validou_mensalidade_vs_setup: "Isolou Objecção", mencionou_gestao_financeira_gratuita: "Cereja do Bolo" };
+        document.getElementById('checklist-container').innerHTML = Object.entries(ckLabels).map(([key, label]) => `
+            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100 transition-all hover:bg-white group">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tight group-hover:text-slate-800 transition-colors">${label}</span>
+                <div class="w-7 h-7 rounded-full flex items-center justify-center ${ck[key] ? 'bg-emerald-500' : 'bg-slate-200'} shadow-sm">
+                    <i data-lucide="${ck[key] ? 'check' : 'minus'}" class="text-white w-4 h-4"></i>
                 </div>
-            `).join('');
+            </div>
+        `).join('');
 
-            document.getElementById('lista-fortes').innerHTML = (data.pontos_fortes || []).map(i => `<li class="flex items-start gap-2"><span>▶</span> ${i}</li>`).join('');
-            document.getElementById('lista-atencao').innerHTML = (data.pontos_atencao || []).map(i => `<li class="flex items-start gap-2"><span>▶</span> ${i}</li>`).join('');
-            document.getElementById('markdown-body').innerHTML = marked.parse(data.justificativa_detalhada);
-            
-            renderRadar(data);
-            lucide.createIcons();
-        }
+        document.getElementById('lista-fortes').innerHTML = (data.pontos_fortes || []).map(i => `<li class="flex items-start gap-2"><span>▶</span> ${i}</li>`).join('');
+        document.getElementById('lista-atencao').innerHTML = (data.pontos_atencao || []).map(i => `<li class="flex items-start gap-2"><span>▶</span> ${i}</li>`).join('');
+        document.getElementById('markdown-body').innerHTML = marked.parse(data.justificativa_detalhada || "");
+        
+        renderRadar(data);
+        lucide.createIcons();
+    }
 
-        function renderRadar(data) {
-            const ctx = document.getElementById('radarChart').getContext('2d');
-            if(radarChartInstance) radarChartInstance.destroy();
-            radarChartInstance = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: ['Postura', 'Produto', 'Escuta', 'Expansão', 'Fechamento'],
-                    datasets: [{
-                        label: 'Desempenho',
-                        data: [data.nota_postura, data.nota_conhecimento, data.nota_escuta, data.nota_expansao, data.nota_fechamento],
-                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                        borderColor: '#2563eb',
-                        borderWidth: 2,
-                        pointRadius: 5,
-                        pointBackgroundColor: '#1e3a8a'
-                    }]
-                },
-                options: { scales: { r: { min: 0, max: 10, ticks: { display: false }, grid: { color: '#f1f5f9' }, angleLines: { color: '#f1f5f9' }, pointLabels: { font: { size: 9, weight: '700' }, color: '#64748b' } } }, plugins: { legend: { display: false } }, maintainAspectRatio: false }
-            });
-        }
-        analyzeBtn.addEventListener('click', handleAnalysis);
+    function renderRadar(data) {
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        if(radarChartInstance) radarChartInstance.destroy();
+        radarChartInstance = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Postura', 'Produto', 'Escuta', 'Expansão', 'Fechamento', 'Rapport'], 
+                datasets: [{
+                    label: 'Desempenho',
+                    data: [
+                        data.nota_postura || 0, 
+                        data.nota_conhecimento || 0, 
+                        data.nota_escuta || 0, 
+                        data.nota_expansao || 0, 
+                        data.nota_fechamento || 0,
+                        data.nota_rapport || 0
+                    ],
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    borderColor: '#2563eb',
+                    borderWidth: 2,
+                    pointRadius: 5,
+                    pointBackgroundColor: '#1e3a8a'
+                }]
+            },
+            options: { 
+                scales: { 
+                    r: { 
+                        min: 0, 
+                        max: 10, 
+                        ticks: { display: false }, 
+                        grid: { color: '#f1f5f9' }, 
+                        angleLines: { color: '#f1f5f9' }, 
+                        pointLabels: { font: { size: 9, weight: '700' }, color: '#64748b' } 
+                    } 
+                }, 
+                plugins: { legend: { display: false } }, 
+                maintainAspectRatio: false 
+            }
+        });
+    }
+
+    analyzeBtn.addEventListener('click', handleAnalysis);
     </script>
 </body>
 </html>
