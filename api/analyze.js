@@ -14,19 +14,21 @@ export default async function handler(req, res) {
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
         
-        // Aqui está o "cérebro" atualizado com os seus novos critérios de auditoria!
-        const systemInstruction = `Você é um auditor de vendas sênior especialista no Manual Nibo. 
-        Analise a transcrição de vendas fornecida e retorne uma avaliação rigorosa, baseando as notas (0 a 10) e a justificativa nos seguintes blocos:
-
-        1. POSTURA E CLAREZA DA APRESENTAÇÃO: Avalie a didática, linguagem comercial simplificada e conexão com o cenário do cliente. Sinais de excelência: analogias, explicações limpas, ausência de termos técnicos desnecessários. Oportunidades de melhoria: excesso de jargões, fala corrida ou confusa, falha na pedagogia da venda.
-        2. PRODUTO E PERSONALIZAÇÃO DO PITCH: Avalie a adaptação do discurso à realidade do cliente, dores e momento de negócio. Sinais de excelência: pitch com exemplos próximos, similaridade com contexto do lead. Oportunidades de melhoria: apresentação padrão, sem customização.
-        3. ESCUTA E PERGUNTAS PODEROSAS: Avalie a profundidade na investigação da dor, abertura de espaço para reflexão. Sinais de excelência: perguntas que geram silêncio reflexivo ou expandem o discurso do lead. Oportunidades de melhoria: perguntas rasas, genéricas ou de sim/não.
-        4. EXPANSÃO E CONTORNO DE OBJEÇÕES: Avalie a antecipação, escuta ativa, técnica de espelhamento e argumento estruturado. Sinais de excelência: abordagem empática, clara e baseada em cases/dados. Oportunidades de melhoria: reatividade, confronto, argumentação fraca. (Regra: Se não tiver objeções na call, não penalize esta nota).
-        5. FECHAMENTO, PRÉ-FECHAMENTO E JORNADA DO CLIENTE: Avalie perguntas de validação ("faz sentido?", "algo te trava?"), clareza nos próximos passos, expectativas de onboarding e implementação. Sinais de excelência: timeline clara, prazos definidos, tranquilidade transmitida. Oportunidades de melhoria: avanço direto sem validar o termômetro do cliente, final solto, sem cronograma, deixando dúvidas abertas.
-        6. RAPPORT: Avalie a conexão humana, quebra-gelo e empatia natural durante a conversa.
-
-        Gere as notas de 0 a 10 para cada bloco principal. Extraia pontos fortes, pontos de atenção e identifique riscos reais. 
-        Na "justificativa_detalhada", escreva um relatório completo em Markdown detalhando a performance do consultor com base nesses critérios específicos de excelência e melhoria.`;
+        const systemInstruction = `Você é um auditor de vendas sênior. Avalie a transcrição e dê notas de 0 a 10 para os seguintes 12 pilares:
+        1. Postura: Profissionalismo e condução geral.
+        2. Produto (Conhecimento): Domínio da ferramenta.
+        3. Escuta: Atenção ao que o cliente diz.
+        4. Expansão: Capacidade de fazer up-sell ou cross-sell.
+        5. Fechamento: Chamada para ação final.
+        6. Rapport: Conexão humana e quebra-gelo.
+        7. Pré-Fechamento: Perguntas de validação ("faz sentido?", "algo te trava?"). Sinais de excelência: sentir o termômetro do cliente.
+        8. Jornada do Cliente: Clareza nos próximos passos, expectativas de onboarding. Sinais de excelência: timeline clara.
+        9. Personalização do Pitch: Adaptação à realidade do cliente e dores. Sinais de excelência: exemplos próximos ao lead.
+        10. Perguntas Poderosas: Profundidade na investigação, gerar reflexão.
+        11. Contorno de Objeções: Antecipação, empatia, espelhamento. (Regra: Se não houver objeções na call, dê nota 10 para não penalizar).
+        12. Clareza da Apresentação: Didática, sem jargões desnecessários, analogias.
+        
+        Calcule a média final considerando todos os 12 pilares. Na "justificativa_detalhada", escreva um relatório completo em Markdown.`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -42,18 +44,21 @@ export default async function handler(req, res) {
                         chance_fechamento: { type: Type.STRING },
                         alerta_cancelamento: { type: Type.STRING },
                         concorrentes_detectados: { type: Type.ARRAY, items: { type: Type.STRING } },
-                        nota_postura: { type: Type.NUMBER },
-                        porque_postura: { type: Type.STRING },
-                        nota_conhecimento: { type: Type.NUMBER },
-                        porque_conhecimento: { type: Type.STRING },
-                        nota_escuta: { type: Type.NUMBER },
-                        porque_escuta: { type: Type.STRING },
-                        nota_expansao: { type: Type.NUMBER },
-                        porque_expansao: { type: Type.STRING },
-                        nota_fechamento: { type: Type.NUMBER },
-                        porque_fechamento: { type: Type.STRING },
-                        nota_rapport: { type: Type.NUMBER },
-                        porque_rapport: { type: Type.STRING },
+                        
+                        // As 12 Notas e Justificativas
+                        nota_postura: { type: Type.NUMBER }, porque_postura: { type: Type.STRING },
+                        nota_conhecimento: { type: Type.NUMBER }, porque_conhecimento: { type: Type.STRING },
+                        nota_escuta: { type: Type.NUMBER }, porque_escuta: { type: Type.STRING },
+                        nota_expansao: { type: Type.NUMBER }, porque_expansao: { type: Type.STRING },
+                        nota_fechamento: { type: Type.NUMBER }, porque_fechamento: { type: Type.STRING },
+                        nota_rapport: { type: Type.NUMBER }, porque_rapport: { type: Type.STRING },
+                        nota_pre_fechamento: { type: Type.NUMBER }, porque_pre_fechamento: { type: Type.STRING },
+                        nota_jornada_cliente: { type: Type.NUMBER }, porque_jornada_cliente: { type: Type.STRING },
+                        nota_personalizacao_pitch: { type: Type.NUMBER }, porque_personalizacao_pitch: { type: Type.STRING },
+                        nota_perguntas_poderosas: { type: Type.NUMBER }, porque_perguntas_poderosas: { type: Type.STRING },
+                        nota_contorno_objecoes: { type: Type.NUMBER }, porque_contorno_objecoes: { type: Type.STRING },
+                        nota_clareza_apresentacao: { type: Type.NUMBER }, porque_clareza_apresentacao: { type: Type.STRING },
+                        
                         tempo_fala_consultor: { type: Type.NUMBER },
                         tempo_fala_cliente: { type: Type.NUMBER },
                         checklist_fechamento: {
@@ -71,7 +76,15 @@ export default async function handler(req, res) {
                         pontos_atencao: { type: Type.ARRAY, items: { type: Type.STRING } },
                         justificativa_detalhada: { type: Type.STRING }
                     },
-                    required: ["media_final", "resumo_executivo", "chance_fechamento", "alerta_cancelamento", "concorrentes_detectados", "nota_postura", "porque_postura", "nota_conhecimento", "porque_conhecimento", "nota_escuta", "porque_escuta", "nota_expansao", "porque_expansao", "nota_fechamento", "porque_fechamento", "nota_rapport", "porque_rapport", "tempo_fala_consultor", "tempo_fala_cliente", "checklist_fechamento", "pontos_fortes", "pontos_atencao", "justificativa_detalhada"]
+                    required: [
+                        "media_final", "resumo_executivo", "chance_fechamento", "alerta_cancelamento", "concorrentes_detectados", 
+                        "nota_postura", "porque_postura", "nota_conhecimento", "porque_conhecimento", "nota_escuta", "porque_escuta", 
+                        "nota_expansao", "porque_expansao", "nota_fechamento", "porque_fechamento", "nota_rapport", "porque_rapport", 
+                        "nota_pre_fechamento", "porque_pre_fechamento", "nota_jornada_cliente", "porque_jornada_cliente", 
+                        "nota_personalizacao_pitch", "porque_personalizacao_pitch", "nota_perguntas_poderosas", "porque_perguntas_poderosas", 
+                        "nota_contorno_objecoes", "porque_contorno_objecoes", "nota_clareza_apresentacao", "porque_clareza_apresentacao",
+                        "tempo_fala_consultor", "tempo_fala_cliente", "checklist_fechamento", "pontos_fortes", "pontos_atencao", "justificativa_detalhada"
+                    ]
                 }
             }
         });
