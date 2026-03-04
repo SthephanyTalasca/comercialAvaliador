@@ -15,7 +15,7 @@
         .glass-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .markdown-content h1, .markdown-content h2 { font-weight: 800; color: #1e3a8a; margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1rem; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; }
+        .markdown-content h1, .markdown-content h2 { font-weight: 800; color: #1e3a8a; margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1rem; text-transform: uppercase; border-bottom: 2px solid #2563eb; padding-bottom: 0.5rem; }
         .markdown-content p { margin-bottom: 1rem; color: #475569; line-height: 1.6; font-size: 0.9rem; }
         .markdown-content ul { list-style-type: none; padding-left: 0; margin-bottom: 1.25rem; }
         .markdown-content li { position: relative; padding-left: 1.5rem; margin-bottom: 0.4rem; color: #475569; font-size: 0.85rem; }
@@ -39,7 +39,7 @@
             </div>
             <div class="relative">
                 <i data-lucide="user" class="absolute left-3 top-2.5 w-4 h-4 text-blue-300"></i>
-                <input type="text" id="cc-name-input" placeholder="Consultor" class="pl-10 pr-5 py-2 rounded-xl bg-blue-900/40 border border-blue-400/50 text-white text-sm focus:outline-none focus:ring-2 ring-blue-300 transition-all">
+                <input type="text" id="cc-name-input" placeholder="Consultor" class="pl-10 pr-5 py-2 rounded-xl bg-blue-900/40 border border-blue-400/50 text-white text-sm focus:outline-none focus:ring-2 ring-blue-300 transition-all" />
             </div>
         </div>
     </nav>
@@ -224,7 +224,7 @@
             `;
         }).join('');
 
-        // 4. Talk Time
+        // 4. Talk Time (Corrigido os Template Literals)
         document.getElementById('talk-time-container').innerHTML = `
             <div>
                 <div class="flex justify-between text-[11px] font-bold mb-2"><span>Consultor</span><span class="text-blue-600">${data.tempo_fala_consultor}</span></div>
@@ -236,9 +236,17 @@
             </div>
         `;
 
-        // 5. Checklist
+        // 5. Checklist (Corrigido objeto inteiro)
         const ck = data.checklist_fechamento || {};
-        const ckLabels = { resolveu_pontos_iniciais: "Retomou problemas", pediu_feedback_ferramenta: "Pediu Feedback", pediu_voto_confianca: "Voto de Confiança", tratou_objecao_socio: "Alinhou Sócios", validou_mensalidade_vs_setup: "Isolou Objecção", mencionou_gestao_financeira_gratuita: "Cereja do Bolo" };
+        const ckLabels = {
+            resolveu_pontos_iniciais: "Retomou problemas",
+            pediu_feedback_ferramenta: "Pediu Feedback",
+            pediu_voto_confianca: "Voto de Confiança",
+            tratou_objecao_socio: "Alinhou Sócios",
+            validou_mensalidade_vs_setup: "Isolou Objecção",
+            mencionou_gestao_financeira_gratuita: "Cereja do Bolo"
+        };
+        
         document.getElementById('checklist-container').innerHTML = Object.entries(ckLabels).map(([key, label]) => `
             <div class="flex items-center justify-between p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100 transition-all hover:bg-white group">
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tight group-hover:text-slate-800 transition-colors">${label}</span>
