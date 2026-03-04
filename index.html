@@ -89,7 +89,7 @@
                     </div>
                 </div>
 
-                <div id="notas-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4"></div>
+                <div id="notas-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="glass-card p-8 min-h-[350px] flex items-center justify-center">
@@ -150,6 +150,22 @@
     const btnText = document.getElementById('btn-text');
     let radarChartInstance = null;
 
+    // Definição dos 12 pilares para o grid e o gráfico
+    const fields = [
+        { l: 'Postura', k: 'postura' },
+        { l: 'Clareza', k: 'clareza_apresentacao' },
+        { l: 'Produto', k: 'conhecimento' },
+        { l: 'Pitch', k: 'personalizacao_pitch' },
+        { l: 'Escuta', k: 'escuta' },
+        { l: 'Perguntas', k: 'perguntas_poderosas' },
+        { l: 'Contorno Obj.', k: 'contorno_objecoes' },
+        { l: 'Expansão', k: 'expansao' },
+        { l: 'Pré-Fech.', k: 'pre_fechamento' },
+        { l: 'Fechamento', k: 'fechamento' },
+        { l: 'Jornada', k: 'jornada_cliente' },
+        { l: 'Rapport', k: 'rapport' }
+    ];
+
     async function handleAnalysis() {
         const prompt = transcriptInput.value.trim();
         if(!prompt) return;
@@ -168,14 +184,13 @@
                 body: JSON.stringify({ prompt })
             });
             
-            // Tratamento de erro aprimorado
             const textResponse = await response.text();
             let data;
             try {
                 data = JSON.parse(textResponse);
             } catch (e) {
-                console.error("Resposta do servidor não é JSON:", textResponse);
-                throw new Error("Erro no servidor. Verifique o console (F12) para detalhes.");
+                console.error("Erro no JSON:", textResponse);
+                throw new Error("Erro de comunicação com a inteligência artificial.");
             }
 
             if(data.error) throw new Error(data.error);
@@ -219,26 +234,17 @@
             status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; 
         }
 
-        // GRID ATUALIZADO COM OS NOVOS TÍTULOS
-        const fields = [
-            { l: 'Postura & Clareza', k: 'postura' },
-            { l: 'Produto & Pitch', k: 'conhecimento' },
-            { l: 'Escuta & Perguntas', k: 'escuta' },
-            { l: 'Contorno & Expansão', k: 'expansao' },
-            { l: 'Fechamento & Jornada', k: 'fechamento' },
-            { l: 'Rapport', k: 'rapport' }
-        ];
-
+        // Renderização Dinâmica dos 12 Cards de Nota
         const gridElement = document.getElementById('notas-grid');
         gridElement.innerHTML = fields.map(f => {
             const n = data[`nota_${f.k}`] || 0;
             const p = data[`porque_${f.k}`] || "";
             const c = n >= 8 ? 'text-emerald-500' : n >= 5 ? 'text-blue-600' : 'text-red-500';
             return `
-                <div class="glass-card p-6 flex flex-col items-center text-center">
-                    <span class="text-[9px] font-black text-slate-400 uppercase mb-3 tracking-widest">${f.l}</span>
-                    <div class="text-3xl font-black ${c} mb-3 leading-none">${n}</div>
-                    <p class="text-[9px] text-slate-500 italic leading-tight font-medium">${p}</p>
+                <div class="glass-card p-4 flex flex-col items-center text-center justify-center">
+                    <span class="text-[8px] font-black text-slate-400 uppercase mb-2 tracking-widest leading-tight">${f.l}</span>
+                    <div class="text-2xl font-black ${c} mb-2 leading-none">${n}</div>
+                    <p class="text-[8px] text-slate-500 italic leading-tight font-medium max-w-[90%] truncate" title="${p}">${p}</p>
                 </div>
             `;
         }).join('');
@@ -287,25 +293,22 @@
     function renderRadar(data) {
         const ctx = document.getElementById('radarChart').getContext('2d');
         if(radarChartInstance) radarChartInstance.destroy();
+        
+        // Pega os nomes e as notas direto daquela lista "fields" lá de cima
+        const radarLabels = fields.map(f => f.l);
+        const radarData = fields.map(f => data[`nota_${f.k}`] || 0);
+
         radarChartInstance = new Chart(ctx, {
             type: 'radar',
             data: {
-                // LABELS DO RADAR ATUALIZADOS
-                labels: ['Postura & Clareza', 'Produto & Pitch', 'Escuta & Perguntas', 'Contorno & Expansão', 'Fechamento & Jornada', 'Rapport'], 
+                labels: radarLabels, 
                 datasets: [{
                     label: 'Desempenho',
-                    data: [
-                        data.nota_postura || 0, 
-                        data.nota_conhecimento || 0, 
-                        data.nota_escuta || 0, 
-                        data.nota_expansao || 0, 
-                        data.nota_fechamento || 0,
-                        data.nota_rapport || 0
-                    ],
-                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    data: radarData,
+                    backgroundColor: 'rgba(37, 99, 235, 0.15)',
                     borderColor: '#2563eb',
                     borderWidth: 2,
-                    pointRadius: 5,
+                    pointRadius: 3,
                     pointBackgroundColor: '#1e3a8a'
                 }]
             },
@@ -315,9 +318,9 @@
                         min: 0, 
                         max: 10, 
                         ticks: { display: false }, 
-                        grid: { color: '#f1f5f9' }, 
-                        angleLines: { color: '#f1f5f9' }, 
-                        pointLabels: { font: { size: 9, weight: '700' }, color: '#64748b' } 
+                        grid: { color: '#e2e8f0' }, 
+                        angleLines: { color: '#e2e8f0' }, 
+                        pointLabels: { font: { size: 9, weight: '700' }, color: '#475569' } 
                     } 
                 }, 
                 plugins: { legend: { display: false } }, 
