@@ -1,28 +1,34 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 export default async function handler(req, res) {
-    // CORS e Validações Iniciais (Mantidos conforme seu original)
+    // ==========================================
+    // 1. CORS E VALIDAÇÕES INICIAIS
+    // ==========================================
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
 
     const API_KEY = process.env.GEMINI_API_KEY;
+    if (!API_KEY) return res.status(500).json({ error: 'Chave de API não configurada.' });
+
     const { prompt: userPrompt } = req.body || {};
-    if (!userPrompt) return res.status(400).json({ error: "Transcrição inválida." });
+    if (!userPrompt) return res.status(400).json({ error: "Transcrição inválida ou vazia." });
 
     // ==========================================
-    // 1. SYSTEM INSTRUCTION: O CÉREBRO DA IA
+    // 2. INSTRUÇÕES DO SISTEMA E SCHEMA
     // ==========================================
     const systemInstruction = `
-    // Dentro da const systemInstruction, adicione:
+Você é um auditor especialista em Inside Sales B2B para o ecossistema contábil (Nibo). 
+Sua função é analisar transcrições de reuniões de vendas e preencher um relatório técnico rigoroso.
 
 DIRETRIZES DE AVALIAÇÃO DE RAPPORT:
 - Conexão Emocional: O consultor usou o nome do cliente e estabeleceu empatia inicial?
 - Leveza e Genuinidade: A quebra de gelo foi personalizada ou mecânica? 
 - Sinais de Excelência: Linguagem acessível, escuta genuína e acolhimento.
 - Alerta de Falha: Abordagem excessivamente robótica ou falta de sintonia com o momento do cliente.
-Você é um auditor especialista em Inside Sales B2B para o ecossistema contábil (Nibo). 
-Sua função é analisar transcrições de reuniões de vendas e preencher um relatório técnico rigoroso.
 
 DIRETRIZES DE PRODUTO (Nibo):
 - Use a base de conhecimento (ajuda.nibo.com.br) para validar o item "Domínio de Produto". 
@@ -35,96 +41,99 @@ PERFIS COMPORTAMENTAIS (CLIENTE):
 - Afável: Foco em relacionamento, confiança, harmonia.
 - Expressivo: Foco em visão de futuro, entusiasmo, status.
 
-Sua análise deve ser fria, técnica e baseada em evidências da transcrição.
-`;
+Sua análise deve ser fria, técnica e baseada estritamente em evidências da transcrição.
+Retorne os dados EXATAMENTE no formato JSON solicitado.`;
 
     // ==========================================
-    // 2. RESPONSE SCHEMA: A ESTRUTURA DECISIVA
+    // 3. EXECUÇÃO DA API GEMINI
     // ==========================================
-    const responseSchema = {
-        type: "OBJECT",
-        properties: {
-            perfil_comportamental_cliente: {
-                type: "OBJECT",
-                properties: {
-                    tipo_identificado: { type: "STRING", enum: ["Analítico", "Pragmático", "Afável", "Expressivo"] },
-                    leitura_do_consultor: { type: "STRING" }, // O consultor leu os sinais corretamente?
-                    adaptacao_do_discurso: { type: "STRING" }, // Ajustou ritmo e profundidade?
-                    ajuste_futuro: { type: "STRING" } // Como personalizar melhor para esse perfil?
-                },
-                required: ["tipo_identificado", "leitura_do_consultor", "adaptacao_do_discurso"]
-            },
-            avaliacao_detalhada: {
-                type: "OBJECT",
-                properties: {
-                    // Localize 'rapport_conexao' dentro de 'avaliacao_detalhada' e substitua por:
-
-
-                    rapport_conexao: { 
-    
-                        type: "OBJECT",
-    
-                        properties: {
-        
-                            status: { type: "STRING", enum: ["Excelente", "Bom", "Regular", "Insuficiente"] },
-        
-                            evidencia_positiva: { type: "STRING", description: "Trecho ou sinal de conexão emocional e empatia." },
-        
-                            oportunidade_melhoria: { type: "STRING", description: "Identificação de travas emocionais ou abordagem mecânica." },
-       
-                            uso_do_nome: { type: "BOOLEAN" }
-   
+    try {
+        const genAI = new GoogleGenerativeAI(API_KEY);
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-1.5-flash", // Modelo rápido e estável para a Vercel
+            generationConfig: { 
+                responseMimeType: "application/json",
+                // Passando o schema diretamente na configuração para garantir a estrutura
+                responseSchema: {
+                    type: "object",
+                    properties: {
+                        perfil_comportamental_cliente: {
+                            type: "object",
+                            properties: {
+                                tipo_identificado: { type: "string", enum: ["Analítico", "Pragmático", "Afável", "Expressivo"] },
+                                leitura_do_consultor: { type: "string" },
+                                adaptacao_do_discurso: { type: "string" },
+                                ajuste_futuro: { type: "string" }
+                            },
+                            required: ["tipo_identificado", "leitura_do_consultor", "adaptacao_do_discurso"]
                         },
-    
-                        required: ["status", "evidencia_positiva"]
-
+                        avaliacao_detalhada: {
+                            type: "object",
+                            properties: {
+                                rapport_conexao: { 
+                                    type: "object",
+                                    properties: {
+                                        status: { type: "string", enum: ["Excelente", "Bom", "Regular", "Insuficiente"] },
+                                        evidencia_positiva: { type: "string", description: "Trecho ou sinal de conexão emocional e empatia." },
+                                        oportunidade_melhoria: { type: "string", description: "Identificação de travas emocionais ou abordagem mecânica." },
+                                        uso_do_nome: { type: "boolean" }
+                                    },
+                                    required: ["status", "evidencia_positiva"]
+                                },
+                                autoridade_comercial: { type: "string" },
+                                clareza_apresentacao: { type: "string" },
+                                gatilhos_mentais: { type: "string" },
+                                pre_fechamento: { type: "string" },
+                                tecnicas_fechamento: { type: "string" },
+                                contorno_objecoes: { type: "string" },
+                                escuta_ativa: { type: "string" },
+                                perguntas_poderosas: { type: "string" },
+                                personalizacao_pitch: { type: "string" },
+                                conexao_negocio: { type: "string" },
+                                jornada_cliente: { type: "string" },
+                                gestao_tempo: { type: "string" },
+                                encantamento_comercial: { type: "string" },
+                                postura_profissional: { type: "string" },
+                                dominio_produto_nibo: { type: "string" },
+                                portfolio_estrategico: { type: "string" }
+                            }
+                        },
+                        estrategia_tomada_de_conta: {
+                            type: "object",
+                            properties: {
+                                ataque_acessorias: { type: "string" },
+                                vulnerabilidade_cobranca: { type: "string" },
+                                nota_tecnica_substituicao: { type: "number" }
+                            }
+                        },
+                        resumo_executivo: {
+                            type: "object",
+                            properties: {
+                                pontos_fortes: { type: "string" },
+                                oportunidades_melhoria: { type: "string" },
+                                sugestao_pratica_proxima_call: { type: "string" }
+                            }
+                        }
                     },
-                    autoridade_comercial: { type: "STRING" },
-                    clareza_apresentacao: { type: "STRING" },
-                    gatilhos_mentais: { type: "STRING" },
-                    pre_fechamento: { type: "STRING" },
-                    tecnicas_fechamento: { type: "STRING" },
-                    contorno_objecoes: { type: "STRING" },
-                    escuta_ativa: { type: "STRING" },
-                    perguntas_poderosas: { type: "STRING" },
-                    personalizacao_pitch: { type: "STRING" },
-                    conexao_negocio: { type: "STRING" },
-                    jornada_cliente: { type: "STRING" },
-                    gestao_tempo: { type: "STRING" },
-                    encantamento_comercial: { type: "STRING" },
-                    postura_profissional: { type: "STRING" },
-                    dominio_produto_nibo: { type: "STRING" }, // Validar via ajuda.nibo.com.br
-                    portfolio_estrategico: { type: "STRING" } // Cross-sell: GF, COF, Emissor
-                }
-            },
-            estrategia_tomada_de_conta: {
-                type: "OBJECT",
-                properties: {
-                    ataque_acessorias: { type: "STRING" }, // Comparação E-contínuo vs Nibo Assistente
-                    vulnerabilidade_cobranca: { type: "STRING" },
-                    nota_tecnica_substituicao: { type: "NUMBER" }
-                }
-            },
-            resumo_executivo: {
-                type: "OBJECT",
-                properties: {
-                    pontos_fortes: { type: "STRING" },
-                    oportunidades_melhoria: { type: "STRING" },
-                    sugestao_pratica_proxima_call: { type: "STRING" }
+                    required: ["perfil_comportamental_cliente", "avaliacao_detalhada", "estrategia_tomada_de_conta", "resumo_executivo"]
                 }
             }
-        },
-        required: ["perfil_comportamental_cliente", "avaliacao_detalhada", "estrategia_tomada_de_conta", "resumo_executivo"]
-    };
+        });
 
-    const fullPrompt = `
-ANALISE A SEGUINTE TRANSCRIÇÃO:
-${userPrompt}
+        const fullPrompt = `ANALISE A SEGUINTE TRANSCRIÇÃO:\n${userPrompt}\n\nConsidere os 17 critérios de avaliação comercial e identifique o perfil comportamental do cliente. Foque especialmente na transição técnica de Acessórias para Nibo e na capacidade do vendedor de realizar o cross-sell (Portfólio Estratégico).`;
 
-Considere os 17 critérios de avaliação comercial e identifique o perfil comportamental do cliente para preencher o JSON conforme o schema.
-Foque especialmente na transição técnica de Acessórias para Nibo e na capacidade do vendedor de realizar o cross-sell (Portfólio Estratégico).
-`;
+        const result = await model.generateContent([
+            { text: systemInstruction }, 
+            { text: fullPrompt }
+        ]);
+        
+        const responseText = await result.response.text();
+        const data = JSON.parse(responseText);
+        
+        return res.status(200).json(data);
 
-    // Chamada para a API Gemini (Utilizando o modelo 2.0 ou 1.5 conforme disponibilidade)
-    // ... restante do código de fetch e retorno ...
+    } catch (error) {
+        console.error("Erro na execução do Gemini:", error);
+        return res.status(500).json({ error: "Falha ao analisar transcrição.", details: error.message });
+    }
 }
