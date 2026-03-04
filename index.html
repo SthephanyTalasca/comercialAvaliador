@@ -158,7 +158,6 @@
         loadingSpinner.classList.remove('hidden');
         analysisContent.classList.add('hidden');
         
-        // Estado de Loading no botão
         analyzeBtn.disabled = true;
         btnText.textContent = "Analisando...";
 
@@ -168,9 +167,20 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt })
             });
-            const data = await response.json();
+            
+            // Tratamento de erro aprimorado
+            const textResponse = await response.text();
+            let data;
+            try {
+                data = JSON.parse(textResponse);
+            } catch (e) {
+                console.error("Resposta do servidor não é JSON:", textResponse);
+                throw new Error("Erro no servidor. Verifique o console (F12) para detalhes.");
+            }
+
             if(data.error) throw new Error(data.error);
             renderDashboard(data);
+            
         } catch (err) {
             alert("Erro na análise: " + err.message);
             resultsSection.classList.add('hidden');
@@ -184,14 +194,12 @@
         loadingSpinner.classList.add('hidden');
         analysisContent.classList.remove('hidden');
 
-        // 1. Headline & Score
         const media = data.media_final || 0;
         document.getElementById('media-final').textContent = media.toFixed(1);
         document.getElementById('resumo-text').textContent = data.resumo_executivo || "Nenhum resumo fornecido.";
         document.getElementById('chance-text').textContent = data.chance_fechamento || "Análise insuficiente";
         document.getElementById('alerta-text').textContent = data.alerta_cancelamento || "Sem alertas críticos identificados.";
 
-        // 2. Concorrentes Tags (com proteção contra undefined)
         const tagContainer = document.getElementById('concorrentes-tags');
         tagContainer.innerHTML = (data.concorrentes_detectados || []).map(c => `
             <span class="px-3 py-1 bg-red-600 text-white text-[10px] font-black rounded-lg shadow-lg uppercase tracking-widest flex items-center gap-1.5 tag-concorrente">
@@ -211,13 +219,13 @@
             status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; 
         }
 
-        // 3. Grid de Notas
+        // GRID ATUALIZADO COM OS NOVOS TÍTULOS
         const fields = [
-            { l: 'Postura', k: 'postura' },
-            { l: 'Produto', k: 'conhecimento' },
-            { l: 'Escuta', k: 'escuta' },
-            { l: 'Expansão', k: 'expansao' },
-            { l: 'Fechamento', k: 'fechamento' },
+            { l: 'Postura & Clareza', k: 'postura' },
+            { l: 'Produto & Pitch', k: 'conhecimento' },
+            { l: 'Escuta & Perguntas', k: 'escuta' },
+            { l: 'Contorno & Expansão', k: 'expansao' },
+            { l: 'Fechamento & Jornada', k: 'fechamento' },
             { l: 'Rapport', k: 'rapport' }
         ];
 
@@ -235,7 +243,6 @@
             `;
         }).join('');
 
-        // 4. Talk Time (Corrigido o width para aceitar números puros com parseFloat)
         const tempoConsultorNum = parseFloat(data.tempo_fala_consultor || 0);
         const tempoClienteNum = parseFloat(data.tempo_fala_cliente || 0);
         
@@ -250,7 +257,6 @@
             </div>
         `;
 
-        // 5. Checklist
         const ck = data.checklist_fechamento || {};
         const ckLabels = {
             resolveu_pontos_iniciais: "Retomou problemas",
@@ -270,14 +276,11 @@
             </div>
         `).join('');
 
-        // Preenchimento de listas com proteção contra arrays vazios
         document.getElementById('lista-fortes').innerHTML = (data.pontos_fortes || []).map(i => `<li class="flex items-start gap-2"><span>▶</span> ${i}</li>`).join('');
         document.getElementById('lista-atencao').innerHTML = (data.pontos_atencao || []).map(i => `<li class="flex items-start gap-2"><span>▶</span> ${i}</li>`).join('');
         document.getElementById('markdown-body').innerHTML = marked.parse(data.justificativa_detalhada || "");
         
         renderRadar(data);
-        
-        // Re-renderiza os ícones gerados dinamicamente no innerHTML
         lucide.createIcons();
     }
 
@@ -287,7 +290,8 @@
         radarChartInstance = new Chart(ctx, {
             type: 'radar',
             data: {
-                labels: ['Postura', 'Produto', 'Escuta', 'Expansão', 'Fechamento', 'Rapport'], 
+                // LABELS DO RADAR ATUALIZADOS
+                labels: ['Postura & Clareza', 'Produto & Pitch', 'Escuta & Perguntas', 'Contorno & Expansão', 'Fechamento & Jornada', 'Rapport'], 
                 datasets: [{
                     label: 'Desempenho',
                     data: [
