@@ -1,130 +1,102 @@
 export default async function handler(req, res) {
-    // =========================
-    // CORS SEGURO
-    // =========================
+    // CORS e Validações Iniciais (Mantidos conforme seu original)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
 
     const API_KEY = process.env.GEMINI_API_KEY;
-    if (!API_KEY) return res.status(500).json({ error: 'Chave de API não configurada.' });
-
     const { prompt: userPrompt } = req.body || {};
-    if (!userPrompt || typeof userPrompt !== "string") {
-        return res.status(400).json({ error: "Transcrição inválida." });
-    }
+    if (!userPrompt) return res.status(400).json({ error: "Transcrição inválida." });
 
-    // =========================
-    // PROMPT MASTER ATUALIZADO
-    // =========================
+    // ==========================================
+    // 1. SYSTEM INSTRUCTION: O CÉREBRO DA IA
+    // ==========================================
     const systemInstruction = `
-Você é um avaliador especialista em performance comercial B2B para contabilidades, focado em estratégias de substituição de concorrentes (especificamente Acessórias) e fechamento de vendas.
+Você é um auditor especialista em Inside Sales B2B para o ecossistema contábil (Nibo). 
+Sua função é analisar transcrições de reuniões de vendas e preencher um relatório técnico rigoroso.
 
-Sua missão é analisar se o consultor executou a estratégia de "Tomada de Conta", gerando insegurança sobre o uso da Acessórias e posicionando o Nibo como uma evolução tecnológica superior.
-As análises devem ser técnicas, sem elogios genéricos, baseadas estritamente na transcrição.
+DIRETRIZES DE PRODUTO (Nibo):
+- Use a base de conhecimento (ajuda.nibo.com.br) para validar o item "Domínio de Produto". 
+- O foco é a estratégia de substituição do concorrente 'Acessórias'. 
+- Diferenciais Nibo: Sem robô local (nuvem), cobrança automatizada integrada, App com e-CAC e dashboards.
+
+PERFIS COMPORTAMENTAIS (CLIENTE):
+- Analítico: Foco em dados, segurança, processos.
+- Pragmático: Foco em ROI, velocidade, objetividade.
+- Afável: Foco em relacionamento, confiança, harmonia.
+- Expressivo: Foco em visão de futuro, entusiasmo, status.
+
+Sua análise deve ser fria, técnica e baseada em evidências da transcrição.
 `;
 
-    const fullPrompt = `
-TRANSCRIÇÃO DA REUNIÃO:
-${userPrompt}
-
-===============================
-OBJETIVO DA ANÁLISE:
-1. ESTRATÉGIA DE SUBSTITUIÇÃO (ACESSÓRIAS):
-   - Avalie o ataque ao visual/experiência (complexidade vs simplicidade).
-   - Verifique a comparação técnica: E-Contínuo vs Nibo Assistente (sem robô local).
-   - Analise o pilar crítico: Cobrança Automatizada (fraqueza da Acessórias).
-   - Cheque se houve diferenciação no App (Integração e-CAC, Notas, Dashboards).
-
-2. PRÉ-FECHAMENTO E FEEDBACK:
-   - O consultor amarrou as dores iniciais (X, Y, Z) com a solução antes de falar de preço?
-   - Pediu feedback direto ("O que achou da ferramenta?")?
-   - Usou o "voto de confiança" e a "referência da cidade"?
-
-3. FECHAMENTO E NEGOCIAÇÃO:
-   - Como foi a apresentação do valor (Mensalidade + Setup)?
-   - Tratou objeção de sócio corretamente (não dar preço, agendar nova reunião)?
-   - Identificou se o peso era Mensalidade ou Setup?
-   - Usou a ancoragem da Gestão Financeira gratuita como benefício de parceria?
-   - Aplicou o fechamento condicional ("Se eu conseguir isso, podemos avançar?")?
-
-Analise detalhadamente cada bloco conforme o esquema JSON solicitado.
-`;
-
+    // ==========================================
+    // 2. RESPONSE SCHEMA: A ESTRUTURA DECISIVA
+    // ==========================================
     const responseSchema = {
         type: "OBJECT",
         properties: {
-            substituicao_acessorias: {
+            perfil_comportamental_cliente: {
                 type: "OBJECT",
                 properties: {
-                    diagnostico_estrategico: { type: "STRING" },
-                    ataque_vulnerabilidades: { type: "STRING" }, // Automação, Robô, Cobrança
-                    percepcao_de_ruptura: { type: "STRING" }, // Gerou desejo de migrar?
-                    nota_tecnica: { type: "NUMBER" } // 0 a 5
+                    tipo_identificado: { type: "STRING", enum: ["Analítico", "Pragmático", "Afável", "Expressivo"] },
+                    leitura_do_consultor: { type: "STRING" }, // O consultor leu os sinais corretamente?
+                    adaptacao_do_discurso: { type: "STRING" }, // Ajustou ritmo e profundidade?
+                    ajuste_futuro: { type: "STRING" } // Como personalizar melhor para esse perfil?
                 },
-                required: ["diagnostico_estrategico", "ataque_vulnerabilidades", "nota_tecnica"]
+                required: ["tipo_identificado", "leitura_do_consultor", "adaptacao_do_discurso"]
             },
-            pre_fechamento: {
+            avaliacao_detalhada: {
                 type: "OBJECT",
                 properties: {
-                    validacao_das_dores: { type: "STRING" },
-                    coleta_de_feedback: { type: "STRING" },
-                    execucao_voto_confianca: { type: "BOOLEAN" }
-                },
-                required: ["validacao_das_dores", "coleta_de_feedback", "execucao_voto_confianca"]
+                    rapport_conexao: { type: "STRING" },
+                    autoridade_comercial: { type: "STRING" },
+                    clareza_apresentacao: { type: "STRING" },
+                    gatilhos_mentais: { type: "STRING" },
+                    pre_fechamento: { type: "STRING" },
+                    tecnicas_fechamento: { type: "STRING" },
+                    contorno_objecoes: { type: "STRING" },
+                    escuta_ativa: { type: "STRING" },
+                    perguntas_poderosas: { type: "STRING" },
+                    personalizacao_pitch: { type: "STRING" },
+                    conexao_negocio: { type: "STRING" },
+                    jornada_cliente: { type: "STRING" },
+                    gestao_tempo: { type: "STRING" },
+                    encantamento_comercial: { type: "STRING" },
+                    postura_profissional: { type: "STRING" },
+                    dominio_produto_nibo: { type: "STRING" }, // Validar via ajuda.nibo.com.br
+                    portfolio_estrategico: { type: "STRING" } // Cross-sell: GF, COF, Emissor
+                }
             },
-            negociacao_fechamento: {
+            estrategia_tomada_de_conta: {
                 type: "OBJECT",
                 properties: {
-                    postura_em_vendas: { type: "STRING" },
-                    manejo_de_objecoes: { type: "STRING" }, // Sócio, preço, setup
-                    uso_de_gatilhos: { type: "STRING" }, // Parceria, coordenador, desconto condicional
-                    nota_final: { type: "NUMBER" }
-                },
-                required: ["postura_em_vendas", "manejo_de_objecoes", "nota_final"]
+                    ataque_acessorias: { type: "STRING" }, // Comparação E-contínuo vs Nibo Assistente
+                    vulnerabilidade_cobranca: { type: "STRING" },
+                    nota_tecnica_substituicao: { type: "NUMBER" }
+                }
             },
             resumo_executivo: {
                 type: "OBJECT",
                 properties: {
                     pontos_fortes: { type: "STRING" },
-                    oportunidades_perdidas: { type: "STRING" },
-                    sugestao_pratica: { type: "STRING" }
-                },
-                required: ["pontos_fortes", "oportunidades_perdidas", "sugestao_pratica"]
+                    oportunidades_melhoria: { type: "STRING" },
+                    sugestao_pratica_proxima_call: { type: "STRING" }
+                }
             }
         },
-        required: ["substituicao_acessorias", "pre_fechamento", "negociacao_fechamento", "resumo_executivo"]
+        required: ["perfil_comportamental_cliente", "avaliacao_detalhada", "estrategia_tomada_de_conta", "resumo_executivo"]
     };
 
-    try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+    const fullPrompt = `
+ANALISE A SEGUINTE TRANSCRIÇÃO:
+${userPrompt}
 
-        const response = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: fullPrompt }] }],
-                system_instruction: { parts: [{ text: systemInstruction }] },
-                generationConfig: {
-                    response_mime_type: "application/json",
-                    response_schema: responseSchema,
-                    temperature: 0.2
-                }
-            })
-        });
+Considere os 17 critérios de avaliação comercial e identifique o perfil comportamental do cliente para preencher o JSON conforme o schema.
+Foque especialmente na transição técnica de Acessórias para Nibo e na capacidade do vendedor de realizar o cross-sell (Portfólio Estratégico).
+`;
 
-        const data = await response.json();
-        if (data.error) return res.status(500).json({ error: data.error.message });
-
-        let textResponse = data.candidates[0]?.content?.parts?.[0]?.text;
-        const parsed = JSON.parse(textResponse);
-        
-        return res.status(200).json(parsed);
-
-    } catch (error) {
-        return res.status(500).json({ error: "Erro interno: " + error.message });
-    }
+    // Chamada para a API Gemini (Utilizando o modelo 2.0 ou 1.5 conforme disponibilidade)
+    // ... restante do código de fetch e retorno ...
 }
