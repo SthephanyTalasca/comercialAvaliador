@@ -128,3 +128,8 @@ Foque especialmente na transição técnica de Acessórias para Nibo e na capaci
     // Chamada para a API Gemini (Utilizando o modelo 2.0 ou 1.5 conforme disponibilidade)
     // ... restante do código de fetch e retorno ...
 }
+} catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: "Erro na análise: " + error.message });
+    }
+} // <--- Esta deve ser a última chave do arquivo
