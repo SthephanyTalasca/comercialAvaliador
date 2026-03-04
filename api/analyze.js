@@ -14,6 +14,13 @@ export default async function handler(req, res) {
     // 1. SYSTEM INSTRUCTION: O CÉREBRO DA IA
     // ==========================================
     const systemInstruction = `
+    // Dentro da const systemInstruction, adicione:
+
+DIRETRIZES DE AVALIAÇÃO DE RAPPORT:
+- Conexão Emocional: O consultor usou o nome do cliente e estabeleceu empatia inicial?
+- Leveza e Genuinidade: A quebra de gelo foi personalizada ou mecânica? 
+- Sinais de Excelência: Linguagem acessível, escuta genuína e acolhimento.
+- Alerta de Falha: Abordagem excessivamente robótica ou falta de sintonia com o momento do cliente.
 Você é um auditor especialista em Inside Sales B2B para o ecossistema contábil (Nibo). 
 Sua função é analisar transcrições de reuniões de vendas e preencher um relatório técnico rigoroso.
 
