@@ -57,7 +57,28 @@ Sua análise deve ser fria, técnica e baseada em evidências da transcrição.
             avaliacao_detalhada: {
                 type: "OBJECT",
                 properties: {
-                    rapport_conexao: { type: "STRING" },
+                    // Localize 'rapport_conexao' dentro de 'avaliacao_detalhada' e substitua por:
+
+
+                    rapport_conexao: { 
+    
+                        type: "OBJECT",
+    
+                        properties: {
+        
+                            status: { type: "STRING", enum: ["Excelente", "Bom", "Regular", "Insuficiente"] },
+        
+                            evidencia_positiva: { type: "STRING", description: "Trecho ou sinal de conexão emocional e empatia." },
+        
+                            oportunidade_melhoria: { type: "STRING", description: "Identificação de travas emocionais ou abordagem mecânica." },
+       
+                            uso_do_nome: { type: "BOOLEAN" }
+   
+                        },
+    
+                        required: ["status", "evidencia_positiva"]
+
+                    },
                     autoridade_comercial: { type: "STRING" },
                     clareza_apresentacao: { type: "STRING" },
                     gatilhos_mentais: { type: "STRING" },
