@@ -1,105 +1,148 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nibo AI - Auditoria Estratégica 2.0</title>
+    <title>Nibo AI - Auditoria de Vendas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #0f172a; }
-        .glass-card { background: white; border: 1px solid #e2e8f0; border-radius: 1.5rem; transition: all 0.3s ease; }
-        .glass-card:hover { transform: translateY(-2px); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.05); }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #2563eb; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; color: #0f172a; }
+        .glass-card { background: white; border: 1px solid #e2e8f0; border-radius: 2.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); transition: all 0.3s ease; }
+        .glass-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .markdown-content h1 { font-weight: 800; color: #1e3a8a; margin: 1.5rem 0 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-left: 4px solid #2563eb; padding-left: 0.75rem; }
-        .markdown-content p { margin-bottom: 0.75rem; color: #475569; line-height: 1.5; font-size: 0.85rem; }
-        .badge-perfil { padding: 4px 12px; border-radius: 99px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+        .markdown-content h1, .markdown-content h2 { font-weight: 800; color: #1e3a8a; margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1rem; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; }
+        .markdown-content p { margin-bottom: 1rem; color: #475569; line-height: 1.6; font-size: 0.9rem; }
+        .markdown-content ul { list-style-type: none; padding-left: 0; margin-bottom: 1.25rem; }
+        .markdown-content li { position: relative; padding-left: 1.5rem; margin-bottom: 0.4rem; color: #475569; font-size: 0.85rem; }
+        .markdown-content li::before { content: "•"; position: absolute; left: 0; color: #2563eb; font-weight: bold; }
+        .tag-concorrente { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     </style>
 </head>
 <body class="pb-20 antialiased">
 
-    <nav class="bg-[#002d72] text-white py-4 px-8 sticky top-0 z-50 shadow-lg">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
+    <!-- Navbar -->
+    <nav class="bg-[#002d72] text-white py-4 px-8 sticky top-0 z-50 shadow-xl border-b border-blue-400">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
-                <div class="bg-white p-2 rounded-xl"><i data-lucide="shield-check" class="text-[#002d72] w-5 h-5"></i></div>
+                <div class="bg-white p-2.5 rounded-2xl shadow-inner">
+                    <i data-lucide="shield-check" class="text-[#002d72] w-6 h-6"></i>
+                </div>
                 <div>
-                    <h1 class="font-extrabold text-base tracking-tight italic">NIBO <span class="text-blue-400">AUDITOR</span></h1>
-                    <p class="text-[8px] text-blue-200 uppercase tracking-[0.2em] font-bold">Inteligência Comercial de Substituição</p>
+                    <h1 class="font-extrabold text-lg uppercase tracking-tight">Nibo <span class="text-blue-400">Auditor de Vendas</span></h1>
+                    <p class="text-[9px] text-blue-200 uppercase tracking-widest font-bold mt-1">Análise de Performance Baseada no Manual</p>
                 </div>
             </div>
-            <input type="text" id="cc-name-input" placeholder="Nome do Consultor" class="pl-4 pr-4 py-1.5 rounded-lg bg-blue-900/50 border border-blue-400/30 text-white text-xs focus:outline-none focus:ring-2 ring-blue-500 w-48">
+            <div class="relative">
+                <i data-lucide="user" class="absolute left-3 top-2.5 w-4 h-4 text-blue-300"></i>
+                <input type="text" id="cc-name-input" placeholder="Consultor" class="pl-10 pr-5 py-2 rounded-xl bg-blue-900/40 border border-blue-400/50 text-white text-sm focus:outline-none focus:ring-2 ring-blue-300 transition-all">
+            </div>
         </div>
     </nav>
 
     <main class="max-w-6xl mx-auto px-4 mt-8">
-        <section class="mb-8">
-            <div class="glass-card p-6">
-                <textarea id="transcript-input" rows="4" class="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 ring-blue-100 outline-none text-sm mb-4 transition-all" placeholder="Cole a transcrição da reunião aqui para auditar os 17 pontos de performance..."></textarea>
-                <div class="flex justify-between items-center">
-                    <span class="text-[10px] text-slate-400 font-medium italic">Análise baseada em ajuda.nibo.com.br e Estratégia Tomada de Conta</span>
-                    <button id="analyze-btn" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold text-xs shadow-lg transition-all active:scale-95">
-                        <span>Iniciar Auditoria IA</span>
-                        <i data-lucide="zap" class="w-3 h-3"></i>
+        
+        <!-- Input Section -->
+        <section class="mb-10">
+            <div class="glass-card p-8 md:p-10">
+                <div class="flex items-center gap-3 mb-6">
+                    <i data-lucide="message-square" class="text-blue-600"></i>
+                    <h2 class="font-bold text-slate-800 text-lg">Submeter Transcrição</h2>
+                </div>
+                <textarea id="transcript-input" rows="5" class="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] focus:ring-4 ring-blue-500/5 focus:outline-none transition-all text-sm mb-6" placeholder="Cole aqui o diálogo completo da reunião..."></textarea>
+                <div class="flex justify-end">
+                    <button id="analyze-btn" class="group flex items-center gap-3 bg-blue-600 hover:bg-[#002d72] text-white px-10 py-4 rounded-2xl font-bold text-sm shadow-xl transition-all active:scale-95">
+                        <span>Gerar Infográfico de Performance</span>
+                        <i data-lucide="zap" class="w-4 h-4"></i>
                     </button>
                 </div>
             </div>
         </section>
 
-        <div id="results-section" class="hidden space-y-6">
-            <div id="loading-spinner" class="flex flex-col items-center py-12">
-                <div class="loader mb-3"></div>
-                <p class="text-slate-400 font-bold text-[10px] uppercase tracking-widest animate-pulse">Cruzando dados de produto e comportamento...</p>
+        <!-- Resultados -->
+        <div id="results-section" class="hidden space-y-8">
+            
+            <div id="loading-spinner" class="flex flex-col items-center py-20">
+                <div class="loader mb-4"></div>
+                <p class="text-slate-400 font-bold text-xs uppercase tracking-widest animate-pulse">Auditando Manual Nibo...</p>
             </div>
 
-            <div id="analysis-content" class="hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
-                    <div class="lg:col-span-3 glass-card p-8 flex flex-col items-center justify-center text-center">
-                        <span class="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-2">Nota de Execução</span>
-                        <div id="media-final" class="text-6xl font-black text-[#002d72]">0.0</div>
-                        <div id="status-tag" class="mt-3 px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter">---</div>
+            <div id="analysis-content" class="hidden space-y-8 animate-in fade-in duration-1000">
+                
+                <!-- Headline Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div class="lg:col-span-1 glass-card p-10 flex flex-col items-center justify-center text-center border-b-[10px] border-blue-600">
+                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Média Global</span>
+                        <div id="media-final" class="text-7xl font-black text-[#002d72] mb-3">0.0</div>
+                        <div id="status-tag" class="px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">---</div>
                     </div>
                     
-                    <div class="lg:col-span-9 glass-card p-8 bg-white relative overflow-hidden border-l-[6px] border-blue-600">
-                        <div class="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
-                            <div class="flex-1">
-                                <h3 class="font-bold text-slate-400 text-[10px] uppercase tracking-widest mb-2">Diagnóstico de Performance</h3>
-                                <p id="resumo-text" class="text-lg font-bold text-slate-800 leading-tight"></p>
-                            </div>
-                            <div id="perfil-card" class="bg-slate-50 p-4 rounded-2xl border border-slate-100 min-w-[200px]">
-                                <span class="text-[8px] font-bold text-slate-400 uppercase block mb-2">Perfil do Cliente</span>
-                                <div id="cliente-tipo" class="text-blue-600 font-extrabold text-sm mb-1 uppercase tracking-tight">---</div>
-                                <p id="perfil-info" class="text-[10px] text-slate-500 leading-none"></p>
-                            </div>
-                        </div>
-                        <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                            <span class="text-[9px] font-black text-emerald-600 uppercase block mb-1">Próximo Passo Sugerido:</span>
-                            <p id="chance-text" class="text-xs font-semibold text-slate-700 italic"></p>
+                    <div class="lg:col-span-3 glass-card p-10 bg-gradient-to-br from-blue-700 to-blue-900 text-white relative flex flex-col justify-center">
+                        <div id="concorrentes-tags" class="flex flex-wrap gap-2 mb-4"></div>
+                        <h3 class="font-bold text-blue-200 text-[10px] uppercase tracking-widest mb-4">Diagnóstico Geral</h3>
+                        <p id="resumo-text" class="text-xl md:text-2xl font-bold leading-tight mb-8"></p>
+                        <div class="p-4 bg-white/10 rounded-2xl border border-white/20">
+                            <span class="text-[9px] font-black text-blue-300 uppercase block mb-1 tracking-widest italic">Probabilidade de Fechamento:</span>
+                            <p id="chance-text" class="text-base font-bold text-white"></p>
                         </div>
                     </div>
                 </div>
 
+                <!-- Grid de Notas com Porquês -->
+                <div id="notas-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4"></div>
+
+                <!-- Radar e Talk Time -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="glass-card p-6 flex flex-col items-center">
-                        <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-4 tracking-widest">Equilíbrio de Competências</h4>
-                        <div class="w-full h-[280px] flex items-center justify-center">
-                            <canvas id="radarChart"></canvas>
+                    <div class="glass-card p-8 min-h-[350px] flex items-center justify-center">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                    <div class="glass-card p-8">
+                        <h4 class="text-[10px] font-black uppercase text-slate-400 mb-10 tracking-widest">Tempo de Fala (Equilíbrio)</h4>
+                        <div id="talk-time-container" class="space-y-10"></div>
+                    </div>
+                    <div id="alerta-card" class="bg-red-50 p-8 rounded-[2rem] border border-red-100 flex flex-col justify-center">
+                        <div class="flex items-center gap-2 mb-4">
+                            <i data-lucide="alert-octagon" class="text-red-600 w-5 h-5"></i>
+                            <h4 class="text-[10px] font-black uppercase text-red-600 tracking-widest italic">Alerta de Risco</h4>
                         </div>
+                        <p id="alerta-text" class="text-xs font-bold text-red-900 leading-relaxed"></p>
+                    </div>
+                </div>
+
+                <!-- Checklist e Listas de Feedback -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="glass-card p-10">
+                        <h3 class="font-bold text-slate-800 text-lg mb-8 flex items-center gap-3">
+                            <i data-lucide="clipboard-check" class="text-blue-600"></i>
+                            Checklist do Manual Nibo
+                        </h3>
+                        <div id="checklist-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                     </div>
 
-                    <div class="lg:col-span-2 glass-card p-8">
-                        <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
-                            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                                <i data-lucide="file-text" class="text-blue-600 w-4 h-4"></i>
-                                Relatório Detalhado de Auditoria
-                            </h3>
-                            <span class="text-[9px] bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold uppercase tracking-widest">Nibo Expert AI</span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-emerald-50/60 p-8 rounded-[2rem] border border-emerald-100 shadow-sm">
+                            <h4 class="text-[10px] font-black text-emerald-700 mb-6 uppercase tracking-widest">Pontos Fortes</h4>
+                            <ul id="lista-fortes" class="space-y-3 text-[11px] font-bold text-emerald-900"></ul>
                         </div>
-                        <div id="markdown-body" class="markdown-content"></div>
+                        <div class="bg-amber-50/60 p-8 rounded-[2rem] border border-amber-100 shadow-sm">
+                            <h4 class="text-[10px] font-black text-amber-700 mb-6 uppercase tracking-widest">Melhoria Imediata</h4>
+                            <ul id="lista-atencao" class="space-y-3 text-[11px] font-bold text-amber-900"></ul>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Auditoria Estrutural Markdown -->
+                <div class="glass-card p-12 md:p-16 shadow-2xl border-t-[10px] border-[#002d72]">
+                    <h3 class="text-xl font-extrabold text-[#002d72] uppercase tracking-widest mb-10 border-b pb-6 flex items-center gap-4">
+                        <i data-lucide="scroll-text"></i>
+                        Relatório de Auditoria Estrutural
+                    </h3>
+                    <div id="markdown-body" class="markdown-content"></div>
                 </div>
             </div>
         </div>
@@ -114,113 +157,129 @@
         const analysisContent = document.getElementById('analysis-content');
         let radarChartInstance = null;
 
-        analyzeBtn.addEventListener('click', async () => {
+        async function handleAnalysis() {
             const prompt = transcriptInput.value.trim();
-            if(!prompt) return alert("Por favor, cole a transcrição da reunião.");
-            
+            if(!prompt) return;
             resultsSection.classList.remove('hidden');
             loadingSpinner.classList.remove('hidden');
             analysisContent.classList.add('hidden');
+            analyzeBtn.disabled = true;
 
             try {
-                // Rota configurada no seu Backend
-                const response = await fetch('/api/analyze', { 
+                const response = await fetch('/api/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ prompt })
                 });
                 const data = await response.json();
+                if(data.error) throw new Error(data.error);
                 renderDashboard(data);
             } catch (err) {
-                alert("Ocorreu um erro na análise. Verifique sua chave API e conexão.");
+                alert("Erro: " + err.message);
                 resultsSection.classList.add('hidden');
+            } finally {
+                analyzeBtn.disabled = false;
             }
-        });
+        }
 
         function renderDashboard(data) {
             loadingSpinner.classList.add('hidden');
             analysisContent.classList.remove('hidden');
 
-            // Lógica de Notas (Média das principais áreas)
-            const nSub = data.substituicao_acessorias.nota_tecnica || 0;
-            const nNeg = data.negociacao_fechamento.nota_final || 0;
-            const media = (nSub + nNeg) / 2;
-            
+            // 1. Headline & Score
+            const media = data.media_final || 0;
             document.getElementById('media-final').textContent = media.toFixed(1);
-            document.getElementById('resumo-text').textContent = data.resumo_executivo.pontos_fortes;
-            document.getElementById('chance-text').textContent = data.resumo_executivo.sugestao_pratica;
-            
-            // Perfil do Cliente
-            const perfil = data.perfil_comportamental_cliente;
-            document.getElementById('cliente-tipo').textContent = perfil.tipo_identificado;
-            document.getElementById('perfil-info').textContent = perfil.leitura_do_consultor;
+            document.getElementById('resumo-text').textContent = data.resumo_executivo;
+            document.getElementById('chance-text').textContent = data.chance_fechamento || "Análise insuficiente";
+            document.getElementById('alerta-text').textContent = data.alerta_cancelamento;
 
-            // Status Tag
-            const tag = document.getElementById('status-tag');
-            if(media >= 4.5) { tag.textContent = "Elite"; tag.className = "mt-3 px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter bg-emerald-100 text-emerald-700"; }
-            else if(media >= 3.5) { tag.textContent = "Bom"; tag.className = "mt-3 px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter bg-blue-100 text-blue-700"; }
-            else { tag.textContent = "Atenção"; tag.className = "mt-3 px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter bg-amber-100 text-amber-700"; }
+            // 2. Concorrentes Tags
+            const tagContainer = document.getElementById('concorrentes-tags');
+            tagContainer.innerHTML = (data.concorrentes_detectados || []).map(c => `
+                <span class="px-3 py-1 bg-red-600 text-white text-[10px] font-black rounded-lg shadow-lg uppercase tracking-widest flex items-center gap-1.5 tag-concorrente">
+                    <i data-lucide="alert-circle" class="w-3 h-3"></i> ${c}
+                </span>
+            `).join('');
 
-            // Markdown Report
-            const mdText = `
-# 🏢 Substituição Acessórias
-**Diagnóstico:** ${data.substituicao_acessorias.diagnostico_estrategico}
-**Ataque às Vulnerabilidades:** ${data.substituicao_acessorias.ataque_vulnerabilidades}
+            const status = document.getElementById('status-tag');
+            if(media >= 9) { status.textContent = "Elite Sales"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg"; }
+            else if(media >= 7) { status.textContent = "Alta Performance"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700"; }
+            else { status.textContent = "Acompanhamento"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; }
 
-# 🤝 Pré-Fechamento & Feedback
-**Validação de Dores:** ${data.pre_fechamento.validacao_das_dores}
-**Recepção do Feedback:** ${data.pre_fechamento.coleta_de_feedback}
+            // 3. Grid de Notas
+            const fields = [
+                { l: 'Postura', k: 'postura' },
+                { l: 'Produto', k: 'conhecimento' },
+                { l: 'Escuta', k: 'escuta' },
+                { l: 'Expansão', k: 'expansao' },
+                { l: 'Fechamento', k: 'fechamento' }
+            ];
+            document.getElementById('notas-grid').innerHTML = fields.map(f => {
+                const n = data[`nota_${f.k}`];
+                const p = data[`porque_${f.k}`];
+                const c = n >= 8 ? 'text-emerald-500' : n >= 5 ? 'text-blue-600' : 'text-red-500';
+                return `
+                    <div class="glass-card p-6 flex flex-col items-center text-center">
+                        <span class="text-[9px] font-black text-slate-400 uppercase mb-3 tracking-widest">${f.l}</span>
+                        <div class="text-3xl font-black ${c} mb-3 leading-none">${n}</div>
+                        <p class="text-[9px] text-slate-500 italic leading-tight font-medium">${p}</p>
+                    </div>
+                `;
+            }).join('');
 
-# 💰 Negociação & Manejo
-**Tratamento de Objeções:** ${data.negociacao_fechamento.manejo_de_objecoes}
-**Gatilhos Aplicados:** ${data.negociacao_fechamento.uso_de_gatilhos}
-
-# 👤 Comportamento do Cliente
-**Adaptação do Consultor:** ${perfil.adaptacao_do_discurso}
-**Oportunidade Futura:** ${perfil.ajuste_futuro}
+            // 4. Talk Time
+            document.getElementById('talk-time-container').innerHTML = `
+                <div>
+                    <div class="flex justify-between text-[11px] font-bold mb-2"><span>Consultor</span><span class="text-blue-600">${data.tempo_fala_consultor}</span></div>
+                    <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600 transition-all duration-1000 shadow-[0_0_10px_rgba(37,99,235,0.4)]" style="width: ${data.tempo_fala_consultor}"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-[11px] font-bold mb-2"><span>Cliente</span><span class="text-emerald-500">${data.tempo_fala_cliente}</span></div>
+                    <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500 transition-all duration-1000 shadow-[0_0_10px_rgba(16,185,129,0.4)]" style="width: ${data.tempo_fala_cliente}"></div></div>
+                </div>
             `;
-            document.getElementById('markdown-body').innerHTML = marked.parse(mdText);
 
+            // 5. Checklist
+            const ck = data.checklist_fechamento || {};
+            const ckLabels = { resolveu_pontos_iniciais: "Retomou problemas", pediu_feedback_ferramenta: "Pediu Feedback", pediu_voto_confianca: "Voto de Confiança", tratou_objecao_socio: "Alinhou Sócios", validou_mensalidade_vs_setup: "Isolou Objecção", mencionou_gestao_financeira_gratuita: "Cereja do Bolo" };
+            document.getElementById('checklist-container').innerHTML = Object.entries(ckLabels).map(([key, label]) => `
+                <div class="flex items-center justify-between p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100 transition-all hover:bg-white group">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tight group-hover:text-slate-800 transition-colors">${label}</span>
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center ${ck[key] ? 'bg-emerald-500' : 'bg-slate-200'} shadow-sm">
+                        <i data-lucide="${ck[key] ? 'check' : 'minus'}" class="text-white w-4 h-4"></i>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('lista-fortes').innerHTML = (data.pontos_fortes || []).map(i => `<li class="flex items-start gap-2"><span>▶</span> ${i}</li>`).join('');
+            document.getElementById('lista-atencao').innerHTML = (data.pontos_atencao || []).map(i => `<li class="flex items-start gap-2"><span>▶</span> ${i}</li>`).join('');
+            document.getElementById('markdown-body').innerHTML = marked.parse(data.justificativa_detalhada);
+            
             renderRadar(data);
             lucide.createIcons();
         }
 
         function renderRadar(data) {
             const ctx = document.getElementById('radarChart').getContext('2d');
-            if (radarChartInstance) radarChartInstance.destroy();
-            
+            if(radarChartInstance) radarChartInstance.destroy();
             radarChartInstance = new Chart(ctx, {
                 type: 'radar',
                 data: {
-                    labels: ['Substituição', 'Pré-Fechamento', 'Negociação', 'Domínio Produto', 'Escuta Ativa'],
+                    labels: ['Postura', 'Produto', 'Escuta', 'Expansão', 'Fechamento'],
                     datasets: [{
-                        label: 'Performance Técnica',
-                        data: [
-                            data.substituicao_acessorias.nota_tecnica || 0,
-                            data.pre_fechamento.execucao_voto_confianca ? 5 : 2,
-                            data.negociacao_fechamento.nota_final || 0,
-                            4, // Placeholder para domínio de produto vindo da análise qualitativa
-                            4.5 // Placeholder para escuta
-                        ],
-                        backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                        label: 'Desempenho',
+                        data: [data.nota_postura, data.nota_conhecimento, data.nota_escuta, data.nota_expansao, data.nota_fechamento],
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
                         borderColor: '#2563eb',
                         borderWidth: 2,
-                        pointBackgroundColor: '#2563eb'
+                        pointRadius: 5,
+                        pointBackgroundColor: '#1e3a8a'
                     }]
                 },
-                options: {
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        r: {
-                            min: 0,
-                            max: 5,
-                            ticks: { display: false },
-                            grid: { color: '#e2e8f0' }
-                        }
-                    }
-                }
+                options: { scales: { r: { min: 0, max: 10, ticks: { display: false }, grid: { color: '#f1f5f9' }, angleLines: { color: '#f1f5f9' }, pointLabels: { font: { size: 9, weight: '700' }, color: '#64748b' } } }, plugins: { legend: { display: false } }, maintainAspectRatio: false }
             });
         }
+        analyzeBtn.addEventListener('click', handleAnalysis);
     </script>
 </body>
 </html>
