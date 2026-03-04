@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default async function handler(req, res) {
+    // 1. Configuração de CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -8,128 +9,79 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).send('Método não permitido');
 
+    // 2. Inicialização do Gemini
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    // Usando 1.5-flash para garantir velocidade dentro do limite de tempo da Vercel
+    
+    // Usamos o gemini-1.5-flash por ser mais rápido e estável para o limite de tempo da Vercel
     const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.5-flash",
-        generationConfig: { responseMimeType: "application/json" }
+        model: "gemini-1.5-flash",
+        generationConfig: { 
+            responseMimeType: "application/json"
+        }
     });
 
     const { prompt: userPrompt } = req.body;
+    if (!userPrompt) return res.status(400).json({ error: "Transcrição vazia." });
 
-    const systemInstruction = `Você é um avaliador comercial Nibo. 
-    Analise a transcrição e retorne um JSON seguindo estritamente o schema:
-    {
-      "substituicao_acessorias": {"diagnostico_estrategico": "string", "ataque_vulnerabilidades": "string", "nota_tecnica": 0},
-      "pre_fechamento": {"validacao_das_dores": "string", "coleta_de_feedback": "string", "execucao_voto_confianca": true},
-      "negociacao_fechamento": {"postura_em_vendas": "string", "manejo_de_objecoes": "string", "uso_de_gatilhos": "string", "nota_final": 0},
-      "perfil_comportamental_cliente": {"tipo_identificado": "string", "leitura_do_consultor": "string", "adaptacao_do_discurso": "string", "ajuste_futuro": "string"},
-      "resumo_executivo": {"pontos_fortes": "string", "oportunidades_perdidas": "string", "sugestao_pratica": "string"}
-    }`;
-
-    try {
-        const result = await model.generateContent([systemInstruction, userPrompt]);
-        const response = await result.response;
-        const data = JSON.parse(response.text());
-        return res.status(200).json(data);
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: "Erro na análise: " + error.message });
-    }
-}
-
-    // ==========================================
-    // 1. SYSTEM INSTRUCTION: O CÉREBRO DA IA
-    // ==========================================
+    // 3. Definição das Instruções do Sistema (Consolidado)
     const systemInstruction = `
 Você é um auditor especialista em Inside Sales B2B para o ecossistema contábil (Nibo). 
-Sua função é analisar transcrições de reuniões de vendas e preencher um relatório técnico rigoroso.
+Sua missão é analisar se o consultor executou a estratégia de "Tomada de Conta" contra o concorrente Acessórias.
 
-DIRETRIZES DE PRODUTO (Nibo):
-- Use a base de conhecimento (ajuda.nibo.com.br) para validar o item "Domínio de Produto". 
-- O foco é a estratégia de substituição do concorrente 'Acessórias'. 
-- Diferenciais Nibo: Sem robô local (nuvem), cobrança automatizada integrada, App com e-CAC e dashboards.
+DIRETRIZES TÉCNICAS (Nibo):
+- Diferenciais: Nuvem total (sem robô local/E-Contínuo), cobrança automatizada integrada, App com e-CAC.
+- Portfólio: Identificar fit para Gestão Financeira (GF), COF, WhatsApp e Emissor.
 
-PERFIS COMPORTAMENTAIS (CLIENTE):
-- Analítico: Foco em dados, segurança, processos.
-- Pragmático: Foco em ROI, velocidade, objetividade.
-- Afável: Foco em relacionamento, confiança, harmonia.
-- Expressivo: Foco em visão de futuro, entusiasmo, status.
+PERFIS DO CLIENTE:
+- Analítico (dados/segurança), Pragmático (ROI/direto), Afável (relacional), Expressivo (propósito/futuro).
 
-Sua análise deve ser fria, técnica e baseada em evidências da transcrição.
-`;
+Retorne OBRIGATORIAMENTE um JSON neste formato:
+{
+  "perfil_comportamental_cliente": {
+    "tipo_identificado": "Analítico | Pragmático | Afável | Expressivo",
+    "leitura_do_consultor": "string",
+    "adaptacao_do_discurso": "string",
+    "ajuste_futuro": "string"
+  },
+  "substituicao_acessorias": {
+    "diagnostico_estrategico": "string",
+    "ataque_vulnerabilidades": "string",
+    "nota_tecnica": 0
+  },
+  "negociacao_fechamento": {
+    "manejo_de_objecoes": "string",
+    "uso_de_gatilhos": "string",
+    "nota_final": 0
+  },
+  "pre_fechamento": {
+    "validacao_das_dores": "string",
+    "coleta_de_feedback": "string",
+    "execucao_voto_confianca": true
+  },
+  "resumo_executivo": {
+    "pontos_fortes": "string",
+    "oportunidades_perdidas": "string",
+    "sugestao_pratica": "string"
+  }
+}`;
 
-    // ==========================================
-    // 2. RESPONSE SCHEMA: A ESTRUTURA DECISIVA
-    // ==========================================
-    const responseSchema = {
-        type: "OBJECT",
-        properties: {
-            perfil_comportamental_cliente: {
-                type: "OBJECT",
-                properties: {
-                    tipo_identificado: { type: "STRING", enum: ["Analítico", "Pragmático", "Afável", "Expressivo"] },
-                    leitura_do_consultor: { type: "STRING" }, // O consultor leu os sinais corretamente?
-                    adaptacao_do_discurso: { type: "STRING" }, // Ajustou ritmo e profundidade?
-                    ajuste_futuro: { type: "STRING" } // Como personalizar melhor para esse perfil?
-                },
-                required: ["tipo_identificado", "leitura_do_consultor", "adaptacao_do_discurso"]
-            },
-            avaliacao_detalhada: {
-                type: "OBJECT",
-                properties: {
-                    rapport_conexao: { type: "STRING" },
-                    autoridade_comercial: { type: "STRING" },
-                    clareza_apresentacao: { type: "STRING" },
-                    gatilhos_mentais: { type: "STRING" },
-                    pre_fechamento: { type: "STRING" },
-                    tecnicas_fechamento: { type: "STRING" },
-                    contorno_objecoes: { type: "STRING" },
-                    escuta_ativa: { type: "STRING" },
-                    perguntas_poderosas: { type: "STRING" },
-                    personalizacao_pitch: { type: "STRING" },
-                    conexao_negocio: { type: "STRING" },
-                    jornada_cliente: { type: "STRING" },
-                    gestao_tempo: { type: "STRING" },
-                    encantamento_comercial: { type: "STRING" },
-                    postura_profissional: { type: "STRING" },
-                    dominio_produto_nibo: { type: "STRING" }, // Validar via ajuda.nibo.com.br
-                    portfolio_estrategico: { type: "STRING" } // Cross-sell: GF, COF, Emissor
-                }
-            },
-            estrategia_tomada_de_conta: {
-                type: "OBJECT",
-                properties: {
-                    ataque_acessorias: { type: "STRING" }, // Comparação E-contínuo vs Nibo Assistente
-                    vulnerabilidade_cobranca: { type: "STRING" },
-                    nota_tecnica_substituicao: { type: "NUMBER" }
-                }
-            },
-            resumo_executivo: {
-                type: "OBJECT",
-                properties: {
-                    pontos_fortes: { type: "STRING" },
-                    oportunidades_melhoria: { type: "STRING" },
-                    sugestao_pratica_proxima_call: { type: "STRING" }
-                }
-            }
-        },
-        required: ["perfil_comportamental_cliente", "avaliacao_detalhada", "estrategia_tomada_de_conta", "resumo_executivo"]
-    };
+    // 4. Execução da análise
+    try {
+        const fullPrompt = `Analise esta transcrição de reunião:\n${userPrompt}`;
+        
+        const result = await model.generateContent([systemInstruction, fullPrompt]);
+        const response = await result.response;
+        const text = response.text();
+        
+        // Tenta parsear o JSON retornado
+        const data = JSON.parse(text);
+        return res.status(200).json(data);
 
-    const fullPrompt = `
-ANALISE A SEGUINTE TRANSCRIÇÃO:
-${userPrompt}
-
-Considere os 17 critérios de avaliação comercial e identifique o perfil comportamental do cliente para preencher o JSON conforme o schema.
-Foque especialmente na transição técnica de Acessórias para Nibo e na capacidade do vendedor de realizar o cross-sell (Portfólio Estratégico).
-`;
-
-    // Chamada para a API Gemini (Utilizando o modelo 2.0 ou 1.5 conforme disponibilidade)
-    // ... restante do código de fetch e retorno ...
-}
-} catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: "Erro na análise: " + error.message });
+    } catch (error) {
+        console.error("Erro na API Gemini:", error);
+        return res.status(500).json({ 
+            error: "Falha na análise técnica.", 
+            details: error.message 
+        });
     }
-} // <--- Esta deve ser a última chave do arquivo
+}
