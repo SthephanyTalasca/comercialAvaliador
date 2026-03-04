@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -54,9 +54,9 @@
                 </div>
                 <textarea id="transcript-input" rows="5" class="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] focus:ring-4 ring-blue-500/5 focus:outline-none transition-all text-sm mb-6" placeholder="Cole aqui o diálogo completo da reunião..."></textarea>
                 <div class="flex justify-end">
-                    <button id="analyze-btn" class="group flex items-center gap-3 bg-blue-600 hover:bg-[#002d72] text-white px-10 py-4 rounded-2xl font-bold text-sm shadow-xl transition-all active:scale-95">
-                        <span>Gerar Infográfico de Performance</span>
-                        <i data-lucide="zap" class="w-4 h-4"></i>
+                    <button id="analyze-btn" class="group flex items-center gap-3 bg-blue-600 hover:bg-[#002d72] text-white px-10 py-4 rounded-2xl font-bold text-sm shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span id="btn-text">Gerar Infográfico de Performance</span>
+                        <i data-lucide="zap" id="btn-icon" class="w-4 h-4"></i>
                     </button>
                 </div>
             </div>
@@ -147,15 +147,20 @@
     const resultsSection = document.getElementById('results-section');
     const loadingSpinner = document.getElementById('loading-spinner');
     const analysisContent = document.getElementById('analysis-content');
+    const btnText = document.getElementById('btn-text');
     let radarChartInstance = null;
 
     async function handleAnalysis() {
         const prompt = transcriptInput.value.trim();
         if(!prompt) return;
+        
         resultsSection.classList.remove('hidden');
         loadingSpinner.classList.remove('hidden');
         analysisContent.classList.add('hidden');
+        
+        // Estado de Loading no botão
         analyzeBtn.disabled = true;
+        btnText.textContent = "Analisando...";
 
         try {
             const response = await fetch('/api/analyze', {
@@ -167,10 +172,11 @@
             if(data.error) throw new Error(data.error);
             renderDashboard(data);
         } catch (err) {
-            alert("Erro: " + err.message);
+            alert("Erro na análise: " + err.message);
             resultsSection.classList.add('hidden');
         } finally {
             analyzeBtn.disabled = false;
+            btnText.textContent = "Gerar Infográfico de Performance";
         }
     }
 
@@ -181,11 +187,11 @@
         // 1. Headline & Score
         const media = data.media_final || 0;
         document.getElementById('media-final').textContent = media.toFixed(1);
-        document.getElementById('resumo-text').textContent = data.resumo_executivo;
+        document.getElementById('resumo-text').textContent = data.resumo_executivo || "Nenhum resumo fornecido.";
         document.getElementById('chance-text').textContent = data.chance_fechamento || "Análise insuficiente";
-        document.getElementById('alerta-text').textContent = data.alerta_cancelamento;
+        document.getElementById('alerta-text').textContent = data.alerta_cancelamento || "Sem alertas críticos identificados.";
 
-        // 2. Concorrentes Tags
+        // 2. Concorrentes Tags (com proteção contra undefined)
         const tagContainer = document.getElementById('concorrentes-tags');
         tagContainer.innerHTML = (data.concorrentes_detectados || []).map(c => `
             <span class="px-3 py-1 bg-red-600 text-white text-[10px] font-black rounded-lg shadow-lg uppercase tracking-widest flex items-center gap-1.5 tag-concorrente">
@@ -194,11 +200,18 @@
         `).join('');
 
         const status = document.getElementById('status-tag');
-        if(media >= 9) { status.textContent = "Elite Sales"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg"; }
-        else if(media >= 7) { status.textContent = "Alta Performance"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700"; }
-        else { status.textContent = "Acompanhamento"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; }
+        if(media >= 9) { 
+            status.textContent = "Elite Sales"; 
+            status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg"; 
+        } else if(media >= 7) { 
+            status.textContent = "Alta Performance"; 
+            status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700"; 
+        } else { 
+            status.textContent = "Acompanhamento"; 
+            status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; 
+        }
 
-        // 3. Grid de Notas (6 Colunas)
+        // 3. Grid de Notas
         const fields = [
             { l: 'Postura', k: 'postura' },
             { l: 'Produto', k: 'conhecimento' },
@@ -209,8 +222,6 @@
         ];
 
         const gridElement = document.getElementById('notas-grid');
-        gridElement.className = "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4"; 
-        
         gridElement.innerHTML = fields.map(f => {
             const n = data[`nota_${f.k}`] || 0;
             const p = data[`porque_${f.k}`] || "";
@@ -224,26 +235,29 @@
             `;
         }).join('');
 
-        // 4. Talk Time (Corrigido os Template Literals)
+        // 4. Talk Time (Corrigido o width para aceitar números puros com parseFloat)
+        const tempoConsultorNum = parseFloat(data.tempo_fala_consultor || 0);
+        const tempoClienteNum = parseFloat(data.tempo_fala_cliente || 0);
+        
         document.getElementById('talk-time-container').innerHTML = `
             <div>
-                <div class="flex justify-between text-[11px] font-bold mb-2"><span>Consultor</span><span class="text-blue-600">${data.tempo_fala_consultor}</span></div>
-                <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600 transition-all duration-1000 shadow-[0_0_10px_rgba(37,99,235,0.4)]" style="width: ${data.tempo_fala_consultor}"></div></div>
+                <div class="flex justify-between text-[11px] font-bold mb-2"><span>Consultor</span><span class="text-blue-600">${data.tempo_fala_consultor || '0%'}</span></div>
+                <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600 transition-all duration-1000 shadow-[0_0_10px_rgba(37,99,235,0.4)]" style="width: ${tempoConsultorNum}%"></div></div>
             </div>
             <div>
-                <div class="flex justify-between text-[11px] font-bold mb-2"><span>Cliente</span><span class="text-emerald-500">${data.tempo_fala_cliente}</span></div>
-                <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500 transition-all duration-1000 shadow-[0_0_10px_rgba(16,185,129,0.4)]" style="width: ${data.tempo_fala_cliente}"></div></div>
+                <div class="flex justify-between text-[11px] font-bold mb-2"><span>Cliente</span><span class="text-emerald-500">${data.tempo_fala_cliente || '0%'}</span></div>
+                <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500 transition-all duration-1000 shadow-[0_0_10px_rgba(16,185,129,0.4)]" style="width: ${tempoClienteNum}%"></div></div>
             </div>
         `;
 
-        // 5. Checklist (Corrigido objeto inteiro)
+        // 5. Checklist
         const ck = data.checklist_fechamento || {};
         const ckLabels = {
             resolveu_pontos_iniciais: "Retomou problemas",
             pediu_feedback_ferramenta: "Pediu Feedback",
             pediu_voto_confianca: "Voto de Confiança",
             tratou_objecao_socio: "Alinhou Sócios",
-            validou_mensalidade_vs_setup: "Isolou Objecção",
+            validou_mensalidade_vs_setup: "Isolou Objeção",
             mencionou_gestao_financeira_gratuita: "Cereja do Bolo"
         };
         
@@ -256,11 +270,14 @@
             </div>
         `).join('');
 
+        // Preenchimento de listas com proteção contra arrays vazios
         document.getElementById('lista-fortes').innerHTML = (data.pontos_fortes || []).map(i => `<li class="flex items-start gap-2"><span>▶</span> ${i}</li>`).join('');
         document.getElementById('lista-atencao').innerHTML = (data.pontos_atencao || []).map(i => `<li class="flex items-start gap-2"><span>▶</span> ${i}</li>`).join('');
         document.getElementById('markdown-body').innerHTML = marked.parse(data.justificativa_detalhada || "");
         
         renderRadar(data);
+        
+        // Re-renderiza os ícones gerados dinamicamente no innerHTML
         lucide.createIcons();
     }
 
