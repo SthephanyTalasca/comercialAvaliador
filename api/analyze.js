@@ -1,7 +1,6 @@
 import { GoogleGenAI, Type } from '@google/genai';
 
 export default async function handler(req, res) {
-    // Só permite requisições POST
     if (req.method !== 'POST') {
         return res.status(405).json({ error: "Método não permitido. Use POST." });
     }
@@ -13,12 +12,8 @@ export default async function handler(req, res) {
     }
 
     try {
-        // A Vercel vai injetar sua chave de API automaticamente pelas variáveis de ambiente
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-        const systemInstruction = `Você é um auditor de vendas sênior especialista no Manual Nibo. 
-        Analise a transcrição de vendas fornecida e retorne uma avaliação rigorosa, extraindo as notas, feedbacks, tempo de fala e preenchendo o checklist. 
-        Seja analítico, direto e identifique riscos reais.`;
+        const systemInstruction = `Você é um auditor de vendas sênior especialista no Manual Nibo. Analise a transcrição de vendas fornecida e retorne uma avaliação rigorosa, extraindo as notas, feedbacks, tempo de fala e preenchendo o checklist. Seja analítico, direto e identifique riscos reais.`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -72,7 +67,7 @@ export default async function handler(req, res) {
         return res.status(200).json(analysisData);
 
     } catch (error) {
-        console.error("Erro na API da Vercel:", error);
+        console.error("Erro na API:", error);
         return res.status(500).json({ error: "Falha ao analisar a transcrição." });
     }
 }
