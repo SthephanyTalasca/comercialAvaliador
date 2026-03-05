@@ -12,7 +12,7 @@
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; color: #0f172a; }
         .glass-card { background: white; border: 1px solid #e2e8f0; border-radius: 2.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); transition: all 0.3s ease; }
-        .glass-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .glass-card:hover { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .markdown-content h1, .markdown-content h2 { font-weight: 800; color: #1e3a8a; margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1rem; text-transform: uppercase; border-bottom: 2px solid #2563eb; padding-bottom: 0.5rem; }
@@ -44,7 +44,7 @@
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto px-4 mt-8">
+    <main class="max-w-7xl mx-auto px-4 mt-8">
         
         <section class="mb-10">
             <div class="glass-card p-8 md:p-10">
@@ -73,7 +73,7 @@
                 
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     <div class="lg:col-span-1 glass-card p-10 flex flex-col items-center justify-center text-center border-b-[10px] border-blue-600">
-                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Média Global</span>
+                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Média Global (Máx 5)</span>
                         <div id="media-final" class="text-7xl font-black text-[#002d72] mb-3">0.0</div>
                         <div id="status-tag" class="px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">---</div>
                     </div>
@@ -82,50 +82,50 @@
                         <div id="concorrentes-tags" class="flex flex-wrap gap-2 mb-4"></div>
                         <h3 class="font-bold text-blue-200 text-[10px] uppercase tracking-widest mb-4">Diagnóstico Geral</h3>
                         <p id="resumo-text" class="text-xl md:text-2xl font-bold leading-tight mb-8"></p>
-                        <div class="p-4 bg-white/10 rounded-2xl border border-white/20">
-                            <span class="text-[9px] font-black text-blue-300 uppercase block mb-1 tracking-widest italic">Probabilidade de Fechamento:</span>
-                            <p id="chance-text" class="text-base font-bold text-white"></p>
+                        <div class="flex gap-4">
+                            <div class="p-4 bg-white/10 rounded-2xl border border-white/20 flex-1">
+                                <span class="text-[9px] font-black text-blue-300 uppercase block mb-1 tracking-widest italic">Probabilidade de Fechamento:</span>
+                                <p id="chance-text" class="text-base font-bold text-white"></p>
+                            </div>
+                            <div class="p-4 bg-red-500/20 rounded-2xl border border-red-400/30 flex-1">
+                                <span class="text-[9px] font-black text-red-300 uppercase block mb-1 tracking-widest italic">Alerta de Risco:</span>
+                                <p id="alerta-text" class="text-base font-bold text-white"></p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div id="notas-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="glass-card p-8 min-h-[350px] flex items-center justify-center">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass-card p-8 min-h-[400px] flex items-center justify-center">
                         <canvas id="radarChart"></canvas>
                     </div>
-                    <div class="glass-card p-8">
-                        <h4 class="text-[10px] font-black uppercase text-slate-400 mb-10 tracking-widest">Tempo de Fala (Equilíbrio)</h4>
-                        <div id="talk-time-container" class="space-y-10"></div>
-                    </div>
-                    <div id="alerta-card" class="bg-red-50 p-8 rounded-[2rem] border border-red-100 flex flex-col justify-center">
-                        <div class="flex items-center gap-2 mb-4">
-                            <i data-lucide="alert-octagon" class="text-red-600 w-5 h-5"></i>
-                            <h4 class="text-[10px] font-black uppercase text-red-600 tracking-widest italic">Alerta de Risco</h4>
+                    
+                    <div class="space-y-6">
+                        <div class="glass-card p-8">
+                            <h4 class="text-[10px] font-black uppercase text-slate-400 mb-8 tracking-widest">Tempo de Fala (Equilíbrio)</h4>
+                            <div id="talk-time-container" class="space-y-8"></div>
                         </div>
-                        <p id="alerta-text" class="text-xs font-bold text-red-900 leading-relaxed"></p>
+                        
+                        <div class="glass-card p-8 h-full">
+                            <h3 class="font-bold text-slate-800 text-[14px] mb-6 flex items-center gap-3">
+                                <i data-lucide="clipboard-check" class="text-blue-600 w-5 h-5"></i>
+                                Checklist do Manual Nibo
+                            </h3>
+                            <div id="checklist-container" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="glass-card p-10">
-                        <h3 class="font-bold text-slate-800 text-lg mb-8 flex items-center gap-3">
-                            <i data-lucide="clipboard-check" class="text-blue-600"></i>
-                            Checklist do Manual Nibo
-                        </h3>
-                        <div id="checklist-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-emerald-50/60 p-8 rounded-[2rem] border border-emerald-100 shadow-sm">
+                        <h4 class="text-[10px] font-black text-emerald-700 mb-6 uppercase tracking-widest flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4"></i> Pontos Fortes</h4>
+                        <ul id="lista-fortes" class="space-y-3 text-[12px] font-bold text-emerald-900"></ul>
                     </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-emerald-50/60 p-8 rounded-[2rem] border border-emerald-100 shadow-sm">
-                            <h4 class="text-[10px] font-black text-emerald-700 mb-6 uppercase tracking-widest">Pontos Fortes</h4>
-                            <ul id="lista-fortes" class="space-y-3 text-[11px] font-bold text-emerald-900"></ul>
-                        </div>
-                        <div class="bg-amber-50/60 p-8 rounded-[2rem] border border-amber-100 shadow-sm">
-                            <h4 class="text-[10px] font-black text-amber-700 mb-6 uppercase tracking-widest">Melhoria Imediata</h4>
-                            <ul id="lista-atencao" class="space-y-3 text-[11px] font-bold text-amber-900"></ul>
-                        </div>
+                    <div class="bg-amber-50/60 p-8 rounded-[2rem] border border-amber-100 shadow-sm">
+                        <h4 class="text-[10px] font-black text-amber-700 mb-6 uppercase tracking-widest flex items-center gap-2"><i data-lucide="target" class="w-4 h-4"></i> Melhoria Imediata</h4>
+                        <ul id="lista-atencao" class="space-y-3 text-[12px] font-bold text-amber-900"></ul>
                     </div>
                 </div>
 
@@ -140,6 +140,35 @@
         </div>
     </main>
 
+    <div id="justification-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/40 backdrop-blur-sm transition-opacity opacity-0">
+        <div class="bg-white rounded-[2rem] p-8 max-w-sm w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 flex flex-col" id="modal-content-box">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <span id="modal-title" class="text-[11px] font-black uppercase text-slate-400 tracking-widest mb-2 block">Pilar</span>
+                    <div id="modal-score" class="text-5xl font-black leading-none">0</div>
+                </div>
+                <button onclick="closeModal()" class="bg-slate-100 hover:bg-slate-200 p-2.5 rounded-full text-slate-500 transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            
+            <div class="w-full h-px bg-slate-100 mb-6"></div>
+            
+            <div class="mb-5">
+                <span class="text-[9px] font-bold uppercase text-slate-400 tracking-widest block mb-2">Justificativa da Nota</span>
+                <p id="modal-text" class="text-[13px] text-slate-600 font-medium leading-relaxed">Texto completo aqui.</p>
+            </div>
+
+            <div id="modal-improvement-container" class="bg-amber-50 rounded-2xl p-4 border border-amber-100 mt-2">
+                <div class="flex items-center gap-2 mb-2">
+                    <i data-lucide="target" class="w-4 h-4 text-amber-600"></i>
+                    <span class="text-[9px] font-bold uppercase text-amber-700 tracking-widest block">O que faltou para o 5?</span>
+                </div>
+                <p id="modal-improvement-text" class="text-[12px] text-amber-900 leading-relaxed font-medium">Melhoria aqui.</p>
+            </div>
+        </div>
+    </div>
+
     <script>
     lucide.createIcons();
     const analyzeBtn = document.getElementById('analyze-btn');
@@ -150,7 +179,7 @@
     const btnText = document.getElementById('btn-text');
     let radarChartInstance = null;
 
-    // Definição dos 12 pilares para o grid e o gráfico
+    // Os 12 Pilares de Vendas
     const fields = [
         { l: 'Postura', k: 'postura' },
         { l: 'Clareza', k: 'clareza_apresentacao' },
@@ -175,7 +204,7 @@
         analysisContent.classList.add('hidden');
         
         analyzeBtn.disabled = true;
-        btnText.textContent = "Analisando...";
+        btnText.textContent = "Analisando Venda...";
 
         try {
             const response = await fetch('/api/analyze', {
@@ -190,7 +219,7 @@
                 data = JSON.parse(textResponse);
             } catch (e) {
                 console.error("Erro no JSON:", textResponse);
-                throw new Error("Erro de comunicação com a inteligência artificial.");
+                throw new Error("Erro de comunicação com o servidor.");
             }
 
             if(data.error) throw new Error(data.error);
@@ -212,21 +241,21 @@
         const media = data.media_final || 0;
         document.getElementById('media-final').textContent = media.toFixed(1);
         document.getElementById('resumo-text').textContent = data.resumo_executivo || "Nenhum resumo fornecido.";
-        document.getElementById('chance-text').textContent = data.chance_fechamento || "Análise insuficiente";
-        document.getElementById('alerta-text').textContent = data.alerta_cancelamento || "Sem alertas críticos identificados.";
+        document.getElementById('chance-text').textContent = data.chance_fechamento || "N/A";
+        document.getElementById('alerta-text').textContent = data.alerta_cancelamento || "Sem alertas críticos.";
 
         const tagContainer = document.getElementById('concorrentes-tags');
         tagContainer.innerHTML = (data.concorrentes_detectados || []).map(c => `
-            <span class="px-3 py-1 bg-red-600 text-white text-[10px] font-black rounded-lg shadow-lg uppercase tracking-widest flex items-center gap-1.5 tag-concorrente">
+            <span class="px-3 py-1 bg-red-600 text-white text-[9px] font-black rounded-lg shadow uppercase tracking-widest flex items-center gap-1.5 tag-concorrente">
                 <i data-lucide="alert-circle" class="w-3 h-3"></i> ${c}
             </span>
         `).join('');
 
         const status = document.getElementById('status-tag');
-        if(media >= 9) { 
+        if(media >= 4.5) { 
             status.textContent = "Elite Sales"; 
             status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg"; 
-        } else if(media >= 7) { 
+        } else if(media >= 3.5) { 
             status.textContent = "Alta Performance"; 
             status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700"; 
         } else { 
@@ -234,17 +263,22 @@
             status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; 
         }
 
-        // Renderização Dinâmica dos 12 Cards de Nota
         const gridElement = document.getElementById('notas-grid');
         gridElement.innerHTML = fields.map(f => {
             const n = data[`nota_${f.k}`] || 0;
-            const p = data[`porque_${f.k}`] || "";
-            const c = n >= 8 ? 'text-emerald-500' : n >= 5 ? 'text-blue-600' : 'text-red-500';
+            const p = data[`porque_${f.k}`] || "Sem justificativa detalhada.";
+            const m = data[`melhoria_${f.k}`] || "Critério de excelência atingido.";
+            const c = n >= 4 ? 'text-emerald-500' : n >= 3 ? 'text-blue-600' : 'text-red-500';
+            
+            const safeText = encodeURIComponent(p);
+            const safeMelhoria = encodeURIComponent(m);
+
             return `
-                <div class="glass-card p-4 flex flex-col items-center text-center justify-center">
-                    <span class="text-[8px] font-black text-slate-400 uppercase mb-2 tracking-widest leading-tight">${f.l}</span>
+                <div onclick="openModal('${f.l}', ${n}, '${c}', '${safeText}', '${safeMelhoria}')" class="glass-card p-4 flex flex-col items-center text-center justify-center cursor-pointer hover:-translate-y-1 hover:border-blue-300 transition-all group relative">
+                    <i data-lucide="zoom-in" class="absolute top-2 right-2 w-3 h-3 text-slate-300 group-hover:text-blue-500 transition-colors"></i>
+                    <span class="text-[8px] font-black text-slate-400 uppercase mb-2 tracking-widest leading-tight mt-1">${f.l}</span>
                     <div class="text-2xl font-black ${c} mb-2 leading-none">${n}</div>
-                    <p class="text-[8px] text-slate-500 italic leading-tight font-medium max-w-[90%] truncate" title="${p}">${p}</p>
+                    <p class="text-[8px] text-slate-500 italic leading-tight font-medium max-w-[90%] truncate">${p}</p>
                 </div>
             `;
         }).join('');
@@ -274,10 +308,10 @@
         };
         
         document.getElementById('checklist-container').innerHTML = Object.entries(ckLabels).map(([key, label]) => `
-            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100 transition-all hover:bg-white group">
-                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tight group-hover:text-slate-800 transition-colors">${label}</span>
-                <div class="w-7 h-7 rounded-full flex items-center justify-center ${ck[key] ? 'bg-emerald-500' : 'bg-slate-200'} shadow-sm">
-                    <i data-lucide="${ck[key] ? 'check' : 'minus'}" class="text-white w-4 h-4"></i>
+            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <span class="text-[9px] font-bold text-slate-600 uppercase tracking-tight">${label}</span>
+                <div class="w-5 h-5 rounded-full flex items-center justify-center ${ck[key] ? 'bg-emerald-500' : 'bg-slate-300'}">
+                    <i data-lucide="${ck[key] ? 'check' : 'minus'}" class="text-white w-3 h-3"></i>
                 </div>
             </div>
         `).join('');
@@ -294,7 +328,6 @@
         const ctx = document.getElementById('radarChart').getContext('2d');
         if(radarChartInstance) radarChartInstance.destroy();
         
-        // Pega os nomes e as notas direto daquela lista "fields" lá de cima
         const radarLabels = fields.map(f => f.l);
         const radarData = fields.map(f => data[`nota_${f.k}`] || 0);
 
@@ -307,8 +340,8 @@
                     data: radarData,
                     backgroundColor: 'rgba(37, 99, 235, 0.15)',
                     borderColor: '#2563eb',
-                    borderWidth: 2,
-                    pointRadius: 3,
+                    borderWidth: 1.5,
+                    pointRadius: 2,
                     pointBackgroundColor: '#1e3a8a'
                 }]
             },
@@ -316,11 +349,11 @@
                 scales: { 
                     r: { 
                         min: 0, 
-                        max: 10, 
-                        ticks: { display: false }, 
+                        max: 5, 
+                        ticks: { stepSize: 1, display: false }, 
                         grid: { color: '#e2e8f0' }, 
                         angleLines: { color: '#e2e8f0' }, 
-                        pointLabels: { font: { size: 9, weight: '700' }, color: '#475569' } 
+                        pointLabels: { font: { size: 8, weight: '700' }, color: '#475569' } 
                     } 
                 }, 
                 plugins: { legend: { display: false } }, 
@@ -328,6 +361,64 @@
             }
         });
     }
+
+    function openModal(title, score, colorClass, encodedText, encodedImprovement) {
+        const modal = document.getElementById('justification-modal');
+        const modalBox = document.getElementById('modal-content-box');
+        
+        document.getElementById('modal-title').textContent = title;
+        
+        const scoreEl = document.getElementById('modal-score');
+        scoreEl.textContent = score;
+        scoreEl.className = `text-5xl font-black leading-none ${colorClass}`;
+        
+        document.getElementById('modal-text').textContent = decodeURIComponent(encodedText);
+        
+        const improvementContainer = document.getElementById('modal-improvement-container');
+        const improvementText = document.getElementById('modal-improvement-text');
+        const decodedImprovement = decodeURIComponent(encodedImprovement);
+        
+        if (score < 5) {
+            improvementContainer.classList.remove('hidden');
+            improvementText.textContent = decodedImprovement;
+            improvementContainer.className = "bg-amber-50 rounded-2xl p-4 border border-amber-100 mt-2";
+            improvementContainer.querySelector('span').textContent = "O que faltou para o 5?";
+            improvementContainer.querySelector('i').className = "w-4 h-4 text-amber-600";
+        } else {
+            improvementContainer.classList.remove('hidden');
+            improvementText.textContent = decodedImprovement;
+            improvementContainer.className = "bg-emerald-50 rounded-2xl p-4 border border-emerald-100 mt-2";
+            improvementContainer.querySelector('span').textContent = "Excelente!";
+            improvementContainer.querySelector('i').className = "w-4 h-4 text-emerald-600";
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modalBox.classList.remove('scale-95');
+            modalBox.classList.add('scale-100');
+        }, 10);
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('justification-modal');
+        const modalBox = document.getElementById('modal-content-box');
+        
+        modal.classList.add('opacity-0');
+        modalBox.classList.remove('scale-100');
+        modalBox.classList.add('scale-95');
+        
+        setTimeout(() => {
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    document.getElementById('justification-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
 
     analyzeBtn.addEventListener('click', handleAnalysis);
     </script>
