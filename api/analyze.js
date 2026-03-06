@@ -7,6 +7,18 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: "Método não permitido. Use POST." });
     }
 
+    // ── Verificar sessão ────────────────────────────────────────────────────
+    const cookie = req.headers.cookie || '';
+    const match  = cookie.match(/nibo_session=([^;]+)/);
+    if (!match) return res.status(401).json({ error: "Não autorizado." });
+    try {
+        const session = JSON.parse(Buffer.from(match[1], 'base64').toString('utf8'));
+        if (!session.exp || Date.now() > session.exp) return res.status(401).json({ error: "Sessão expirada." });
+        const domain = session.email.toLowerCase().split('@')[1];
+        if (domain !== 'nibo.com.br') return res.status(403).json({ error: "Acesso negado." });
+    } catch { return res.status(401).json({ error: "Sessão inválida." }); }
+    // ────────────────────────────────────────────────────────────────────────
+
     const { prompt } = req.body;
 
     if (!prompt) {
@@ -149,7 +161,7 @@ Nota do SDR de 0 a 10. Se produto fora do portfólio: nota máxima 2. Justifique
             config: {
                 systemInstruction,
                 responseMimeType: "application/json",
-                maxOutputTokens: 8192,
+                maxOutputTokens: 65536,
                 responseSchema: {
                     type: Type.OBJECT,
                     properties: {
