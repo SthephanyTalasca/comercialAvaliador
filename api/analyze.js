@@ -34,6 +34,27 @@ PILARES:
 4. PRÉ-FECHAMENTO — Sinais de compra, urgência, perguntas de validação, tratamento de objeções.
 5. FECHAMENTO — Pedido claro de compra, proposta definida, próximos passos concretos.
 
+CAMPO justificativa_detalhada — PLANO DE COACHING DO CONSULTOR:
+Este campo deve ser escrito DIRETAMENTE para o consultor, em tom de mentor experiente.
+NÃO é um relatório frio. É uma conversa de feedback.
+Estruture em Markdown com as seguintes seções:
+
+## O que você fez bem nessa reunião
+Reconheça os pontos positivos com exemplos concretos da conversa. Seja específico.
+
+## O que precisa melhorar
+Para cada ponto fraco identificado, explique:
+- O que aconteceu na reunião (com trecho ou comportamento real)
+- Por que isso prejudicou a venda
+- Como deveria ter sido feito (com exemplo de frase ou técnica)
+
+## Os 3 exercícios para sua próxima reunião
+Liste 3 ações práticas e concretas que o consultor pode treinar imediatamente.
+Cada exercício deve ser específico, não genérico (ex: não "melhore o rapport", mas "nas primeiras 2 minutosas, faça uma pergunta sobre o escritório do cliente antes de falar do produto").
+
+## Frase da reunião que mais custou pontos
+Cite o trecho exato (ou reconstituído) da conversa que mais prejudicou a performance e explique por que.
+
 ════════════════════════════════════════
 PARTE 2 — AUDITORIA DE QUALIFICAÇÃO DE LEAD (SDR → Consultor)
 ════════════════════════════════════════
@@ -49,7 +70,7 @@ PRODUTOS QUE O NIBO VENDE (portfólio oficial):
 • NIBO OBRIGAÇÕES — Gestão de obrigações fiscais e contábeis do escritório
 • CONCILIADOR — Conciliação bancária automatizada com Open Finance
 • WHATSAPP WEB — Comunicação automatizada com clientes via WhatsApp
-• EMISSOR DE NOTAS — Emissão de notas fiscais  (NFS-e)
+• EMISSOR DE NOTAS — Emissão de notas fiscais (NF-e, NFS-e)
 
 PRODUTOS QUE O NIBO NÃO VENDE — ALERTA CRÍTICO:
 • BPO FINANCEIRO — Produto inexistente no portfólio. SDR que prometeu isso cometeu erro grave.
@@ -85,7 +106,7 @@ Aplique APENAS os critérios do produto identificado:
   sla_3_label: "Tem necessidade real de acompanhar situação fiscal na Receita Federal?"
 
 ■ NIBO OBRIGAÇÕES
-  sla_1_label: "Possui no mínimo 10 clientes/CNPJs ativos?"
+  sla_1_label: "É escritório contábil com equipe responsável por obrigações?"
   sla_2_label: "Tem dor real com controle ou prazos de obrigações fiscais?"
   sla_3_label: "Volume de clientes justifica automação de obrigações?"
 
@@ -97,7 +118,7 @@ Aplique APENAS os critérios do produto identificado:
 ■ WHATSAPP WEB
   sla_1_label: "Usa WhatsApp ativamente para comunicação com clientes?"
   sla_2_label: "Tem mais de 10 clientes?"
-  sla_3_label: "Possui funcionários?"
+  sla_3_label: "Tem funcionários?"
 
 ■ EMISSOR DE NOTAS
   sla_1_label: "Faz pelo menos 10 emissões de notas fiscais de serviço?"
