@@ -1,300 +1,727 @@
-import { GoogleGenAI, Type } from '@google/genai';
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nibo AI - Auditoria de Vendas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; color: #0f172a; }
+        .glass-card { background: white; border: 1px solid #e2e8f0; border-radius: 2.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); transition: all 0.3s ease; }
+        .glass-card:hover { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-export const maxDuration = 60;
+        .markdown-content h1, .markdown-content h2 { font-weight: 800; color: #1e3a8a; margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1rem; text-transform: uppercase; border-bottom: 2px solid #2563eb; padding-bottom: 0.5rem; }
+        .markdown-content p { margin-bottom: 1rem; color: #475569; line-height: 1.6; font-size: 0.9rem; }
+        .markdown-content ul { list-style-type: none; padding-left: 0; margin-bottom: 1.25rem; }
+        .markdown-content li { position: relative; padding-left: 1.5rem; margin-bottom: 0.4rem; color: #475569; font-size: 0.85rem; }
+        .markdown-content li::before { content: "•"; position: absolute; left: 0; color: #2563eb; font-weight: bold; }
+        .markdown-content strong { color: #1e3a8a; }
+        .markdown-content blockquote { border-left: 3px solid #2563eb; padding-left: 1rem; margin: 1rem 0; background: #eff6ff; border-radius: 0 0.5rem 0.5rem 0; padding: 0.75rem 1rem; }
+        .markdown-content blockquote p { color: #1e40af; font-style: italic; margin: 0; }
 
-export default async function handler(req, res) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: "Método não permitido. Use POST." });
-    }
+        .tag-concorrente { animation: pulse-tag 2s infinite; }
+        @keyframes pulse-tag { 0%,100%{opacity:1} 50%{opacity:.7} }
 
-    // ── Verificar sessão ────────────────────────────────────────────────────
-    const cookie = req.headers.cookie || '';
-    const match  = cookie.match(/nibo_session=([^;]+)/);
-    if (!match) return res.status(401).json({ error: "Não autorizado." });
-    try {
-        const session = JSON.parse(Buffer.from(match[1], 'base64').toString('utf8'));
-        if (!session.exp || Date.now() > session.exp) return res.status(401).json({ error: "Sessão expirada." });
-        const domain = session.email.toLowerCase().split('@')[1];
-        if (domain !== 'nibo.com.br') return res.status(403).json({ error: "Acesso negado." });
-    } catch { return res.status(401).json({ error: "Sessão inválida." }); }
-    // ────────────────────────────────────────────────────────────────────────
+        .pilar-card { cursor: pointer; position: relative; transition: all 0.2s ease; border: 1px solid #e2e8f0; }
+        .pilar-card:hover { transform: translateY(-4px); border-color: #93c5fd; box-shadow: 0 12px 24px -4px rgba(37,99,235,0.15); }
+        .pilar-card .click-hint { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font-size: 8px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; opacity: 0; transition: opacity .2s; white-space: nowrap; }
+        .pilar-card:hover .click-hint { opacity: 1; }
+        .pilar-card .zoom-icon { position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; background: #eff6ff; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+        .pilar-card:hover .zoom-icon { background: #2563eb; }
+        .pilar-card:hover .zoom-icon svg { color: white !important; }
 
-    const { prompt } = req.body;
+        .stars-row { display: flex; gap: 2px; justify-content: center; margin-bottom: 4px; }
+        .star { font-size: 14px; }
+        .star.filled { color: #f59e0b; }
+        .star.empty { color: #e2e8f0; }
 
-    if (!prompt) {
-        return res.status(400).json({ error: "O texto da transcrição é obrigatório." });
-    }
+        #justification-modal { transition: opacity .3s ease; }
+        #modal-content-box { transition: transform .3s ease; max-height: 90vh; overflow-y: auto; }
+        .score-ring { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; border: 5px solid; flex-shrink: 0; }
 
-    try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        .section-tab { cursor: pointer; transition: all .2s; padding: 12px 0; font-size: .875rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .section-tab.active { border-bottom: 3px solid #2563eb; color: #1e3a8a; }
+        .section-tab:not(.active) { color: #94a3b8; border-bottom: 3px solid transparent; }
 
-        const systemInstruction = `Você é um Auditor Comercial Sênior do Nibo com duas responsabilidades nesta análise.
+        .ctx-row { display: flex; gap: 8px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+        .ctx-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; min-width: 130px; flex-shrink: 0; padding-top: 2px; }
+        .ctx-value { font-size: 12px; color: #334155; font-weight: 500; line-height: 1.5; }
 
-════════════════════════════════════════
-PARTE 1 — AUDITORIA DE VENDAS (5 PILARES)
-════════════════════════════════════════
+        .produto-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+        .produto-ok    { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        .produto-alert { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; animation: pulse-tag 1.5s infinite; }
 
-Avalie a transcrição nos 5 pilares abaixo. Para CADA pilar, dê:
-- Nota de 1 a 5
-- Justificativa detalhada (3 a 5 frases concretas com trechos ou comportamentos reais da conversa)
-- O que faltou para nota 5 (mínimo 2 frases, seja específico e acionável)
+        .verd-q  { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+        .verd-p  { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+        .verd-m  { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+        .verd-f  { background: #fdf2f8; color: #7c3aed; border-color: #c4b5fd; }
+        .verd-s  { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
 
-PILARES:
-1. RAPPORT — Conexão humana, empatia, personalização do contato, tom de parceria.
-2. PRODUTO — Domínio técnico do Nibo, fluência na demonstração, capacidade de responder dúvidas técnicas.
-3. APRESENTAÇÃO — Clareza, didática, estrutura lógica, pitch adaptado à realidade do cliente.
-4. PRÉ-FECHAMENTO — Sinais de compra, urgência, perguntas de validação, tratamento de objeções.
-5. FECHAMENTO — Pedido claro de compra, proposta definida, próximos passos concretos.
+        .qb-sim    { background: #d1fae5; color: #065f46; }
+        .qb-parcial{ background: #fef3c7; color: #92400e; }
+        .qb-nao    { background: #fee2e2; color: #991b1b; }
+        .qb-alto   { background: #d1fae5; color: #065f46; }
+        .qb-moder  { background: #dbeafe; color: #1e40af; }
+        .qb-fraco  { background: #fef3c7; color: #92400e; }
+        .qb-sem    { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body class="pb-20 antialiased">
 
-CAMPO justificativa_detalhada — PLANO DE COACHING DO CONSULTOR:
-Este campo deve ser escrito DIRETAMENTE para o consultor, em tom de mentor experiente.
-NÃO é um relatório frio. É uma conversa de feedback.
-Estruture em Markdown com as seguintes seções:
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="hidden fixed inset-0 z-[200] bg-[#001a4d] flex items-center justify-center p-6">
+    <div class="bg-white rounded-[2.5rem] p-12 max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-6">
+        <div class="bg-[#002d72] p-4 rounded-2xl">
+            <i data-lucide="shield-check" class="text-white w-10 h-10"></i>
+        </div>
+        <div>
+            <h1 class="font-black text-[#002d72] text-2xl uppercase tracking-tight mb-1">Nibo Auditor</h1>
+            <p class="text-slate-400 text-sm font-medium">Acesso restrito — apenas Heads</p>
+        </div>
+        <div id="login-error" class="hidden w-full bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-700 font-medium"></div>
+        <a href="/api/auth" class="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-200 hover:border-blue-400 text-slate-700 font-bold px-6 py-4 rounded-2xl transition-all shadow-sm hover:shadow-md">
+            <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Entrar com Google Nibo
+        </a>
+        <p class="text-[10px] text-slate-300 font-medium">Somente emails autorizados têm acesso</p>
+    </div>
+</div>
 
-## O que você fez bem nessa reunião
-Reconheça os pontos positivos com exemplos concretos da conversa. Seja específico.
+<!-- APP SCREEN -->
+<div id="app-screen" class="hidden">
 
-## O que precisa melhorar
-Para cada ponto fraco identificado, explique:
-- O que aconteceu na reunião (com trecho ou comportamento real)
-- Por que isso prejudicou a venda
-- Como deveria ter sido feito (com exemplo de frase ou técnica)
+<nav class="bg-[#002d72] text-white py-4 px-8 sticky top-0 z-50 shadow-xl border-b border-blue-400">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-white p-2.5 rounded-2xl shadow-inner">
+                <i data-lucide="shield-check" class="text-[#002d72] w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-lg uppercase tracking-tight">Nibo <span class="text-blue-400">Auditor de Vendas</span></h1>
+                <p class="text-[9px] text-blue-200 uppercase tracking-widest font-bold mt-1">Performance de Consultores + Qualificação de Leads (SDR)</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <img id="user-avatar" src="" class="w-8 h-8 rounded-full border-2 border-blue-300 hidden" />
+            <div id="user-info" class="text-right hidden">
+                <p id="user-name"  class="text-sm font-bold leading-none"></p>
+                <p id="user-email" class="text-[10px] text-blue-300 font-medium mt-0.5"></p>
+            </div>
+            <a href="/api/logout" class="ml-2 flex items-center gap-1.5 bg-blue-900/40 hover:bg-red-600 border border-blue-400/30 hover:border-red-400 text-blue-200 hover:text-white px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all">
+                <i data-lucide="log-out" class="w-3 h-3"></i> Sair
+            </a>
+        </div>
+    </div>
+</nav>
 
-## Os 3 exercícios para sua próxima reunião
-Liste 3 ações práticas e concretas que o consultor pode treinar imediatamente.
-Cada exercício deve ser específico, não genérico (ex: não "melhore o rapport", mas "nas primeiras 2 minutosas, faça uma pergunta sobre o escritório do cliente antes de falar do produto").
+<main class="max-w-7xl mx-auto px-4 mt-8">
 
-## Frase da reunião que mais custou pontos
-Cite o trecho exato (ou reconstituído) da conversa que mais prejudicou a performance e explique por que.
+    <section class="mb-10">
+        <div class="glass-card p-8 md:p-10">
+            <div class="flex items-center gap-3 mb-6">
+                <i data-lucide="message-square" class="text-blue-600"></i>
+                <h2 class="font-bold text-slate-800 text-lg">Submeter Transcrição</h2>
+            </div>
+            <textarea id="transcript-input" rows="5" class="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] focus:ring-4 ring-blue-500/5 focus:outline-none transition-all text-sm mb-6" placeholder="Cole aqui o diálogo completo da reunião..."></textarea>
+            <div class="flex justify-end">
+                <button id="analyze-btn" class="flex items-center gap-3 bg-blue-600 hover:bg-[#002d72] text-white px-10 py-4 rounded-2xl font-bold text-sm shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span id="btn-text">Gerar Auditoria Completa</span>
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </section>
 
-════════════════════════════════════════
-PARTE 2 — AUDITORIA DE QUALIFICAÇÃO DE LEAD (SDR → Consultor)
-════════════════════════════════════════
+    <div id="results-section" class="hidden space-y-8">
 
-NUNCA presuma informações. Use APENAS evidências explícitas da conversa.
+        <div id="loading-spinner" class="flex flex-col items-center py-20">
+            <div class="loader mb-4"></div>
+            <p class="text-slate-400 font-bold text-xs uppercase tracking-widest animate-pulse">Auditando reunião e qualificação do lead...</p>
+        </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PORTFÓLIO DE PRODUTOS NIBO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        <div id="analysis-content" class="hidden space-y-8">
 
-PRODUTOS QUE O NIBO VENDE (portfólio oficial):
-• RADAR-ECAC — Monitoramento e alertas de situação fiscal de CNPJs no e-CAC/Receita Federal
-• NIBO OBRIGAÇÕES — Gestão de obrigações fiscais e contábeis do escritório
-• CONCILIADOR — Conciliação bancária automatizada com Open Finance
-• WHATSAPP WEB — Comunicação automatizada com clientes via WhatsApp
-• EMISSOR DE NOTAS — Emissão de notas fiscais (NF-e, NFS-e)
+            <!-- HERO -->
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div class="lg:col-span-1 glass-card p-10 flex flex-col items-center justify-center text-center border-b-[10px] border-blue-600">
+                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Média Global (Máx 5)</span>
+                    <div id="media-final" class="text-7xl font-black text-[#002d72] mb-3">0.0</div>
+                    <div id="status-tag" class="px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">---</div>
+                </div>
+                <div class="lg:col-span-3 glass-card p-10 bg-gradient-to-br from-blue-700 to-blue-900 text-white flex flex-col justify-center">
+                    <div id="concorrentes-tags" class="flex flex-wrap gap-2 mb-4"></div>
+                    <h3 class="font-bold text-blue-200 text-[10px] uppercase tracking-widest mb-4">Diagnóstico Geral</h3>
+                    <p id="resumo-text" class="text-xl md:text-2xl font-bold leading-tight mb-8"></p>
+                    <div class="flex gap-4">
+                        <div class="p-4 bg-white/10 rounded-2xl border border-white/20 flex-1">
+                            <span class="text-[9px] font-black text-blue-300 uppercase block mb-1 tracking-widest">Probabilidade de Fechamento:</span>
+                            <p id="chance-text" class="text-base font-bold text-white"></p>
+                        </div>
+                        <div class="p-4 bg-red-500/20 rounded-2xl border border-red-400/30 flex-1">
+                            <span class="text-[9px] font-black text-red-300 uppercase block mb-1 tracking-widest">Alerta de Risco:</span>
+                            <p id="alerta-text" class="text-base font-bold text-white"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-PRODUTOS QUE O NIBO NÃO VENDE — ALERTA CRÍTICO:
-• BPO FINANCEIRO — Produto inexistente no portfólio. SDR que prometeu isso cometeu erro grave.
-• GESTÃO FINANCEIRA — Produto inexistente. Se foi prometido como produto principal, é erro grave do SDR.
+            <!-- TABS -->
+            <div class="flex border-b border-slate-200 gap-8 px-2">
+                <button onclick="showSection('vendas')" id="tab-vendas" class="section-tab active"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> Auditoria de Vendas</button>
+                <button onclick="showSection('qualif')" id="tab-qualif" class="section-tab"><i data-lucide="user-check" class="w-4 h-4"></i> Qualificação do Lead (SDR)</button>
+            </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ETAPA 1 — IDENTIFICAR PRODUTO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Identifique qual produto foi apresentado. Se o produto não pertence ao portfólio Nibo, classifique como "PRODUTO FORA DO PORTFÓLIO" e indique qual foi. O campo qual_produto_no_portfolio deve ser false nesse caso.
+            <!-- ════════════════════════════════ -->
+            <!-- SEÇÃO VENDAS                    -->
+            <!-- ════════════════════════════════ -->
+            <div id="section-vendas" class="space-y-8">
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ETAPA 2 — CONTEXTO DA REUNIÃO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Extraia: produto apresentado, qtd clientes/CNPJs, sistema contábil, interesse demonstrado, cenário/problema, quem participou, se o cliente sabia o que veria.
+                <p class="text-[11px] text-slate-400 font-semibold flex items-center gap-2 px-1">
+                    <i data-lucide="mouse-pointer-click" class="w-4 h-4 text-blue-400"></i>
+                    Clique em qualquer pilar para ver a justificativa completa
+                </p>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ETAPA 3 — CRITÉRIOS GERAIS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-A) Lead sabia o que iria ver? → "Sim" | "Parcialmente" | "Não" + evidência
-B) Produto correto apresentado? → "Sim" | "Parcialmente" | "Não" + evidência
-C) Interesse real do cliente? → "Alto" | "Moderado" | "Fraco" | "Sem interesse" + evidência
-D) Cenário diagnosticado? → "Diagnóstico claro" | "Superficial" | "Sem diagnóstico" + evidência
+                <div id="notas-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5"></div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ETAPA 4 — SLA ESPECÍFICO POR PRODUTO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass-card p-8 min-h-[380px] flex items-center justify-center">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="glass-card p-8">
+                            <h4 class="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest">Tempo de Fala</h4>
+                            <div id="talk-time-container" class="space-y-6"></div>
+                        </div>
+                        <div class="glass-card p-8">
+                            <h3 class="font-bold text-slate-800 text-sm mb-6 flex items-center gap-3">
+                                <i data-lucide="clipboard-check" class="text-blue-600 w-5 h-5"></i>
+                                Checklist do Manual Nibo
+                            </h3>
+                            <div id="checklist-container" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+                        </div>
+                    </div>
+                </div>
 
-Aplique APENAS os critérios do produto identificado:
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-emerald-50/60 p-8 rounded-[2rem] border border-emerald-100">
+                        <h4 class="text-[10px] font-black text-emerald-700 mb-6 uppercase tracking-widest flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4"></i> Pontos Fortes</h4>
+                        <ul id="lista-fortes" class="space-y-3 text-[12px] font-bold text-emerald-900"></ul>
+                    </div>
+                    <div class="bg-amber-50/60 p-8 rounded-[2rem] border border-amber-100">
+                        <h4 class="text-[10px] font-black text-amber-700 mb-6 uppercase tracking-widest flex items-center gap-2"><i data-lucide="target" class="w-4 h-4"></i> Melhoria Imediata</h4>
+                        <ul id="lista-atencao" class="space-y-3 text-[12px] font-bold text-amber-900"></ul>
+                    </div>
+                </div>
 
-■ RADAR-ECAC
-  sla_1_label: "Tem parcelamentos de DAS e DARF?"
-  sla_2_label: "Tem ao menos 10 CNPJs ativos para monitorar?"
-  sla_3_label: "Tem necessidade real de acompanhar situação fiscal na Receita Federal?"
+                <!-- COACHING REPORT -->
+                <div class="glass-card p-12 md:p-16 shadow-2xl border-t-[10px] border-[#002d72]">
+                    <h3 class="text-xl font-extrabold text-[#002d72] uppercase tracking-widest mb-2 flex items-center gap-4">
+                        <i data-lucide="graduation-cap"></i>
+                        Plano de Coaching — Para o Consultor
+                    </h3>
+                    <p class="text-[11px] text-slate-400 font-semibold mb-10 ml-10">O que fazer diferente na sua próxima reunião</p>
+                    <div id="markdown-body" class="markdown-content"></div>
+                </div>
+            </div>
 
-■ NIBO OBRIGAÇÕES
-  sla_1_label: "É escritório contábil com equipe responsável por obrigações?"
-  sla_2_label: "Tem dor real com controle ou prazos de obrigações fiscais?"
-  sla_3_label: "Volume de clientes justifica automação de obrigações?"
+            <!-- ════════════════════════════════ -->
+            <!-- SEÇÃO QUALIFICAÇÃO              -->
+            <!-- ════════════════════════════════ -->
+            <div id="section-qualif" class="hidden space-y-6">
 
-■ CONCILIADOR
-  sla_1_label: "Possui no mínimo 10 clientes/CNPJs ativos?"
-  sla_2_label: "Realiza no mínimo 10 conciliações bancárias por mês?"
-  sla_3_label: "Possui sistema contábil integrável com Open Finance?"
+                <div id="qual-fora-portfolio-alert" class="hidden bg-red-600 text-white p-6 rounded-[2rem] flex items-start gap-4 shadow-xl">
+                    <i data-lucide="alert-triangle" class="w-8 h-8 flex-shrink-0 mt-0.5"></i>
+                    <div>
+                        <p class="font-black text-lg uppercase tracking-wide mb-1">⚠️ Produto fora do portfólio Nibo!</p>
+                        <p id="qual-fora-portfolio-text" class="text-sm font-medium text-red-100 leading-relaxed"></p>
+                    </div>
+                </div>
 
-■ WHATSAPP WEB
-  sla_1_label: "Usa WhatsApp ativamente para comunicação com clientes?"
-  sla_2_label: "Tem mais de 10 clientes?"
-  sla_3_label: "Tem funcionários?"
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-card p-8 flex flex-col gap-4">
+                        <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Produto Identificado</h4>
+                        <div id="qual-produto-badge-wrap"></div>
+                        <p id="qual-produto-alerta-text" class="text-[11px] text-slate-500 italic leading-relaxed"></p>
+                    </div>
+                    <div class="glass-card p-8 flex flex-col gap-4">
+                        <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Veredicto da Qualificação</h4>
+                        <div id="qual-veredicto-badge" class="px-5 py-3 rounded-2xl border-2 text-sm font-black text-center tracking-wide"></div>
+                    </div>
+                    <div class="glass-card p-8 flex flex-col items-center justify-center text-center border-b-[8px] border-violet-500">
+                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Nota do SDR</span>
+                        <div id="qual-nota-sdr" class="text-6xl font-black text-violet-600 mb-1">—</div>
+                        <span class="text-[9px] text-slate-400 font-bold">/ 10</span>
+                        <p id="qual-nota-sdr-just" class="text-[10px] text-slate-500 mt-3 leading-relaxed font-medium text-center"></p>
+                    </div>
+                </div>
 
-■ EMISSOR DE NOTAS
-  sla_1_label: "Faz pelo menos 10 emissões de notas fiscais de serviço?"
-  sla_2_label: "Volume de emissões justifica automação?"
-  sla_3_label: "CNPJ ativo com enquadramento fiscal compatível?"
+                <div class="glass-card p-8">
+                    <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2">
+                        <i data-lucide="info" class="w-4 h-4 text-blue-400"></i> Contexto Extraído da Reunião
+                    </h4>
+                    <div id="qual-contexto-rows"></div>
+                </div>
 
-■ PRODUTO FORA DO PORTFÓLIO (BPO Financeiro, Gestão Financeira, etc.)
-  sla_1_label: "Produto existe no portfólio Nibo?" → SEMPRE false
-  sla_2_label: "Reunião gerada por promessa correta do SDR?" → SEMPRE false
-  sla_3_label: "Lead pode ser reaproveitado para produto real?" → avaliar com evidência
+                <div class="glass-card p-8">
+                    <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2">
+                        <i data-lucide="search" class="w-4 h-4 text-blue-400"></i> Critérios Gerais de Qualificação
+                    </h4>
+                    <div id="qual-criterios" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
 
-Para cada sla forneça: ok (boolean), label (string descritivo) e ev (evidência da transcrição).
+                <div class="glass-card p-8">
+                    <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-2">
+                        <i data-lucide="check-square" class="w-4 h-4 text-blue-400"></i> SLA de Qualificação
+                    </h4>
+                    <p id="qual-sla-produto-label" class="text-[11px] text-blue-600 font-bold mb-6 uppercase tracking-widest"></p>
+                    <div id="qual-sla-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+                </div>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ETAPA 5 — VEREDICTO FINAL
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- "QUALIFICADO" — atende todos os critérios SLA do produto
-- "PARCIALMENTE QUALIFICADO" — atende alguns critérios, SDR deveria ter validado mais
-- "MAL QUALIFICADO" — lead não estava pronto, reunião poderia ser evitada
-- "PRODUTO FORA DO PORTFÓLIO" — SDR agendou com produto que o Nibo não vende (caso mais grave)
-- "SEM DADOS SUFICIENTES" — transcrição não permite avaliação
+                <div class="glass-card p-12 border-t-[10px] border-violet-600">
+                    <h3 class="text-xl font-extrabold text-violet-800 uppercase tracking-widest mb-10 border-b pb-6 flex items-center gap-4">
+                        <i data-lucide="file-search"></i> Análise Completa da Qualificação (SDR)
+                    </h3>
+                    <div id="qual-markdown-body" class="markdown-content"></div>
+                </div>
 
-Nota do SDR de 0 a 10. Se produto fora do portfólio: nota máxima 2. Justifique com evidências.`;
+            </div>
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                systemInstruction,
-                responseMimeType: "application/json",
-                maxOutputTokens: 65536,
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
+        </div>
+    </div>
+</main>
 
-                        // ── PARTE 1: VENDAS ──────────────────────────────────
-                        media_final:             { type: Type.NUMBER },
-                        resumo_executivo:        { type: Type.STRING },
-                        chance_fechamento:       { type: Type.STRING },
-                        alerta_cancelamento:     { type: Type.STRING },
-                        concorrentes_detectados: { type: Type.ARRAY, items: { type: Type.STRING } },
+<!-- MODAL PILAR -->
+<div id="justification-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm opacity-0 p-4">
+    <div id="modal-content-box" class="bg-white rounded-[2rem] p-8 max-w-lg w-full shadow-2xl transform scale-95 flex flex-col gap-5">
+        <div class="flex justify-between items-center">
+            <span id="modal-title" class="text-[11px] font-black uppercase text-slate-400 tracking-widest">Pilar</span>
+            <button onclick="closeModal()" class="bg-slate-100 hover:bg-slate-200 p-2.5 rounded-full text-slate-500 transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <div class="flex items-start gap-5">
+            <div id="modal-score-ring" class="score-ring"><span id="modal-score">0</span></div>
+            <div class="flex-1">
+                <div id="modal-stars" class="stars-row justify-start mb-3"></div>
+                <p id="modal-text" class="text-[13px] text-slate-600 font-medium leading-relaxed"></p>
+            </div>
+        </div>
+        <div class="w-full h-px bg-slate-100"></div>
+        <div id="modal-improvement-container" class="rounded-2xl p-4 border">
+            <div class="flex items-center gap-2 mb-2">
+                <i id="modal-improvement-icon" data-lucide="target" class="w-4 h-4"></i>
+                <span id="modal-improvement-label" class="text-[9px] font-bold uppercase tracking-widest block"></span>
+            </div>
+            <p id="modal-improvement-text" class="text-[13px] leading-relaxed font-medium"></p>
+        </div>
+    </div>
+</div>
 
-                        nota_rapport:            { type: Type.NUMBER },
-                        porque_rapport:          { type: Type.STRING },
-                        melhoria_rapport:        { type: Type.STRING },
+<script>
+lucide.createIcons();
 
-                        nota_produto:            { type: Type.NUMBER },
-                        porque_produto:          { type: Type.STRING },
-                        melhoria_produto:        { type: Type.STRING },
+// ── Auth init — runs on every page load ─────────────────────────────────────
+async function initAuth() {
+    // Check for error params from OAuth redirect
+    const params = new URLSearchParams(window.location.search);
+    const authError = params.get('auth_error');
+    const emailAttempt = params.get('email');
 
-                        nota_apresentacao:       { type: Type.NUMBER },
-                        porque_apresentacao:     { type: Type.STRING },
-                        melhoria_apresentacao:   { type: Type.STRING },
-
-                        nota_pre_fechamento:     { type: Type.NUMBER },
-                        porque_pre_fechamento:   { type: Type.STRING },
-                        melhoria_pre_fechamento: { type: Type.STRING },
-
-                        nota_fechamento:         { type: Type.NUMBER },
-                        porque_fechamento:       { type: Type.STRING },
-                        melhoria_fechamento:     { type: Type.STRING },
-
-                        tempo_fala_consultor:    { type: Type.STRING },
-                        tempo_fala_cliente:      { type: Type.STRING },
-
-                        checklist_fechamento: {
-                            type: Type.OBJECT,
-                            properties: {
-                                resolveu_pontos_iniciais:             { type: Type.BOOLEAN },
-                                pediu_feedback_ferramenta:            { type: Type.BOOLEAN },
-                                pediu_voto_confianca:                 { type: Type.BOOLEAN },
-                                tratou_objecao_socio:                 { type: Type.BOOLEAN },
-                                validou_mensalidade_vs_setup:         { type: Type.BOOLEAN },
-                                mencionou_gestao_financeira_gratuita: { type: Type.BOOLEAN }
-                            }
-                        },
-
-                        pontos_fortes:           { type: Type.ARRAY, items: { type: Type.STRING } },
-                        pontos_atencao:          { type: Type.ARRAY, items: { type: Type.STRING } },
-                        justificativa_detalhada: { type: Type.STRING },
-
-                        // ── PARTE 2: QUALIFICAÇÃO ────────────────────────────
-                        qual_produto_identificado:  { type: Type.STRING },
-                        qual_produto_no_portfolio:  { type: Type.BOOLEAN },
-                        qual_produto_alerta:        { type: Type.STRING },
-
-                        qual_contexto: {
-                            type: Type.OBJECT,
-                            properties: {
-                                produto_apresentado:   { type: Type.STRING },
-                                qtd_clientes_cnpjs:    { type: Type.STRING },
-                                sistema_contabil:      { type: Type.STRING },
-                                interesse_demonstrado: { type: Type.STRING },
-                                cenario_problema:      { type: Type.STRING },
-                                participantes:         { type: Type.STRING },
-                                sabia_o_que_veria:     { type: Type.STRING }
-                            }
-                        },
-
-                        qual_sabia_o_que_veria:      { type: Type.STRING },
-                        qual_sabia_evidencia:        { type: Type.STRING },
-                        qual_produto_correto:        { type: Type.STRING },
-                        qual_produto_evidencia:      { type: Type.STRING },
-                        qual_interesse_real:         { type: Type.STRING },
-                        qual_interesse_evidencia:    { type: Type.STRING },
-                        qual_cenario_diagnosticado:  { type: Type.STRING },
-                        qual_cenario_evidencia:      { type: Type.STRING },
-
-                        qual_sla_1_label: { type: Type.STRING },
-                        qual_sla_1_ok:    { type: Type.BOOLEAN },
-                        qual_sla_1_ev:    { type: Type.STRING },
-
-                        qual_sla_2_label: { type: Type.STRING },
-                        qual_sla_2_ok:    { type: Type.BOOLEAN },
-                        qual_sla_2_ev:    { type: Type.STRING },
-
-                        qual_sla_3_label: { type: Type.STRING },
-                        qual_sla_3_ok:    { type: Type.BOOLEAN },
-                        qual_sla_3_ev:    { type: Type.STRING },
-
-                        qual_veredicto:              { type: Type.STRING },
-                        qual_nota_sdr:               { type: Type.NUMBER },
-                        qual_nota_sdr_justificativa: { type: Type.STRING },
-                        qual_analise_completa:       { type: Type.STRING }
-                    },
-                    required: [
-                        "media_final", "resumo_executivo", "chance_fechamento", "alerta_cancelamento",
-                        "concorrentes_detectados",
-                        "nota_rapport", "porque_rapport", "melhoria_rapport",
-                        "nota_produto", "porque_produto", "melhoria_produto",
-                        "nota_apresentacao", "porque_apresentacao", "melhoria_apresentacao",
-                        "nota_pre_fechamento", "porque_pre_fechamento", "melhoria_pre_fechamento",
-                        "nota_fechamento", "porque_fechamento", "melhoria_fechamento",
-                        "tempo_fala_consultor", "tempo_fala_cliente",
-                        "checklist_fechamento", "pontos_fortes", "pontos_atencao",
-                        "justificativa_detalhada",
-                        "qual_produto_identificado", "qual_produto_no_portfolio", "qual_produto_alerta",
-                        "qual_contexto",
-                        "qual_sabia_o_que_veria", "qual_sabia_evidencia",
-                        "qual_produto_correto", "qual_produto_evidencia",
-                        "qual_interesse_real", "qual_interesse_evidencia",
-                        "qual_cenario_diagnosticado", "qual_cenario_evidencia",
-                        "qual_sla_1_label", "qual_sla_1_ok", "qual_sla_1_ev",
-                        "qual_sla_2_label", "qual_sla_2_ok", "qual_sla_2_ev",
-                        "qual_sla_3_label", "qual_sla_3_ok", "qual_sla_3_ev",
-                        "qual_veredicto", "qual_nota_sdr", "qual_nota_sdr_justificativa",
-                        "qual_analise_completa"
-                    ]
-                }
-            }
-        });
-
-        let analysisData;
-        try {
-            analysisData = JSON.parse(response.text);
-        } catch (parseError) {
-            console.error("Erro ao fazer parse do JSON:", response.text);
-            return res.status(500).json({ error: "A IA gerou um texto muito longo e foi cortada. Tente com uma transcrição menor." });
+    if (authError) {
+        // Clean URL
+        window.history.replaceState({}, '', '/');
+        const errEl = document.getElementById('login-error');
+        errEl.classList.remove('hidden');
+        if (authError === 'dominio_invalido') {
+            errEl.textContent = `Acesso negado. Apenas contas @nibo.com.br podem entrar. (Tentativa: ${emailAttempt || 'desconhecido'})`;
+        } else if (authError === 'email_nao_autorizado') {
+            errEl.textContent = `Conta @nibo.com.br não autorizada: ${emailAttempt || 'desconhecido'}. Fale com o responsável da ferramenta.`;
+        } else {
+            errEl.textContent = 'Erro ao autenticar. Tente novamente.';
         }
+        document.getElementById('login-screen').classList.remove('hidden');
+        lucide.createIcons();
+        return;
+    }
 
-        return res.status(200).json(analysisData);
+    try {
+        const res = await fetch('/api/me');
+        if (!res.ok) throw new Error('not authenticated');
+        const user = await res.json();
 
-    } catch (error) {
-        console.error("Erro na API:", error);
-        return res.status(500).json({ error: "Erro do Google Gemini: " + error.message });
+        // Show app, populate user info
+        document.getElementById('app-screen').classList.remove('hidden');
+        document.getElementById('user-info').classList.remove('hidden');
+        document.getElementById('user-name').textContent  = user.name;
+        document.getElementById('user-email').textContent = user.email;
+        if (user.picture) {
+            const avatar = document.getElementById('user-avatar');
+            avatar.src = user.picture;
+            avatar.classList.remove('hidden');
+        }
+        lucide.createIcons();
+    } catch {
+        // Not logged in — show login screen
+        document.getElementById('login-screen').classList.remove('hidden');
+        lucide.createIcons();
     }
 }
+
+initAuth();
+// ─────────────────────────────────────────────────────────────────────────────
+
+const analyzeBtn      = document.getElementById('analyze-btn');
+const transcriptInput = document.getElementById('transcript-input');
+const resultsSection  = document.getElementById('results-section');
+const loadingSpinner  = document.getElementById('loading-spinner');
+const analysisContent = document.getElementById('analysis-content');
+const btnText         = document.getElementById('btn-text');
+let radarChartInstance = null;
+
+// ── Pilar data stored in JS, NOT in onclick attributes ──────────────────────
+// This prevents special characters (quotes, apostrophes, etc.) from breaking the modal
+let pilarData = [];
+
+const fields = [
+    { l: 'Rapport',        k: 'rapport',        icon: 'heart-handshake' },
+    { l: 'Produto',        k: 'produto',         icon: 'layers' },
+    { l: 'Apresentação',   k: 'apresentacao',    icon: 'presentation' },
+    { l: 'Pré-Fechamento', k: 'pre_fechamento',  icon: 'funnel' },
+    { l: 'Fechamento',     k: 'fechamento',      icon: 'handshake' }
+];
+
+const prodConfig = {
+    'RADAR-ECAC':       { color: 'bg-sky-100 text-sky-800 border-sky-300',          icon: 'radar' },
+    'NIBO OBRIGAÇÕES':  { color: 'bg-violet-100 text-violet-800 border-violet-300', icon: 'file-text' },
+    'CONCILIADOR':      { color: 'bg-blue-100 text-blue-800 border-blue-300',       icon: 'git-merge' },
+    'WHATSAPP WEB':     { color: 'bg-emerald-100 text-emerald-800 border-emerald-300', icon: 'message-circle' },
+    'EMISSOR DE NOTAS': { color: 'bg-orange-100 text-orange-800 border-orange-300', icon: 'file-plus' },
+    'FORA':             { color: 'bg-red-100 text-red-800 border-red-300',          icon: 'alert-triangle' }
+};
+
+function getScoreColor(n) {
+    if (n >= 4) return { text: 'text-emerald-500', border: '#10b981', bg: '#ecfdf5' };
+    if (n >= 3) return { text: 'text-blue-600',    border: '#2563eb', bg: '#eff6ff' };
+    return              { text: 'text-red-500',    border: '#ef4444', bg: '#fef2f2' };
+}
+
+function buildStars(score) {
+    return Array.from({length:5}, (_,i) =>
+        `<span class="star ${i < score ? 'filled' : 'empty'}">★</span>`
+    ).join('');
+}
+
+function showSection(name) {
+    ['vendas','qualif'].forEach(s => {
+        document.getElementById('section-'+s).classList.toggle('hidden', s !== name);
+        document.getElementById('tab-'+s).classList.toggle('active', s === name);
+    });
+}
+
+async function handleAnalysis() {
+    const prompt = transcriptInput.value.trim();
+    if (!prompt) return;
+
+    resultsSection.classList.remove('hidden');
+    loadingSpinner.classList.remove('hidden');
+    analysisContent.classList.add('hidden');
+    analyzeBtn.disabled = true;
+    btnText.textContent = "Analisando...";
+
+    try {
+        const response = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+        });
+        const text = await response.text();
+        let data;
+        try { data = JSON.parse(text); }
+        catch (e) { throw new Error("Erro de comunicação com o servidor."); }
+        if (data.error) throw new Error(data.error);
+        renderDashboard(data);
+    } catch (err) {
+        alert("Erro na análise: " + err.message);
+        resultsSection.classList.add('hidden');
+    } finally {
+        analyzeBtn.disabled = false;
+        btnText.textContent = "Gerar Auditoria Completa";
+    }
+}
+
+function renderDashboard(data) {
+    loadingSpinner.classList.add('hidden');
+    analysisContent.classList.remove('hidden');
+
+    // Hero
+    const media = data.media_final || 0;
+    document.getElementById('media-final').textContent = media.toFixed(1);
+    document.getElementById('resumo-text').textContent = data.resumo_executivo || "—";
+    document.getElementById('chance-text').textContent = data.chance_fechamento || "N/A";
+    document.getElementById('alerta-text').textContent = data.alerta_cancelamento || "Sem alertas críticos.";
+
+    document.getElementById('concorrentes-tags').innerHTML =
+        (data.concorrentes_detectados || []).map(c => `
+            <span class="px-3 py-1 bg-red-600 text-white text-[9px] font-black rounded-lg shadow uppercase tracking-widest flex items-center gap-1.5 tag-concorrente">
+                <i data-lucide="alert-circle" class="w-3 h-3"></i> ${c}
+            </span>`).join('');
+
+    const status = document.getElementById('status-tag');
+    if (media >= 4.5)      { status.textContent = "Elite Sales";      status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg"; }
+    else if (media >= 3.5) { status.textContent = "Alta Performance"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700"; }
+    else                   { status.textContent = "Acompanhamento";   status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; }
+
+    // ── Build pilarData array — safe storage for all text ──────────────────
+    pilarData = fields.map(f => ({
+        label:      f.l,
+        icon:       f.icon,
+        score:      data[`nota_${f.k}`]     || 0,
+        porque:     data[`porque_${f.k}`]   || "Sem justificativa disponível.",
+        melhoria:   data[`melhoria_${f.k}`] || "Critério de excelência atingido."
+    }));
+
+    // ── Pilar cards — onclick uses index only, text comes from pilarData ───
+    document.getElementById('notas-grid').innerHTML = pilarData.map((p, idx) => {
+        const col = getScoreColor(p.score);
+        // Safe preview: strip chars that could break HTML attributes
+        const preview = p.porque.substring(0, 80).replace(/"/g, '').replace(/'/g, '') + (p.porque.length > 80 ? '...' : '');
+        return `
+            <div onclick="openModal(${idx})"
+                 class="pilar-card bg-white rounded-[2rem] p-6 flex flex-col items-center text-center justify-center min-h-[200px]">
+                <div class="zoom-icon"><i data-lucide="zoom-in" class="w-3 h-3 text-blue-400"></i></div>
+                <i data-lucide="${p.icon}" class="w-6 h-6 text-slate-300 mb-3 mt-2"></i>
+                <span class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-widest">${p.label}</span>
+                <div class="text-5xl font-black ${col.text} mb-2 leading-none">${p.score}</div>
+                <div class="stars-row mb-3">${buildStars(p.score)}</div>
+                <p class="text-[9px] text-slate-400 italic leading-tight font-medium max-w-[95%] line-clamp-3">${preview}</p>
+                <span class="click-hint">ver detalhes →</span>
+            </div>`;
+    }).join('');
+
+    // Talk time
+    const tc = parseFloat(data.tempo_fala_consultor || 0);
+    const tl = parseFloat(data.tempo_fala_cliente   || 0);
+    document.getElementById('talk-time-container').innerHTML = `
+        <div>
+            <div class="flex justify-between text-[11px] font-bold mb-2"><span>Consultor</span><span class="text-blue-600">${data.tempo_fala_consultor||'0%'}</span></div>
+            <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600" style="width:${tc}%"></div></div>
+        </div>
+        <div>
+            <div class="flex justify-between text-[11px] font-bold mb-2"><span>Cliente</span><span class="text-emerald-500">${data.tempo_fala_cliente||'0%'}</span></div>
+            <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500" style="width:${tl}%"></div></div>
+        </div>`;
+
+    // Checklist
+    const ck = data.checklist_fechamento || {};
+    const ckLabels = {
+        resolveu_pontos_iniciais:             "Retomou problemas",
+        pediu_feedback_ferramenta:            "Pediu Feedback",
+        pediu_voto_confianca:                 "Voto de Confiança",
+        tratou_objecao_socio:                 "Alinhou Sócios",
+        validou_mensalidade_vs_setup:         "Isolou Objeção",
+        mencionou_gestao_financeira_gratuita: "Cereja do Bolo"
+    };
+    document.getElementById('checklist-container').innerHTML = Object.entries(ckLabels).map(([k,l]) => `
+        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+            <span class="text-[9px] font-bold text-slate-600 uppercase tracking-tight">${l}</span>
+            <div class="w-5 h-5 rounded-full flex items-center justify-center ${ck[k]?'bg-emerald-500':'bg-slate-300'}">
+                <i data-lucide="${ck[k]?'check':'minus'}" class="text-white w-3 h-3"></i>
+            </div>
+        </div>`).join('');
+
+    document.getElementById('lista-fortes').innerHTML  = (data.pontos_fortes  ||[]).map(i=>`<li class="flex items-start gap-2"><span>▶</span>${i}</li>`).join('');
+    document.getElementById('lista-atencao').innerHTML = (data.pontos_atencao ||[]).map(i=>`<li class="flex items-start gap-2"><span>▶</span>${i}</li>`).join('');
+    document.getElementById('markdown-body').innerHTML = marked.parse(data.justificativa_detalhada||"");
+
+    renderRadar(data);
+    renderQualificacao(data);
+    lucide.createIcons();
+}
+
+function renderQualificacao(data) {
+    const foraPortfolio = !data.qual_produto_no_portfolio;
+
+    const alertEl = document.getElementById('qual-fora-portfolio-alert');
+    if (foraPortfolio) {
+        alertEl.classList.remove('hidden');
+        document.getElementById('qual-fora-portfolio-text').textContent =
+            data.qual_produto_alerta || "O produto apresentado não faz parte do portfólio Nibo. Reunião gerada por promessa incorreta do SDR.";
+    } else {
+        alertEl.classList.add('hidden');
+    }
+
+    const prodNome = (data.qual_produto_identificado || '').toUpperCase();
+    let prodCfg = prodConfig['FORA'];
+    for (const key of Object.keys(prodConfig)) {
+        if (prodNome.includes(key)) { prodCfg = prodConfig[key]; break; }
+    }
+    document.getElementById('qual-produto-badge-wrap').innerHTML = `
+        <span class="produto-badge border ${foraPortfolio ? 'produto-alert' : 'produto-ok'} ${prodCfg.color}">
+            <i data-lucide="${prodCfg.icon}" class="w-4 h-4"></i>
+            ${data.qual_produto_identificado || '—'}
+        </span>`;
+    document.getElementById('qual-produto-alerta-text').textContent = data.qual_produto_alerta || '';
+
+    const verd   = data.qual_veredicto || "SEM DADOS";
+    const verdEl = document.getElementById('qual-veredicto-badge');
+    verdEl.textContent = verd;
+    let vc = 'verd-s';
+    if (verd.includes('FORA'))  vc = 'verd-f';
+    else if (verd.includes('MAL'))  vc = 'verd-m';
+    else if (verd.includes('PARC')) vc = 'verd-p';
+    else if (verd.includes('QUAL')) vc = 'verd-q';
+    verdEl.className = `px-5 py-3 rounded-2xl border-2 text-sm font-black text-center tracking-wide ${vc}`;
+
+    document.getElementById('qual-nota-sdr').textContent      = data.qual_nota_sdr ?? '—';
+    document.getElementById('qual-nota-sdr-just').textContent = data.qual_nota_sdr_justificativa || '';
+
+    const ctx = data.qual_contexto || {};
+    document.getElementById('qual-contexto-rows').innerHTML = [
+        ['Produto Apresentado', ctx.produto_apresentado],
+        ['Qtd. Clientes/CNPJs', ctx.qtd_clientes_cnpjs],
+        ['Sistema Contábil',    ctx.sistema_contabil],
+        ['Interesse',           ctx.interesse_demonstrado],
+        ['Cenário/Problema',    ctx.cenario_problema],
+        ['Participantes',       ctx.participantes],
+        ['Sabia o que veria?',  ctx.sabia_o_que_veria]
+    ].map(([l,v]) => `
+        <div class="ctx-row">
+            <span class="ctx-label">${l}</span>
+            <span class="ctx-value">${v||'—'}</span>
+        </div>`).join('');
+
+    function qbClass(val) {
+        const v = (val||'').toLowerCase();
+        if (v.includes('sim') || v.includes('alto') || v.includes('claro'))    return 'qb-sim';
+        if (v.includes('parc') || v.includes('moder') || v.includes('superf')) return 'qb-parcial';
+        if (v.includes('fraco')) return 'qb-fraco';
+        return 'qb-nao';
+    }
+    document.getElementById('qual-criterios').innerHTML = [
+        ['Lead sabia o que veria?',      data.qual_sabia_o_que_veria,     data.qual_sabia_evidencia],
+        ['Produto correto apresentado?', data.qual_produto_correto,       data.qual_produto_evidencia],
+        ['Interesse real do cliente?',   data.qual_interesse_real,        data.qual_interesse_evidencia],
+        ['Cenário diagnosticado?',       data.qual_cenario_diagnosticado, data.qual_cenario_evidencia]
+    ].map(([t,v,ev]) => `
+        <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest">${t}</span>
+                <span class="px-3 py-1 rounded-full text-[10px] font-black ${qbClass(v)}">${v||'—'}</span>
+            </div>
+            <p class="text-[11px] text-slate-500 leading-relaxed italic">${ev||'Sem evidência.'}</p>
+        </div>`).join('');
+
+    document.getElementById('qual-sla-produto-label').textContent =
+        `Critérios específicos para: ${data.qual_produto_identificado || '—'}`;
+
+    document.getElementById('qual-sla-grid').innerHTML = [
+        [data.qual_sla_1_label, data.qual_sla_1_ok, data.qual_sla_1_ev],
+        [data.qual_sla_2_label, data.qual_sla_2_ok, data.qual_sla_2_ev],
+        [data.qual_sla_3_label, data.qual_sla_3_ok, data.qual_sla_3_ev]
+    ].map(([l,ok,ev]) => `
+        <div class="rounded-2xl p-5 border flex flex-col gap-3 ${ok?'bg-emerald-50 border-emerald-100':'bg-red-50 border-red-100'}">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-black uppercase tracking-widest ${ok?'text-emerald-700':'text-red-700'}">${l||'—'}</span>
+                <div class="w-6 h-6 rounded-full flex items-center justify-center ${ok?'bg-emerald-500':'bg-red-400'}">
+                    <i data-lucide="${ok?'check':'x'}" class="text-white w-3 h-3"></i>
+                </div>
+            </div>
+            <p class="text-[11px] italic leading-relaxed ${ok?'text-emerald-700':'text-red-600'}">${ev||'Sem evidência.'}</p>
+        </div>`).join('');
+
+    document.getElementById('qual-markdown-body').innerHTML = marked.parse(data.qual_analise_completa||"");
+}
+
+function renderRadar(data) {
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    if (radarChartInstance) radarChartInstance.destroy();
+    radarChartInstance = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: fields.map(f => f.l),
+            datasets: [{
+                label: 'Desempenho',
+                data: fields.map(f => data[`nota_${f.k}`] || 0),
+                backgroundColor: 'rgba(37,99,235,0.15)',
+                borderColor: '#2563eb',
+                borderWidth: 2,
+                pointRadius: 4,
+                pointBackgroundColor: '#1e3a8a'
+            }]
+        },
+        options: {
+            scales: { r: { min:0, max:5, ticks:{stepSize:1,display:false}, grid:{color:'#e2e8f0'}, angleLines:{color:'#e2e8f0'}, pointLabels:{font:{size:10,weight:'700'},color:'#475569'} } },
+            plugins: { legend: { display: false } },
+            maintainAspectRatio: true
+        }
+    });
+}
+
+// ── Modal — reads from pilarData by index, 100% safe for any character ──────
+function openModal(idx) {
+    const p        = pilarData[idx];
+    const modal    = document.getElementById('justification-modal');
+    const modalBox = document.getElementById('modal-content-box');
+    const col      = getScoreColor(p.score);
+
+    document.getElementById('modal-title').textContent  = p.label;
+    document.getElementById('modal-score').textContent  = p.score;
+
+    const ring = document.getElementById('modal-score-ring');
+    ring.style.borderColor = col.border;
+    ring.style.background  = col.bg;
+    ring.style.color       = col.border;
+
+    document.getElementById('modal-stars').innerHTML  = buildStars(p.score);
+    document.getElementById('modal-text').textContent = p.porque;   // ← direct from JS object, no encoding needed
+
+    const isMax = p.score >= 5;
+    const ic = document.getElementById('modal-improvement-container');
+    const ii = document.getElementById('modal-improvement-icon');
+    const il = document.getElementById('modal-improvement-label');
+    const it = document.getElementById('modal-improvement-text');
+
+    if (isMax) {
+        ic.className = "rounded-2xl p-4 border bg-emerald-50 border-emerald-100";
+        ii.setAttribute('data-lucide','award'); ii.className = "w-4 h-4 text-emerald-600";
+        il.className = "text-[9px] font-bold uppercase tracking-widest block text-emerald-700";
+        il.textContent = "Excelência atingida!";
+        it.className = "text-[13px] leading-relaxed font-medium text-emerald-900";
+    } else {
+        ic.className = "rounded-2xl p-4 border bg-amber-50 border-amber-100";
+        ii.setAttribute('data-lucide','target'); ii.className = "w-4 h-4 text-amber-600";
+        il.className = "text-[9px] font-bold uppercase tracking-widest block text-amber-700";
+        il.textContent = "O que faltou para o 5?";
+        it.className = "text-[13px] leading-relaxed font-medium text-amber-900";
+    }
+    it.textContent = p.melhoria;   // ← direct from JS object
+
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modalBox.classList.remove('scale-95'); modalBox.classList.add('scale-100');
+        lucide.createIcons();
+    }, 10);
+}
+
+function closeModal() {
+    const modal    = document.getElementById('justification-modal');
+    const modalBox = document.getElementById('modal-content-box');
+    modal.classList.add('opacity-0');
+    modalBox.classList.remove('scale-100'); modalBox.classList.add('scale-95');
+    setTimeout(() => { modal.classList.remove('flex'); modal.classList.add('hidden'); }, 300);
+}
+
+document.getElementById('justification-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+analyzeBtn.addEventListener('click', handleAnalysis);
+</script>
+</div><!-- /#app-screen -->
+</body>
+</html>
