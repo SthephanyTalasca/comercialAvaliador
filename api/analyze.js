@@ -161,10 +161,13 @@ export default async function handler(req, res) {
 
         let analysisData;
         try {
-            analysisData = JSON.parse(response.text);
+            const rawText = typeof response.text === 'function' ? response.text() : response.text;
+            console.log("RAW length:", rawText?.length, "| first 100:", rawText?.substring(0,100));
+            analysisData = JSON.parse(rawText);
         } catch (parseError) {
-            console.error("Erro ao fazer parse do JSON:", response.text);
-            return res.status(500).json({ error: "A IA gerou um texto muito longo e foi cortada. Tente com uma transcrição menor." });
+            const rawText = typeof response.text === 'function' ? response.text() : response.text;
+            console.error("Parse error:", parseError.message, "| raw:", rawText?.substring(0,300));
+            return res.status(500).json({ error: "Erro ao processar resposta da IA: " + parseError.message });
         }
 
         // ── Inject UI config into response (hides from frontend source) ────────
