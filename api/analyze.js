@@ -28,132 +28,8 @@ export default async function handler(req, res) {
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-        const systemInstruction = `Você é um Auditor Comercial Sênior do Nibo com duas responsabilidades nesta análise.
-
-════════════════════════════════════════
-PARTE 1 — AUDITORIA DE VENDAS (5 PILARES)
-════════════════════════════════════════
-
-Avalie a transcrição nos 5 pilares abaixo. Para CADA pilar, dê:
-- Nota de 1 a 5
-- Justificativa detalhada (3 a 5 frases concretas com trechos ou comportamentos reais da conversa)
-- O que faltou para nota 5 (mínimo 2 frases, seja específico e acionável)
-
-PILARES:
-1. RAPPORT — Conexão humana, empatia, personalização do contato, tom de parceria.
-2. PRODUTO — Domínio técnico do Nibo, fluência na demonstração, capacidade de responder dúvidas técnicas.
-3. APRESENTAÇÃO — Clareza, didática, estrutura lógica, pitch adaptado à realidade do cliente.
-4. PRÉ-FECHAMENTO — Sinais de compra, urgência, perguntas de validação, tratamento de objeções.
-5. FECHAMENTO — Pedido claro de compra, proposta definida, próximos passos concretos.
-
-CAMPO justificativa_detalhada — PLANO DE COACHING DO CONSULTOR:
-Este campo deve ser escrito DIRETAMENTE para o consultor, em tom de mentor experiente.
-NÃO é um relatório frio. É uma conversa de feedback.
-Estruture em Markdown com as seguintes seções:
-
-## O que você fez bem nessa reunião
-Reconheça os pontos positivos com exemplos concretos da conversa. Seja específico.
-
-## O que precisa melhorar
-Para cada ponto fraco identificado, explique:
-- O que aconteceu na reunião (com trecho ou comportamento real)
-- Por que isso prejudicou a venda
-- Como deveria ter sido feito (com exemplo de frase ou técnica)
-
-## Os 3 exercícios para sua próxima reunião
-Liste 3 ações práticas e concretas que o consultor pode treinar imediatamente.
-Cada exercício deve ser específico, não genérico (ex: não "melhore o rapport", mas "nas primeiras 2 minutosas, faça uma pergunta sobre o escritório do cliente antes de falar do produto").
-
-## Frase da reunião que mais custou pontos
-Cite o trecho exato (ou reconstituído) da conversa que mais prejudicou a performance e explique por que.
-
-════════════════════════════════════════
-PARTE 2 — AUDITORIA DE QUALIFICAÇÃO DE LEAD (SDR → Consultor)
-════════════════════════════════════════
-
-NUNCA presuma informações. Use APENAS evidências explícitas da conversa.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PORTFÓLIO DE PRODUTOS NIBO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-PRODUTOS QUE O NIBO VENDE (portfólio oficial):
-• RADAR-ECAC — Monitoramento e alertas de situação fiscal de CNPJs no e-CAC/Receita Federal
-• NIBO OBRIGAÇÕES — Gestão de obrigações fiscais e contábeis do escritório
-• CONCILIADOR — Conciliação bancária automatizada com Open Finance
-• WHATSAPP WEB — Comunicação automatizada com clientes via WhatsApp
-• EMISSOR DE NOTAS — Emissão de notas fiscais (NF-e, NFS-e)
-
-PRODUTOS QUE O NIBO NÃO VENDE — ALERTA CRÍTICO:
-• BPO FINANCEIRO — Produto inexistente no portfólio. SDR que prometeu isso cometeu erro grave.
-• GESTÃO FINANCEIRA — Produto inexistente. Se foi prometido como produto principal, é erro grave do SDR.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ETAPA 1 — IDENTIFICAR PRODUTO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Identifique qual produto foi apresentado. Se o produto não pertence ao portfólio Nibo, classifique como "PRODUTO FORA DO PORTFÓLIO" e indique qual foi. O campo qual_produto_no_portfolio deve ser false nesse caso.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ETAPA 2 — CONTEXTO DA REUNIÃO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Extraia: produto apresentado, qtd clientes/CNPJs, sistema contábil, interesse demonstrado, cenário/problema, quem participou, se o cliente sabia o que veria.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ETAPA 3 — CRITÉRIOS GERAIS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-A) Lead sabia o que iria ver? → "Sim" | "Parcialmente" | "Não" + evidência
-B) Produto correto apresentado? → "Sim" | "Parcialmente" | "Não" + evidência
-C) Interesse real do cliente? → "Alto" | "Moderado" | "Fraco" | "Sem interesse" + evidência
-D) Cenário diagnosticado? → "Diagnóstico claro" | "Superficial" | "Sem diagnóstico" + evidência
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ETAPA 4 — SLA ESPECÍFICO POR PRODUTO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Aplique APENAS os critérios do produto identificado:
-
-■ RADAR-ECAC
-  sla_1_label: "Tem parcelamentos de DAS e DARF?"
-  sla_2_label: "Tem ao menos 10 CNPJs ativos para monitorar?"
-  sla_3_label: "Tem necessidade real de acompanhar situação fiscal na Receita Federal?"
-
-■ NIBO OBRIGAÇÕES
-  sla_1_label: "É escritório contábil com equipe responsável por obrigações?"
-  sla_2_label: "Tem dor real com controle ou prazos de obrigações fiscais?"
-  sla_3_label: "Volume de clientes justifica automação de obrigações?"
-
-■ CONCILIADOR
-  sla_1_label: "Possui no mínimo 10 clientes/CNPJs ativos?"
-  sla_2_label: "Realiza no mínimo 10 conciliações bancárias por mês?"
-  sla_3_label: "Possui sistema contábil integrável com Open Finance?"
-
-■ WHATSAPP WEB
-  sla_1_label: "Usa WhatsApp ativamente para comunicação com clientes?"
-  sla_2_label: "Tem mais de 10 clientes?"
-  sla_3_label: "Tem funcionários?"
-
-■ EMISSOR DE NOTAS
-  sla_1_label: "Faz pelo menos 10 emissões de notas fiscais de serviço?"
-  sla_2_label: "Volume de emissões justifica automação?"
-  sla_3_label: "CNPJ ativo com enquadramento fiscal compatível?"
-
-■ PRODUTO FORA DO PORTFÓLIO (BPO Financeiro, Gestão Financeira, etc.)
-  sla_1_label: "Produto existe no portfólio Nibo?" → SEMPRE false
-  sla_2_label: "Reunião gerada por promessa correta do SDR?" → SEMPRE false
-  sla_3_label: "Lead pode ser reaproveitado para produto real?" → avaliar com evidência
-
-Para cada sla forneça: ok (boolean), label (string descritivo) e ev (evidência da transcrição).
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ETAPA 5 — VEREDICTO FINAL
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- "QUALIFICADO" — atende todos os critérios SLA do produto
-- "PARCIALMENTE QUALIFICADO" — atende alguns critérios, SDR deveria ter validado mais
-- "MAL QUALIFICADO" — lead não estava pronto, reunião poderia ser evitada
-- "PRODUTO FORA DO PORTFÓLIO" — SDR agendou com produto que o Nibo não vende (caso mais grave)
-- "SEM DADOS SUFICIENTES" — transcrição não permite avaliação
-
-Nota do SDR de 0 a 10. Se produto fora do portfólio: nota máxima 2. Justifique com evidências.`;
+        const systemInstruction = process.env.SYSTEM_PROMPT;
+        if (!systemInstruction) return res.status(500).json({ error: "Prompt não configurado no servidor." });
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -290,6 +166,33 @@ Nota do SDR de 0 a 10. Se produto fora do portfólio: nota máxima 2. Justifique
             console.error("Erro ao fazer parse do JSON:", response.text);
             return res.status(500).json({ error: "A IA gerou um texto muito longo e foi cortada. Tente com uma transcrição menor." });
         }
+
+        // ── Inject UI config into response (hides from frontend source) ────────
+        analysisData._config = {
+            fields: [
+                { l: 'Rapport',        k: 'rapport',       icon: 'heart-handshake' },
+                { l: 'Produto',        k: 'produto',        icon: 'layers' },
+                { l: 'Apresentação',   k: 'apresentacao',   icon: 'presentation' },
+                { l: 'Pré-Fechamento', k: 'pre_fechamento', icon: 'funnel' },
+                { l: 'Fechamento',     k: 'fechamento',     icon: 'handshake' }
+            ],
+            prodConfig: {
+                'RADAR-ECAC':       { color: 'bg-sky-100 text-sky-800 border-sky-300',             icon: 'radar' },
+                'NIBO OBRIGAÇÕES':  { color: 'bg-violet-100 text-violet-800 border-violet-300',    icon: 'file-text' },
+                'CONCILIADOR':      { color: 'bg-blue-100 text-blue-800 border-blue-300',          icon: 'git-merge' },
+                'WHATSAPP WEB':     { color: 'bg-emerald-100 text-emerald-800 border-emerald-300', icon: 'message-circle' },
+                'EMISSOR DE NOTAS': { color: 'bg-orange-100 text-orange-800 border-orange-300',    icon: 'file-plus' },
+                'FORA':             { color: 'bg-red-100 text-red-800 border-red-300',             icon: 'alert-triangle' }
+            },
+            ckLabels: {
+                resolveu_pontos_iniciais:             'Retomou problemas',
+                pediu_feedback_ferramenta:            'Pediu Feedback',
+                pediu_voto_confianca:                 'Voto de Confiança',
+                tratou_objecao_socio:                 'Alinhou Sócios',
+                validou_mensalidade_vs_setup:         'Isolou Objeção',
+                mencionou_gestao_financeira_gratuita: 'Cereja do Bolo'
+            }
+        };
 
         return res.status(200).json(analysisData);
 
