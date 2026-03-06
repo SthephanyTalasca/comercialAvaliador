@@ -21,6 +21,9 @@
         .markdown-content ul { list-style-type: none; padding-left: 0; margin-bottom: 1.25rem; }
         .markdown-content li { position: relative; padding-left: 1.5rem; margin-bottom: 0.4rem; color: #475569; font-size: 0.85rem; }
         .markdown-content li::before { content: "•"; position: absolute; left: 0; color: #2563eb; font-weight: bold; }
+        .markdown-content strong { color: #1e3a8a; }
+        .markdown-content blockquote { border-left: 3px solid #2563eb; padding-left: 1rem; margin: 1rem 0; background: #eff6ff; border-radius: 0 0.5rem 0.5rem 0; padding: 0.75rem 1rem; }
+        .markdown-content blockquote p { color: #1e40af; font-style: italic; margin: 0; }
 
         .tag-concorrente { animation: pulse-tag 2s infinite; }
         @keyframes pulse-tag { 0%,100%{opacity:1} 50%{opacity:.7} }
@@ -50,19 +53,16 @@
         .ctx-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; min-width: 130px; flex-shrink: 0; padding-top: 2px; }
         .ctx-value { font-size: 12px; color: #334155; font-weight: 500; line-height: 1.5; }
 
-        /* Produto badge */
         .produto-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
         .produto-ok    { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
         .produto-alert { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; animation: pulse-tag 1.5s infinite; }
 
-        /* Veredicto */
         .verd-q  { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
         .verd-p  { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
         .verd-m  { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
         .verd-f  { background: #fdf2f8; color: #7c3aed; border-color: #c4b5fd; }
         .verd-s  { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
 
-        /* Qual badge */
         .qb-sim    { background: #d1fae5; color: #065f46; }
         .qb-parcial{ background: #fef3c7; color: #92400e; }
         .qb-nao    { background: #fee2e2; color: #991b1b; }
@@ -94,7 +94,6 @@
 
 <main class="max-w-7xl mx-auto px-4 mt-8">
 
-    <!-- INPUT -->
     <section class="mb-10">
         <div class="glass-card p-8 md:p-10">
             <div class="flex items-center gap-3 mb-6">
@@ -146,13 +145,13 @@
 
             <!-- TABS -->
             <div class="flex border-b border-slate-200 gap-8 px-2">
-                <button onclick="showSection('vendas')"  id="tab-vendas"  class="section-tab active"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> Auditoria de Vendas</button>
-                <button onclick="showSection('qualif')"  id="tab-qualif"  class="section-tab"><i data-lucide="user-check" class="w-4 h-4"></i> Qualificação do Lead (SDR)</button>
+                <button onclick="showSection('vendas')" id="tab-vendas" class="section-tab active"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> Auditoria de Vendas</button>
+                <button onclick="showSection('qualif')" id="tab-qualif" class="section-tab"><i data-lucide="user-check" class="w-4 h-4"></i> Qualificação do Lead (SDR)</button>
             </div>
 
-            <!-- ═══════════════════════════════════════════ -->
-            <!-- SEÇÃO VENDAS                               -->
-            <!-- ═══════════════════════════════════════════ -->
+            <!-- ════════════════════════════════ -->
+            <!-- SEÇÃO VENDAS                    -->
+            <!-- ════════════════════════════════ -->
             <div id="section-vendas" class="space-y-8">
 
                 <p class="text-[11px] text-slate-400 font-semibold flex items-center gap-2 px-1">
@@ -192,20 +191,22 @@
                     </div>
                 </div>
 
+                <!-- COACHING REPORT -->
                 <div class="glass-card p-12 md:p-16 shadow-2xl border-t-[10px] border-[#002d72]">
-                    <h3 class="text-xl font-extrabold text-[#002d72] uppercase tracking-widest mb-10 border-b pb-6 flex items-center gap-4">
-                        <i data-lucide="scroll-text"></i> Relatório de Auditoria Estrutural
+                    <h3 class="text-xl font-extrabold text-[#002d72] uppercase tracking-widest mb-2 flex items-center gap-4">
+                        <i data-lucide="graduation-cap"></i>
+                        Plano de Coaching — Para o Consultor
                     </h3>
+                    <p class="text-[11px] text-slate-400 font-semibold mb-10 ml-10">O que fazer diferente na sua próxima reunião</p>
                     <div id="markdown-body" class="markdown-content"></div>
                 </div>
             </div>
 
-            <!-- ═══════════════════════════════════════════ -->
-            <!-- SEÇÃO QUALIFICAÇÃO                         -->
-            <!-- ═══════════════════════════════════════════ -->
+            <!-- ════════════════════════════════ -->
+            <!-- SEÇÃO QUALIFICAÇÃO              -->
+            <!-- ════════════════════════════════ -->
             <div id="section-qualif" class="hidden space-y-6">
 
-                <!-- Alerta produto fora do portfólio -->
                 <div id="qual-fora-portfolio-alert" class="hidden bg-red-600 text-white p-6 rounded-[2rem] flex items-start gap-4 shadow-xl">
                     <i data-lucide="alert-triangle" class="w-8 h-8 flex-shrink-0 mt-0.5"></i>
                     <div>
@@ -214,7 +215,6 @@
                     </div>
                 </div>
 
-                <!-- Produto identificado + Veredicto + Nota SDR -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="glass-card p-8 flex flex-col gap-4">
                         <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Produto Identificado</h4>
@@ -233,7 +233,6 @@
                     </div>
                 </div>
 
-                <!-- Contexto -->
                 <div class="glass-card p-8">
                     <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2">
                         <i data-lucide="info" class="w-4 h-4 text-blue-400"></i> Contexto Extraído da Reunião
@@ -241,7 +240,6 @@
                     <div id="qual-contexto-rows"></div>
                 </div>
 
-                <!-- Critérios gerais -->
                 <div class="glass-card p-8">
                     <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2">
                         <i data-lucide="search" class="w-4 h-4 text-blue-400"></i> Critérios Gerais de Qualificação
@@ -249,7 +247,6 @@
                     <div id="qual-criterios" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                 </div>
 
-                <!-- SLA dinâmico -->
                 <div class="glass-card p-8">
                     <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-2">
                         <i data-lucide="check-square" class="w-4 h-4 text-blue-400"></i> SLA de Qualificação
@@ -258,7 +255,6 @@
                     <div id="qual-sla-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
                 </div>
 
-                <!-- Análise completa -->
                 <div class="glass-card p-12 border-t-[10px] border-violet-600">
                     <h3 class="text-xl font-extrabold text-violet-800 uppercase tracking-widest mb-10 border-b pb-6 flex items-center gap-4">
                         <i data-lucide="file-search"></i> Análise Completa da Qualificação (SDR)
@@ -310,6 +306,10 @@ const analysisContent = document.getElementById('analysis-content');
 const btnText         = document.getElementById('btn-text');
 let radarChartInstance = null;
 
+// ── Pilar data stored in JS, NOT in onclick attributes ──────────────────────
+// This prevents special characters (quotes, apostrophes, etc.) from breaking the modal
+let pilarData = [];
+
 const fields = [
     { l: 'Rapport',        k: 'rapport',        icon: 'heart-handshake' },
     { l: 'Produto',        k: 'produto',         icon: 'layers' },
@@ -318,14 +318,13 @@ const fields = [
     { l: 'Fechamento',     k: 'fechamento',      icon: 'handshake' }
 ];
 
-// Product colors & icons
 const prodConfig = {
-    'RADAR-ECAC':       { color: 'bg-sky-100 text-sky-800 border-sky-300',      icon: 'radar' },
+    'RADAR-ECAC':       { color: 'bg-sky-100 text-sky-800 border-sky-300',          icon: 'radar' },
     'NIBO OBRIGAÇÕES':  { color: 'bg-violet-100 text-violet-800 border-violet-300', icon: 'file-text' },
-    'CONCILIADOR':      { color: 'bg-blue-100 text-blue-800 border-blue-300',   icon: 'git-merge' },
+    'CONCILIADOR':      { color: 'bg-blue-100 text-blue-800 border-blue-300',       icon: 'git-merge' },
     'WHATSAPP WEB':     { color: 'bg-emerald-100 text-emerald-800 border-emerald-300', icon: 'message-circle' },
     'EMISSOR DE NOTAS': { color: 'bg-orange-100 text-orange-800 border-orange-300', icon: 'file-plus' },
-    'FORA':             { color: 'bg-red-100 text-red-800 border-red-300',      icon: 'alert-triangle' }
+    'FORA':             { color: 'bg-red-100 text-red-800 border-red-300',          icon: 'alert-triangle' }
 };
 
 function getScoreColor(n) {
@@ -396,25 +395,33 @@ function renderDashboard(data) {
             </span>`).join('');
 
     const status = document.getElementById('status-tag');
-    if (media >= 4.5)     { status.textContent = "Elite Sales";       status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg"; }
-    else if (media >= 3.5){ status.textContent = "Alta Performance";  status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700"; }
-    else                  { status.textContent = "Acompanhamento";    status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; }
+    if (media >= 4.5)      { status.textContent = "Elite Sales";      status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg"; }
+    else if (media >= 3.5) { status.textContent = "Alta Performance"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700"; }
+    else                   { status.textContent = "Acompanhamento";   status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; }
 
-    // Pilar cards
-    document.getElementById('notas-grid').innerHTML = fields.map(f => {
-        const n   = data[`nota_${f.k}`]     || 0;
-        const p   = data[`porque_${f.k}`]   || "Sem justificativa.";
-        const m   = data[`melhoria_${f.k}`] || "Critério de excelência atingido.";
-        const col = getScoreColor(n);
+    // ── Build pilarData array — safe storage for all text ──────────────────
+    pilarData = fields.map(f => ({
+        label:      f.l,
+        icon:       f.icon,
+        score:      data[`nota_${f.k}`]     || 0,
+        porque:     data[`porque_${f.k}`]   || "Sem justificativa disponível.",
+        melhoria:   data[`melhoria_${f.k}`] || "Critério de excelência atingido."
+    }));
+
+    // ── Pilar cards — onclick uses index only, text comes from pilarData ───
+    document.getElementById('notas-grid').innerHTML = pilarData.map((p, idx) => {
+        const col = getScoreColor(p.score);
+        // Safe preview: strip chars that could break HTML attributes
+        const preview = p.porque.substring(0, 80).replace(/"/g, '').replace(/'/g, '') + (p.porque.length > 80 ? '...' : '');
         return `
-            <div onclick="openModal('${f.l}', ${n}, '${encodeURIComponent(p)}', '${encodeURIComponent(m)}')"
+            <div onclick="openModal(${idx})"
                  class="pilar-card bg-white rounded-[2rem] p-6 flex flex-col items-center text-center justify-center min-h-[200px]">
                 <div class="zoom-icon"><i data-lucide="zoom-in" class="w-3 h-3 text-blue-400"></i></div>
-                <i data-lucide="${f.icon}" class="w-6 h-6 text-slate-300 mb-3 mt-2"></i>
-                <span class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-widest">${f.l}</span>
-                <div class="text-5xl font-black ${col.text} mb-2 leading-none">${n}</div>
-                <div class="stars-row mb-3">${buildStars(n)}</div>
-                <p class="text-[9px] text-slate-400 italic leading-tight font-medium max-w-[95%] line-clamp-3">${p}</p>
+                <i data-lucide="${p.icon}" class="w-6 h-6 text-slate-300 mb-3 mt-2"></i>
+                <span class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-widest">${p.label}</span>
+                <div class="text-5xl font-black ${col.text} mb-2 leading-none">${p.score}</div>
+                <div class="stars-row mb-3">${buildStars(p.score)}</div>
+                <p class="text-[9px] text-slate-400 italic leading-tight font-medium max-w-[95%] line-clamp-3">${preview}</p>
                 <span class="click-hint">ver detalhes →</span>
             </div>`;
     }).join('');
@@ -462,17 +469,15 @@ function renderDashboard(data) {
 function renderQualificacao(data) {
     const foraPortfolio = !data.qual_produto_no_portfolio;
 
-    // Alerta fora do portfólio
     const alertEl = document.getElementById('qual-fora-portfolio-alert');
     if (foraPortfolio) {
         alertEl.classList.remove('hidden');
         document.getElementById('qual-fora-portfolio-text').textContent =
-            data.qual_produto_alerta || "O produto apresentado nesta reunião não faz parte do portfólio comercial do Nibo. Essa reunião foi gerada por uma promessa incorreta do SDR.";
+            data.qual_produto_alerta || "O produto apresentado não faz parte do portfólio Nibo. Reunião gerada por promessa incorreta do SDR.";
     } else {
         alertEl.classList.add('hidden');
     }
 
-    // Produto badge
     const prodNome = (data.qual_produto_identificado || '').toUpperCase();
     let prodCfg = prodConfig['FORA'];
     for (const key of Object.keys(prodConfig)) {
@@ -485,22 +490,19 @@ function renderQualificacao(data) {
         </span>`;
     document.getElementById('qual-produto-alerta-text').textContent = data.qual_produto_alerta || '';
 
-    // Veredicto
-    const verd    = data.qual_veredicto || "SEM DADOS";
-    const verdEl  = document.getElementById('qual-veredicto-badge');
+    const verd   = data.qual_veredicto || "SEM DADOS";
+    const verdEl = document.getElementById('qual-veredicto-badge');
     verdEl.textContent = verd;
     let vc = 'verd-s';
     if (verd.includes('FORA'))  vc = 'verd-f';
-    else if (verd.includes('MAL')) vc = 'verd-m';
+    else if (verd.includes('MAL'))  vc = 'verd-m';
     else if (verd.includes('PARC')) vc = 'verd-p';
     else if (verd.includes('QUAL')) vc = 'verd-q';
     verdEl.className = `px-5 py-3 rounded-2xl border-2 text-sm font-black text-center tracking-wide ${vc}`;
 
-    // Nota SDR
     document.getElementById('qual-nota-sdr').textContent      = data.qual_nota_sdr ?? '—';
     document.getElementById('qual-nota-sdr-just').textContent = data.qual_nota_sdr_justificativa || '';
 
-    // Contexto
     const ctx = data.qual_contexto || {};
     document.getElementById('qual-contexto-rows').innerHTML = [
         ['Produto Apresentado', ctx.produto_apresentado],
@@ -516,12 +518,11 @@ function renderQualificacao(data) {
             <span class="ctx-value">${v||'—'}</span>
         </div>`).join('');
 
-    // Critérios gerais
     function qbClass(val) {
         const v = (val||'').toLowerCase();
-        if (v.includes('sim') || v.includes('alto') || v.includes('claro'))      return 'qb-sim';
-        if (v.includes('parc') || v.includes('moder') || v.includes('superf'))   return 'qb-parcial';
-        if (v.includes('fraco'))  return 'qb-fraco';
+        if (v.includes('sim') || v.includes('alto') || v.includes('claro'))    return 'qb-sim';
+        if (v.includes('parc') || v.includes('moder') || v.includes('superf')) return 'qb-parcial';
+        if (v.includes('fraco')) return 'qb-fraco';
         return 'qb-nao';
     }
     document.getElementById('qual-criterios').innerHTML = [
@@ -538,7 +539,6 @@ function renderQualificacao(data) {
             <p class="text-[11px] text-slate-500 leading-relaxed italic">${ev||'Sem evidência.'}</p>
         </div>`).join('');
 
-    // SLA dinâmico
     document.getElementById('qual-sla-produto-label').textContent =
         `Critérios específicos para: ${data.qual_produto_identificado || '—'}`;
 
@@ -585,25 +585,25 @@ function renderRadar(data) {
     });
 }
 
-// Modal
-function openModal(title, score, encodedText, encodedImprovement) {
+// ── Modal — reads from pilarData by index, 100% safe for any character ──────
+function openModal(idx) {
+    const p        = pilarData[idx];
     const modal    = document.getElementById('justification-modal');
     const modalBox = document.getElementById('modal-content-box');
-    const col      = getScoreColor(score);
+    const col      = getScoreColor(p.score);
 
-    document.getElementById('modal-title').textContent  = title;
-    document.getElementById('modal-score').textContent  = score;
+    document.getElementById('modal-title').textContent  = p.label;
+    document.getElementById('modal-score').textContent  = p.score;
 
     const ring = document.getElementById('modal-score-ring');
     ring.style.borderColor = col.border;
     ring.style.background  = col.bg;
     ring.style.color       = col.border;
 
-    document.getElementById('modal-stars').innerHTML  = buildStars(score);
-    document.getElementById('modal-text').textContent = decodeURIComponent(encodedText);
+    document.getElementById('modal-stars').innerHTML  = buildStars(p.score);
+    document.getElementById('modal-text').textContent = p.porque;   // ← direct from JS object, no encoding needed
 
-    const improvement = decodeURIComponent(encodedImprovement);
-    const isMax = score >= 5;
+    const isMax = p.score >= 5;
     const ic = document.getElementById('modal-improvement-container');
     const ii = document.getElementById('modal-improvement-icon');
     const il = document.getElementById('modal-improvement-label');
@@ -622,7 +622,7 @@ function openModal(title, score, encodedText, encodedImprovement) {
         il.textContent = "O que faltou para o 5?";
         it.className = "text-[13px] leading-relaxed font-medium text-amber-900";
     }
-    it.textContent = improvement;
+    it.textContent = p.melhoria;   // ← direct from JS object
 
     modal.classList.remove('hidden'); modal.classList.add('flex');
     setTimeout(() => {
