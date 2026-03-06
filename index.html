@@ -374,6 +374,11 @@ async function initAuth() {
 }
 
 initAuth();
+
+async function handleLogout() {
+    await fetch('/api/logout');
+    window.location.href = '/';
+}
 // ─────────────────────────────────────────────────────────────────────────────
 
 const analyzeBtn      = document.getElementById('analyze-btn');
