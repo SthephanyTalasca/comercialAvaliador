@@ -1,63 +1,176 @@
-// api/records.js
-// DELETE body: { modo: 'nao_id' }               → exclui todos "Não identificado"
-// DELETE body: { modo: 'vendedor', nome: '...' } → exclui registros de um vendedor
-// DELETE body: { modo: 'single', id: 'uuid' }   → exclui registro único
+// api/dashboard.js
+// Retorna dados agregados para o dashboard
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 
-function getSession(req) {
+export default async function handler(req, res) {
+    if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido' });
+
+    // ── Verificar sessão ─────────────────────────────────────────────────────
     const cookie = req.headers.cookie || '';
     const match  = cookie.match(/nibo_session=([^;]+)/);
-    if (!match) return null;
+    if (!match) return res.status(401).json({ error: 'Não autorizado' });
     try {
-        const s = JSON.parse(Buffer.from(match[1], 'base64').toString('utf8'));
-        if (s.exp && Date.now() > s.exp) return null;
-        if (s.email.toLowerCase().split('@')[1] !== 'nibo.com.br') return null;
-        return s;
-    } catch { return null; }
-}
+        const session = JSON.parse(Buffer.from(match[1], 'base64').toString('utf8'));
+        if (!session.exp || Date.now() > session.exp) return res.status(401).json({ error: 'Sessão expirada' });
+        const domain = session.email.toLowerCase().split('@')[1];
+        if (domain !== 'nibo.com.br') return res.status(403).json({ error: 'Acesso negado' });
+    } catch { return res.status(401).json({ error: 'Sessão inválida' }); }
+    // ─────────────────────────────────────────────────────────────────────────
 
-export default async function handler(req, res) {
-    if (!getSession(req)) return res.status(401).json({ error: 'Não autorizado' });
-    if (req.method !== 'DELETE') return res.status(405).json({ error: 'Método não permitido' });
-
-    const { modo, id, nome } = req.body || {};
+    const { coordenador, periodo } = req.query;
 
     try {
-        let url;
+        // ── Montar filtros ───────────────────────────────────────────────────
+        const { vendedor, data_inicio, data_fim } = req.query;
+        let filter = '';
 
-        if (modo === 'nao_id') {
-            url = `${SUPABASE_URL}/rest/v1/reunioes?vendedor_nome=ilike.*identificado*`;
-        } else if (modo === 'vendedor' && nome?.trim()) {
-            const encoded = encodeURIComponent(nome.trim());
-            url = `${SUPABASE_URL}/rest/v1/reunioes?vendedor_nome=eq.${encoded}`;
-        } else if (modo === 'single' && id) {
-            url = `${SUPABASE_URL}/rest/v1/reunioes?id=eq.${id}`;
-        } else {
-            return res.status(400).json({ error: 'Parâmetros inválidos.' });
+        if (coordenador && coordenador !== 'todos') {
+            filter += `&coordenador=eq.${encodeURIComponent(coordenador)}`;
         }
 
-        const r = await fetch(url, {
-            method: 'DELETE',
+        // Filtro por vendedor (fuzzy: ilike)
+        if (vendedor && vendedor !== 'todos') {
+            filter += `&vendedor_nome=ilike.*${encodeURIComponent(vendedor.split(' ')[0])}*`;
+        }
+
+        // Período pré-definido (legado)
+        if (periodo && periodo !== 'todos' && !data_inicio) {
+            const days = parseInt(periodo);
+            const since = new Date(Date.now() - days * 86400000).toISOString();
+            filter += `&created_at=gte.${since}`;
+        }
+
+        // Intervalo de datas personalizado (calendário)
+        if (data_inicio) {
+            filter += `&created_at=gte.${new Date(data_inicio).toISOString()}`;
+        }
+        if (data_fim) {
+            // Inclui o dia inteiro
+            const fim = new Date(data_fim);
+            fim.setHours(23, 59, 59, 999);
+            filter += `&created_at=lte.${fim.toISOString()}`;
+        }
+
+        // ── Buscar reuniões ──────────────────────────────────────────────────
+        const url = `${SUPABASE_URL}/rest/v1/reunioes?select=*&order=created_at.desc${filter}`;
+        const response = await fetch(url, {
             headers: {
                 'apikey':         SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
-                'Prefer':        'return=representation',
-                'Content-Type':  'application/json'
+                'Authorization': `Bearer ${SUPABASE_KEY}`
             }
         });
 
-        if (!r.ok) {
-            const err = await r.text();
-            console.error('Supabase DELETE error:', err);
-            return res.status(500).json({ error: 'Erro no banco: ' + err });
+        if (!response.ok) {
+            const err = await response.text();
+            return res.status(500).json({ error: 'Erro ao buscar dados: ' + err });
         }
 
-        const deleted = await r.json();
-        return res.status(200).json({ ok: true, count: Array.isArray(deleted) ? deleted.length : 0 });
+        const reunioes = await response.json();
 
-    } catch (err) {
-        return res.status(500).json({ error: err.message });
+        if (!reunioes.length) {
+            return res.status(200).json({ reunioes: [], stats: null });
+        }
+
+        // ── Calcular stats ───────────────────────────────────────────────────
+        const stats = calcStats(reunioes);
+
+        return res.status(200).json({ reunioes, stats });
+
+    } catch (error) {
+        console.error('Dashboard error:', error);
+        return res.status(500).json({ error: error.message });
     }
+}
+
+function calcStats(reunioes) {
+    const total = reunioes.length;
+    const avg = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length) : 0;
+    const medias = reunioes.map(r => r.media_final).filter(Boolean);
+
+    // ── Por coordenador ──────────────────────────────────────────────────────
+    const porCoordenador = {};
+    for (const r of reunioes) {
+        if (!porCoordenador[r.coordenador]) {
+            porCoordenador[r.coordenador] = { total: 0, medias: [], sdr_notas: [], mal_qualificados: 0 };
+        }
+        const c = porCoordenador[r.coordenador];
+        c.total++;
+        if (r.media_final) c.medias.push(r.media_final);
+        if (r.qual_nota_sdr) c.sdr_notas.push(r.qual_nota_sdr);
+        if (r.qual_veredicto?.includes('MAL') || r.qual_veredicto?.includes('FORA')) c.mal_qualificados++;
+    }
+    for (const k of Object.keys(porCoordenador)) {
+        const c = porCoordenador[k];
+        c.media_vendas = +avg(c.medias).toFixed(1);
+        c.media_sdr    = +avg(c.sdr_notas).toFixed(1);
+    }
+
+    // ── Ranking vendedores ───────────────────────────────────────────────────
+    const porVendedor = {};
+    for (const r of reunioes) {
+        if (!porVendedor[r.vendedor_nome]) {
+            porVendedor[r.vendedor_nome] = {
+                nome: r.vendedor_nome,
+                coordenador: r.coordenador,
+                total: 0, medias: [],
+                rapport: [], produto: [], apresentacao: [],
+                pre_fechamento: [], fechamento: []
+            };
+        }
+        const v = porVendedor[r.vendedor_nome];
+        v.total++;
+        if (r.media_final)         v.medias.push(r.media_final);
+        if (r.nota_rapport)        v.rapport.push(r.nota_rapport);
+        if (r.nota_produto)        v.produto.push(r.nota_produto);
+        if (r.nota_apresentacao)   v.apresentacao.push(r.nota_apresentacao);
+        if (r.nota_pre_fechamento) v.pre_fechamento.push(r.nota_pre_fechamento);
+        if (r.nota_fechamento)     v.fechamento.push(r.nota_fechamento);
+    }
+
+    const ranking = Object.values(porVendedor).map(v => ({
+        ...v,
+        media:          +avg(v.medias).toFixed(1),
+        avg_rapport:    +avg(v.rapport).toFixed(1),
+        avg_produto:    +avg(v.produto).toFixed(1),
+        avg_apresentacao: +avg(v.apresentacao).toFixed(1),
+        avg_pre_fechamento: +avg(v.pre_fechamento).toFixed(1),
+        avg_fechamento: +avg(v.fechamento).toFixed(1),
+    })).sort((a,b) => b.media - a.media);
+
+    // ── Evolução temporal (por semana) ───────────────────────────────────────
+    const porSemana = {};
+    for (const r of reunioes) {
+        const d   = new Date(r.created_at);
+        const mon = new Date(d);
+        mon.setDate(d.getDate() - d.getDay());
+        const key = mon.toISOString().split('T')[0];
+        if (!porSemana[key]) porSemana[key] = { semana: key, medias: [], total: 0 };
+        porSemana[key].total++;
+        if (r.media_final) porSemana[key].medias.push(r.media_final);
+    }
+    const evolucao = Object.values(porSemana)
+        .map(s => ({ semana: s.semana, media: +avg(s.medias).toFixed(1), total: s.total }))
+        .sort((a,b) => a.semana.localeCompare(b.semana));
+
+    // ── SDR stats ────────────────────────────────────────────────────────────
+    const veredictos = { QUALIFICADO: 0, PARCIALMENTE: 0, MAL: 0, FORA: 0, SEM: 0 };
+    for (const r of reunioes) {
+        const v = r.qual_veredicto || '';
+        if (v.includes('FORA'))  veredictos.FORA++;
+        else if (v.includes('MAL'))   veredictos.MAL++;
+        else if (v.includes('PARC'))  veredictos.PARCIALMENTE++;
+        else if (v.includes('QUAL'))  veredictos.QUALIFICADO++;
+        else                          veredictos.SEM++;
+    }
+
+    return {
+        total,
+        media_geral:    +avg(medias).toFixed(1),
+        porCoordenador,
+        ranking,
+        evolucao,
+        veredictos
+    };
 }
