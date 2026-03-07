@@ -23,10 +23,16 @@ export default async function handler(req, res) {
 
     try {
         // ── Montar filtros ───────────────────────────────────────────────────
+        const { vendedor } = req.query;
         let filter = '';
 
         if (coordenador && coordenador !== 'todos') {
             filter += `&coordenador=eq.${encodeURIComponent(coordenador)}`;
+        }
+
+        // Filtro por vendedor (fuzzy: ilike)
+        if (vendedor && vendedor !== 'todos') {
+            filter += `&vendedor_nome=ilike.*${encodeURIComponent(vendedor.split(' ')[0])}*`;
         }
 
         // Período: 7d | 30d | 90d | todos
