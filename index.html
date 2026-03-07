@@ -760,8 +760,7 @@ function setDashMode(mode) {
     const btns = {
         gestor:    { id: 'dash-mode-gestor',     active: 'bg-[#002d72] text-white shadow-md',   inactive: 'bg-slate-200 text-slate-500' },
         vendedor:  { id: 'dash-mode-vendedor',   active: 'bg-violet-600 text-white shadow-md',  inactive: 'bg-slate-200 text-slate-500' },
-        gestao:    { id: 'dash-mode-gestao',     active: 'bg-emerald-600 text-white shadow-md', inactive: 'bg-slate-200 text-slate-500' },
-        calendario:{ id: 'dash-mode-calendario', active: 'bg-sky-600 text-white shadow-md',     inactive: 'bg-slate-200 text-slate-500' }
+        gestao:    { id: 'dash-mode-gestao',     active: 'bg-emerald-600 text-white shadow-md', inactive: 'bg-slate-200 text-slate-500' }
     };
     Object.entries(btns).forEach(([k,b]) => {
         const el = document.getElementById(b.id);
@@ -775,7 +774,6 @@ function setDashMode(mode) {
     if (mode === 'gestor') loadDashboard();
     if (mode === 'gestao') loadGestaoPanel();
     if (mode === 'vendedor') populateEuSelect();
-    if (mode === 'calendario') loadCalendario();
 }
 
 async function onCoordChange() {
@@ -811,7 +809,11 @@ async function loadDashboard() {
     const content  = document.getElementById('dash-content');
     loading.classList.remove('hidden');
     try {
-        const qs = 'coordenador=' + encodeURIComponent(coord) + '&periodo=' + periodo + '&vendedor=' + encodeURIComponent(vendedor);
+        const inicio  = document.getElementById('dash-filter-inicio')?.value || '';
+        const fim     = document.getElementById('dash-filter-fim')?.value || '';
+        let qs = 'coordenador=' + encodeURIComponent(coord) + '&periodo=' + periodo + '&vendedor=' + encodeURIComponent(vendedor);
+        if (inicio) qs += '&data_inicio=' + encodeURIComponent(inicio);
+        if (fim)    qs += '&data_fim='    + encodeURIComponent(fim);
         const res  = await fetch('/api/dashboard?' + qs);
         const data = await res.json();
         if (data.error) throw new Error(data.error);
@@ -973,6 +975,34 @@ function renderDashboardData({ reunioes, stats }) {
 }
 
 
+// ── Período e calendário inline ───────────────────────────────────────────────
+function onPeriodoChange() {
+    const val = document.getElementById('dash-filter-periodo').value;
+    const customRange = document.getElementById('dash-custom-range');
+    if (val === 'custom') {
+        customRange.classList.remove('hidden');
+    } else {
+        customRange.classList.add('hidden');
+        document.getElementById('dash-filter-inicio').value = '';
+        document.getElementById('dash-filter-fim').value   = '';
+        loadDashboard();
+    }
+}
+
+let calendarVisible = false;
+function toggleCalendarioInline() {
+    calendarVisible = !calendarVisible;
+    const btn = document.getElementById('btn-cal-toggle');
+    if (calendarVisible) {
+        btn.className = 'flex items-center gap-1.5 px-3 py-2 bg-sky-600 border border-sky-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all';
+        loadCalendario();
+    } else {
+        btn.className = 'flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:border-sky-400 text-slate-500 hover:text-sky-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all';
+        loadDashboard();
+    }
+}
+
+
 async function loadVendedorDash() {
     const nome    = document.getElementById('dash-filter-eu').value;
     const periodo = document.getElementById('dash-filter-periodo-vend').value;
@@ -1112,12 +1142,16 @@ function renderGestaoPanel(vendedores, reunioes) {
                 '</div>' +
                 '<div class="flex gap-2">' +
                     '<button data-action="editar" data-id="' + v.id + '" ' +
-                        'class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-600 text-blue-500 hover:text-white border border-blue-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">' +
+                        'class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-600 text-blue-500 hover:text-white border border-blue-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all" title="Editar">' +
                         '<i data-lucide="pencil" class="w-3 h-3"></i>' +
                     '</button>' +
-                    '<button data-action="excluir" data-id="' + v.id + '" ' +
-                        'class="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-500 hover:text-white border border-red-200 hover:border-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">' +
-                        '<i data-lucide="user-minus" class="w-3 h-3"></i> excluir' +
+                    '<button data-action="del-registros" data-id="' + v.id + '" ' +
+                        'class="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-600 text-amber-600 hover:text-white border border-amber-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all" title="Excluir análises">' +
+                        '<i data-lucide="trash-2" class="w-3 h-3"></i>' +
+                    '</button>' +
+                    '<button data-action="demitir" data-id="' + v.id + '" ' +
+                        'class="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-500 hover:text-white border border-red-200 hover:border-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all" title="Demitir">' +
+                        '<i data-lucide="user-minus" class="w-3 h-3"></i>' +
                     '</button>' +
                 '</div>' +
             '</div>';
@@ -1225,7 +1259,7 @@ function gestaoClickHandler(e) {
     if (!btn) return;
     const action = btn.dataset.action;
     const id     = btn.dataset.id;
-    if (action === 'excluir') {
+    if (action === 'demitir') {
         const v = window._vendMap[id];
         if (v) confirmarDemissao(v.id, v.nome);
     } else if (action === 'reativar') {
@@ -1236,6 +1270,9 @@ function gestaoClickHandler(e) {
     } else if (action === 'editar') {
         const v = window._vendMap[id];
         if (v) abrirModalEditarVendedor(v);
+    } else if (action === 'del-registros') {
+        const v = window._vendMap[id];
+        if (v) excluirRegistrosVendedor(v.nome);
     }
 }
 
@@ -1329,17 +1366,39 @@ async function reatribuirAnalise(reuniaoId) {
 }
 
 
-// ── Excluir registros não identificados ──────────────────────────────────────
+// ── Excluir registros ────────────────────────────────────────────────────────
 async function excluirNaoIdentificados() {
     if (!confirm('Excluir TODOS os registros onde o vendedor não foi identificado?\nEsta ação não pode ser desfeita.')) return;
     try {
-        const res  = await fetch('/api/records?modo=nao_id', { method: 'DELETE' });
+        const res  = await fetch('/api/records', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ modo: 'nao_id' })
+        });
         const data = await res.json();
         if (!data.ok) throw new Error(data.error);
         alert(data.count + ' registro(s) excluído(s).');
         loadGestaoPanel();
     } catch(err) {
-        alert('Erro: ' + err.message);
+        alert('Erro ao excluir: ' + err.message);
+    }
+}
+
+async function excluirRegistrosVendedor(nome) {
+    if (!nome) return;
+    if (!confirm('Excluir TODAS as análises de "' + nome + '"?\n\nO cadastro do vendedor será mantido. Apenas os registros de análise serão removidos.\nEsta ação não pode ser desfeita.')) return;
+    try {
+        const res  = await fetch('/api/records', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ modo: 'vendedor', nome })
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error);
+        alert(data.count + ' análise(s) de "' + nome + '" excluída(s).\nO cadastro do vendedor foi mantido.');
+        loadGestaoPanel();
+    } catch(err) {
+        alert('Erro ao excluir: ' + err.message);
     }
 }
 
@@ -1640,10 +1699,7 @@ analyzeBtn.addEventListener('click', handleAnalysis);
                         class="flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all bg-slate-200 text-slate-500">
                         <i data-lucide="settings" class="w-3 h-3 inline mr-1"></i> Gestão
                     </button>
-                    <button onclick="setDashMode('calendario')" id="dash-mode-calendario"
-                        class="flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all bg-slate-200 text-slate-500">
-                        <i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i> Calendário
-                    </button>
+
                 </div>
 
                 <!-- Gestor filters -->
@@ -1664,13 +1720,24 @@ analyzeBtn.addEventListener('click', handleAnalysis);
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Período:</span>
-                        <select id="dash-filter-periodo" onchange="loadDashboard()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300">
+                        <select id="dash-filter-periodo" onchange="onPeriodoChange()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300">
                             <option value="30">Últimos 30 dias</option>
                             <option value="7">Últimos 7 dias</option>
                             <option value="90">Últimos 90 dias</option>
                             <option value="todos">Todo o período</option>
+                            <option value="custom">Intervalo personalizado</option>
                         </select>
                     </div>
+                    <div id="dash-custom-range" class="hidden flex items-center gap-2">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">De:</span>
+                        <input type="date" id="dash-filter-inicio" onchange="loadDashboard()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300" />
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Até:</span>
+                        <input type="date" id="dash-filter-fim" onchange="loadDashboard()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300" />
+                    </div>
+                    <button onclick="toggleCalendarioInline()" id="btn-cal-toggle"
+                        class="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:border-sky-400 text-slate-500 hover:text-sky-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                        <i data-lucide="calendar" class="w-3 h-3"></i> Calendário
+                    </button>
                     <div id="dash-loading" class="hidden flex items-center gap-2 text-blue-600 text-xs font-bold">
                         <div class="loader" style="width:16px;height:16px;border-width:2px"></div> Carregando...
                     </div>
@@ -1708,4 +1775,3 @@ analyzeBtn.addEventListener('click', handleAnalysis);
 </div><!-- /#app-screen -->
 </body>
 </html>
-
