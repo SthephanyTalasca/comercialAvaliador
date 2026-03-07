@@ -88,6 +88,9 @@ export default async function handler(req, res) {
                         pontos_atencao:          { type: Type.ARRAY, items: { type: Type.STRING } },
                         justificativa_detalhada: { type: Type.STRING },
 
+                        // ── VENDEDOR ─────────────────────────────────────────
+                        vendedor_nome: { type: Type.STRING },
+
                         // ── PARTE 2: QUALIFICAÇÃO ────────────────────────────
                         qual_produto_identificado:  { type: Type.STRING },
                         qual_produto_no_portfolio:  { type: Type.BOOLEAN },
@@ -133,7 +136,7 @@ export default async function handler(req, res) {
                         qual_analise_completa:       { type: Type.STRING }
                     },
                     required: [
-                        "media_final", "resumo_executivo", "chance_fechamento", "alerta_cancelamento",
+                        "vendedor_nome", "media_final", "resumo_executivo", "chance_fechamento", "alerta_cancelamento",
                         "concorrentes_detectados",
                         "nota_rapport", "porque_rapport", "melhoria_rapport",
                         "nota_produto", "porque_produto", "melhoria_produto",
