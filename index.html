@@ -82,7 +82,7 @@
         </div>
         <div>
             <h1 class="font-black text-[#002d72] text-2xl uppercase tracking-tight mb-1">Nibo Auditor</h1>
-            <p class="text-slate-400 text-sm font-medium">Acesso restrito — apenas Coordenadores</p>
+            <p class="text-slate-400 text-sm font-medium">Acesso restrito — apenas Heads</p>
         </div>
         <div id="login-error" class="hidden w-full bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-700 font-medium"></div>
         <a href="/api/auth" class="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-200 hover:border-blue-400 text-slate-700 font-bold px-6 py-4 rounded-2xl transition-all shadow-sm hover:shadow-md">
@@ -1056,71 +1056,254 @@ async function loadVendedorDash() {
 
 function renderVendedorDash(nome, obj) {
     const reunioes = obj.reunioes; const stats = obj.stats;
-    const content = document.getElementById('dash-content');
+    const content  = document.getElementById('dash-content');
+
     if (!stats || !reunioes.length) {
-        content.innerHTML = '<div class="flex flex-col items-center py-20 text-slate-300"><i data-lucide="inbox" class="w-12 h-12 mb-3"></i><p class="font-bold text-sm">Nenhuma análise encontrada para ' + nome + '.</p></div>';
+        content.innerHTML =
+            '<div class="flex flex-col items-center py-20 text-slate-300">' +
+                '<i data-lucide="inbox" class="w-12 h-12 mb-3"></i>' +
+                '<p class="font-bold text-sm">Nenhuma análise encontrada para ' + nome + '.</p>' +
+            '</div>';
         lucide.createIcons(); return;
     }
+
     const v = stats.ranking[0];
     if (!v) return;
-    const sc = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
-    const bar = (label, val, color) => '<div><div class="flex justify-between text-[10px] font-black mb-1"><span class="text-slate-500 uppercase tracking-widest">' + label + '</span><span class="' + sc(val) + '">' + (val||'—') + ' / 5</span></div><div class="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full ' + color + ' rounded-full" style="width:' + Math.round(((val||0)/5)*100) + '%"></div></div></div>';
 
-    const pilares = [v.avg_rapport, v.avg_produto, v.avg_apresentacao, v.avg_pre_fechamento, v.avg_fechamento];
-    const pilarLabels = ['Rapport','Produto','Apres.','Pré-F.','Fecha.'];
-    const maxVal = Math.max(...pilares); const minVal = Math.min(...pilares);
-    const maxLabel = pilarLabels[pilares.indexOf(maxVal)];
-    const minLabel = pilarLabels[pilares.indexOf(minVal)];
+    const sc    = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
+    const scBg  = n => n >= 4 ? 'bg-emerald-100' : n >= 3 ? 'bg-blue-100' : 'bg-red-100';
+    const scBar = n => n >= 4 ? 'bg-emerald-500' : n >= 3 ? 'bg-blue-500' : 'bg-red-400';
+    const fmt   = n => (typeof n === 'number' && !isNaN(n)) ? n.toFixed(1) : '—';
 
-    const vColors2 = {QUALIFICADO:'bg-emerald-500',PARCIALMENTE:'bg-yellow-400',MAL:'bg-red-500',FORA:'bg-purple-500',SEM:'bg-slate-300'};
-    const vLabels2 = {QUALIFICADO:'Qualificado',PARCIALMENTE:'Parcial',MAL:'Mal Qualif.',FORA:'Fora Portf.',SEM:'Sem dados'};
+    const bar = (label, val, color) =>
+        '<div>' +
+            '<div class="flex justify-between text-[10px] font-black mb-1.5">' +
+                '<span class="text-slate-500 uppercase tracking-widest">' + label + '</span>' +
+                '<span class="' + sc(val) + '">' + fmt(val) + ' / 5</span>' +
+            '</div>' +
+            '<div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden">' +
+                '<div class="h-full ' + color + ' rounded-full transition-all" style="width:' + Math.round(((val||0)/5)*100) + '%"></div>' +
+            '</div>' +
+        '</div>';
 
-    const evolRows = stats.evolucao.map(e =>
-        '<div class="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100"><span class="text-[10px] font-black text-slate-400">' + e.semana + '</span><div class="flex items-center gap-3"><span class="text-[9px] text-slate-400">' + e.total + ' reunião(ões)</span><span class="text-base font-black ' + sc(e.media) + '">' + e.media + '</span></div></div>'
-    ).join('');
+    // ── Tendência: comparar últimos 30d vs 30d anteriores ─────────────────
+    const now      = Date.now();
+    const d30      = 30 * 86400000;
+    const recentes = reunioes.filter(r => now - new Date(r.created_at) <= d30);
+    const antigos  = reunioes.filter(r => { const age = now - new Date(r.created_at); return age > d30 && age <= d30*2; });
+    const avg      = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+    const avgRec   = avg(recentes.map(r=>r.media_final).filter(Boolean));
+    const avgAnt   = avg(antigos.map(r=>r.media_final).filter(Boolean));
 
-    const ultimas = reunioes.slice(0,5).map(r => {
-        const ck = r.analise_json && r.analise_json.checklist_fechamento ? r.analise_json.checklist_fechamento : {};
-        const ckOk = Object.values(ck).filter(Boolean).length;
-        const ckTot = Object.values(ck).length;
-        const pilarMini = [r.nota_rapport,r.nota_produto,r.nota_apresentacao,r.nota_pre_fechamento,r.nota_fechamento];
-        const pilarL = ['R','Pr','Ap','PF','F'];
-        return '<div class="p-5 rounded-2xl border border-slate-100 bg-white hover:shadow-sm transition-all"><div class="flex justify-between items-start mb-3"><div><p class="text-[9px] font-black text-slate-400 uppercase">' + new Date(r.created_at).toLocaleDateString('pt-BR') + '</p><p class="text-[11px] font-bold text-slate-600 mt-0.5">' + (r.produto||'Produto não identificado') + '</p></div><div class="text-3xl font-black ' + sc(r.media_final) + '">' + (r.media_final||'—') + '</div></div><div class="grid grid-cols-5 gap-1 mb-3">' + pilarMini.map((val,i) => '<div class="text-center p-1.5 rounded-lg ' + (val>=4?'bg-emerald-50':val>=3?'bg-blue-50':'bg-red-50') + '"><p class="text-[8px] text-slate-400 font-bold">' + pilarL[i] + '</p><p class="font-black text-xs ' + sc(val) + '">' + (val||'—') + '</p></div>').join('') + '</div><div class="flex items-center justify-between text-[10px]"><span class="font-medium text-slate-400">Checklist: <span class="font-black text-slate-600">' + ckOk + '/' + ckTot + '</span></span><span class="px-2 py-1 rounded-full font-black ' + (r.qual_veredicto&&r.qual_veredicto.includes('QUAL')?'bg-emerald-100 text-emerald-700':r.qual_veredicto&&r.qual_veredicto.includes('MAL')?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700') + '">' + (r.qual_veredicto||'—') + '</span></div></div>';
+    let tendencia = null, tendLabel = '', tendIcon = '', tendColor = '';
+    if (avgRec !== null && avgAnt !== null) {
+        const diff = avgRec - avgAnt;
+        if (diff >= 0.3)       { tendencia = 'subindo';   tendLabel = '+' + diff.toFixed(1) + ' vs mês anterior'; tendIcon = 'trending-up';   tendColor = 'text-emerald-600 bg-emerald-50 border-emerald-200'; }
+        else if (diff <= -0.3) { tendencia = 'caindo';    tendLabel = diff.toFixed(1) + ' vs mês anterior';       tendIcon = 'trending-down';  tendColor = 'text-red-500 bg-red-50 border-red-200'; }
+        else                   { tendencia = 'estável';   tendLabel = 'Estável vs mês anterior';                  tendIcon = 'minus';          tendColor = 'text-slate-500 bg-slate-50 border-slate-200'; }
+    } else if (avgRec !== null) {
+        tendLabel = 'Dados insuficientes para comparar'; tendIcon = 'info'; tendColor = 'text-slate-400 bg-slate-50 border-slate-200';
+    }
+
+    // ── Análise de consistência ───────────────────────────────────────────
+    const medias      = reunioes.map(r=>r.media_final).filter(Boolean);
+    const mediaGeral  = avg(medias) || 0;
+    const variance    = avg(medias.map(m => Math.pow(m - mediaGeral, 2))) || 0;
+    const stdDev      = Math.sqrt(variance);
+    const consistencia = stdDev < 0.5 ? 'Alta' : stdDev < 1.0 ? 'Média' : 'Baixa';
+    const consColor    = stdDev < 0.5 ? 'text-emerald-600 bg-emerald-50' : stdDev < 1.0 ? 'text-blue-600 bg-blue-50' : 'text-red-500 bg-red-50';
+
+    // ── Melhor / pior semana ──────────────────────────────────────────────
+    const bySemana = {};
+    reunioes.forEach(r => {
+        const d   = new Date(r.created_at);
+        const mon = new Date(d); mon.setDate(d.getDate() - d.getDay());
+        const key = mon.toISOString().split('T')[0];
+        if (!bySemana[key]) bySemana[key] = [];
+        if (r.media_final) bySemana[key].push(r.media_final);
+    });
+    const semanas = Object.entries(bySemana)
+        .map(([sem, vals]) => ({ sem, media: avg(vals), count: vals.length }))
+        .filter(s => s.count >= 2)
+        .sort((a,b) => b.media - a.media);
+    const melhorSem = semanas[0];
+    const piorSem   = semanas[semanas.length - 1];
+
+    // ── Pilar mais fraco / mais forte ─────────────────────────────────────
+    const pilarNomes = ['Rapport','Produto','Apresentação','Pré-Fechamento','Fechamento'];
+    const pilarVals  = [v.avg_rapport, v.avg_produto, v.avg_apresentacao, v.avg_pre_fechamento, v.avg_fechamento];
+    const maxIdx     = pilarVals.indexOf(Math.max(...pilarVals.filter(Boolean)));
+    const minIdx     = pilarVals.indexOf(Math.min(...pilarVals.filter(Boolean)));
+
+    // ── Evolução semanal (mini table) ────────────────────────────────────
+    const evolucaoRows = stats.evolucao.slice(-8).map(e => {
+        const pct  = Math.round((e.media / 5) * 100);
+        const prev = stats.evolucao[stats.evolucao.indexOf(e) - 1];
+        const seta = prev ? (e.media > prev.media ? '↑' : e.media < prev.media ? '↓' : '→') : '';
+        const setaColor = seta === '↑' ? 'text-emerald-500' : seta === '↓' ? 'text-red-400' : 'text-slate-400';
+        return '<div class="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-white">' +
+            '<span class="text-[9px] font-black text-slate-400 w-20 flex-shrink-0">' + e.semana + '</span>' +
+            '<div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">' +
+                '<div class="h-full ' + scBar(e.media) + ' rounded-full" style="width:' + pct + '%"></div>' +
+            '</div>' +
+            '<span class="text-xs font-black ' + sc(e.media) + ' w-8 text-right">' + fmt(e.media) + '</span>' +
+            '<span class="text-sm font-black ' + setaColor + ' w-4 text-center">' + seta + '</span>' +
+        '</div>';
+    }).join('') || '<p class="text-slate-300 text-xs text-center py-4">Sem dados suficientes</p>';
+
+    // ── Diagnóstico personalizado ─────────────────────────────────────────
+    const diagnostico = [];
+    if (v.avg_fechamento < 3)      diagnostico.push({ icon: 'alert-circle', color: 'text-red-500',    msg: 'Fechamento abaixo da média — foco em técnicas de objeção e comprometimento.' });
+    if (v.avg_pre_fechamento < 3)  diagnostico.push({ icon: 'alert-circle', color: 'text-red-500',    msg: 'Pré-fechamento fraco — trabalhe ancoragem e sondagem antes de fechar.' });
+    if (v.avg_rapport < 3)         diagnostico.push({ icon: 'alert-circle', color: 'text-red-500',    msg: 'Rapport baixo — conexão com o cliente precisa melhorar.' });
+    if (v.avg_produto < 3)         diagnostico.push({ icon: 'alert-circle', color: 'text-amber-500',  msg: 'Conhecimento de produto — reforce os diferenciais e cases do portfólio.' });
+    if (v.avg_apresentacao < 3)    diagnostico.push({ icon: 'alert-circle', color: 'text-amber-500',  msg: 'Apresentação precisa de estrutura — siga o fluxo: dor → solução → valor.' });
+    if (tendencia === 'caindo')    diagnostico.push({ icon: 'trending-down', color: 'text-red-500',   msg: 'Queda nos últimos 30 dias — retomar treinamentos e acompanhamento com gestor.' });
+    if (tendencia === 'subindo')   diagnostico.push({ icon: 'trending-up',   color: 'text-emerald-600', msg: 'Evolução positiva nos últimos 30 dias — manter o ritmo!' });
+    if (mediaGeral >= 4.5)         diagnostico.push({ icon: 'star',          color: 'text-amber-500',  msg: 'Desempenho excelente — referência para o time.' });
+    if (consistencia === 'Alta')   diagnostico.push({ icon: 'check-circle',  color: 'text-emerald-600', msg: 'Consistência alta — resultados estáveis e previsíveis.' });
+    if (consistencia === 'Baixa')  diagnostico.push({ icon: 'shuffle',       color: 'text-amber-500',  msg: 'Resultados inconsistentes — foco em processo, não em performance pontual.' });
+
+    const diagRows = diagnostico.map(d =>
+        '<div class="flex items-start gap-3 p-3 rounded-xl bg-white border border-slate-100">' +
+            '<i data-lucide="' + d.icon + '" class="w-4 h-4 mt-0.5 flex-shrink-0 ' + d.color + '"></i>' +
+            '<p class="text-[11px] font-medium text-slate-600">' + d.msg + '</p>' +
+        '</div>'
+    ).join('') || '<div class="p-3 text-center text-slate-300 text-xs">Sem diagnóstico disponível — analise mais reuniões.</div>';
+
+    // ── SDR veredictos ────────────────────────────────────────────────────
+    const vColors = { QUALIFICADO:'bg-emerald-500', PARCIALMENTE:'bg-yellow-400', MAL:'bg-red-500', FORA:'bg-purple-500', SEM:'bg-slate-300' };
+    const vLabels = { QUALIFICADO:'Qualificado', PARCIALMENTE:'Parcial', MAL:'Mal Qualif.', FORA:'Fora Portf.', SEM:'Sem dados' };
+    const sdrBars = Object.entries(stats.veredictos).map(([k,val]) => {
+        const pct = stats.total ? Math.round(val/stats.total*100) : 0;
+        return '<div class="flex items-center gap-3">' +
+            '<span class="text-[9px] font-black text-slate-500 uppercase w-20 flex-shrink-0">' + (vLabels[k]||k) + '</span>' +
+            '<div class="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">' +
+                '<div class="h-full ' + (vColors[k]||'bg-slate-300') + ' rounded-full" style="width:' + pct + '%"></div>' +
+            '</div>' +
+            '<span class="text-xs font-black text-slate-600 w-10 text-right">' + val + '</span>' +
+        '</div>';
     }).join('');
 
+    // ── RENDER ────────────────────────────────────────────────────────────
     content.innerHTML =
-        '<div class="glass-card p-8 bg-gradient-to-r from-violet-600 to-violet-800 text-white flex items-center gap-6">' +
-            '<div class="w-16 h-16 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-2xl font-black">' + nome.charAt(0) + '</div>' +
-            '<div class="flex-1"><p class="text-violet-200 text-[10px] font-black uppercase tracking-widest mb-1">Seu Desempenho</p><h3 class="text-2xl font-black">' + nome + '</h3><p class="text-violet-300 text-xs font-bold">' + v.coordenador + ' · ' + v.total + ' reuniões analisadas</p></div>' +
-            '<div class="text-right"><p class="text-violet-200 text-[10px] font-black uppercase tracking-widest mb-1">Média Geral</p><p class="text-6xl font-black">' + v.media + '</p><p class="text-violet-300 text-xs">/ 5.0</p></div>' +
+
+    // Hero card
+    '<div class="glass-card p-8 bg-gradient-to-r from-[#002d72] to-blue-700 text-white flex flex-wrap items-center gap-6">' +
+        '<div class="w-16 h-16 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-2xl font-black flex-shrink-0">' + nome.charAt(0) + '</div>' +
+        '<div class="flex-1">' +
+            '<p class="text-blue-200 text-[10px] font-black uppercase tracking-widest mb-1">Seu Desempenho</p>' +
+            '<h3 class="text-2xl font-black">' + nome + '</h3>' +
+            '<p class="text-blue-300 text-xs font-bold">' + v.coordenador + ' · ' + v.total + ' reunião(ões) analisada(s)</p>' +
         '</div>' +
-        '<div class="grid grid-cols-2 md:grid-cols-4 gap-4">' +
-            '<div class="glass-card p-6 text-center border-b-4 border-violet-500"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Reuniões</p><p class="text-4xl font-black text-violet-600">' + v.total + '</p></div>' +
-            '<div class="glass-card p-6 text-center border-b-4 border-emerald-400"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Melhor Pilar</p><p class="text-xs font-black ' + sc(maxVal) + '">' + maxLabel + '</p><p class="text-2xl font-black ' + sc(maxVal) + '">' + maxVal + '</p></div>' +
-            '<div class="glass-card p-6 text-center border-b-4 border-red-400"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Pilar Fraco</p><p class="text-xs font-black ' + sc(minVal) + '">' + minLabel + '</p><p class="text-2xl font-black ' + sc(minVal) + '">' + minVal + '</p></div>' +
-            '<div class="glass-card p-6 text-center border-b-4 border-blue-400"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">SDR Médio</p><p class="text-4xl font-black text-blue-600">' + (stats.porCoordenador[v.coordenador]?stats.porCoordenador[v.coordenador].media_sdr:'—') + '</p><p class="text-[9px] text-slate-400 font-bold">/ 10</p></div>' +
+        '<div class="flex gap-6">' +
+            '<div class="text-center"><p class="text-blue-200 text-[9px] font-black uppercase tracking-widest mb-1">Média</p><p class="text-5xl font-black">' + fmt(v.media) + '</p><p class="text-blue-300 text-[10px]">/ 5.0</p></div>' +
+            (avgRec !== null ? '<div class="text-center"><p class="text-blue-200 text-[9px] font-black uppercase tracking-widest mb-1">Último Mês</p><p class="text-5xl font-black ' + (avgRec >= 4 ? 'text-emerald-300' : avgRec >= 3 ? 'text-white' : 'text-red-300') + '">' + fmt(avgRec) + '</p><p class="text-blue-300 text-[10px]">/ 5.0</p></div>' : '') +
         '</div>' +
-        '<div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Desempenho por Pilar</h4><div class="space-y-4">' +
-            bar('Rapport',''+v.avg_rapport,'bg-pink-500') +
-            bar('Produto',''+v.avg_produto,'bg-sky-500') +
-            bar('Apresentação',''+v.avg_apresentacao,'bg-indigo-500') +
-            bar('Pré-Fechamento',''+v.avg_pre_fechamento,'bg-amber-500') +
-            bar('Fechamento',''+v.avg_fechamento,'bg-emerald-500') +
-        '</div></div>' +
-        '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">' +
-            '<div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Evolução por Semana</h4>' + (stats.evolucao.length > 0 ? '<div class="space-y-2">' + evolRows + '</div>' : '<p class="text-slate-300 text-sm font-bold text-center py-8">Sem dados suficientes</p>') + '</div>' +
-            '<div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Qualificação de Leads (SDR)</h4><div class="space-y-3">' +
-                Object.entries(stats.veredictos).map(function(entry) {
-                    var k=entry[0], val=entry[1];
-                    var pct = stats.total ? Math.round(val/stats.total*100) : 0;
-                    return '<div class="flex items-center gap-3"><span class="text-[9px] font-black text-slate-500 uppercase w-20 flex-shrink-0">' + vLabels2[k] + '</span><div class="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden"><div class="h-full ' + vColors2[k] + ' rounded-full" style="width:' + pct + '%"></div></div><span class="text-xs font-black text-slate-600 w-10 text-right">' + val + '</span></div>';
-                }).join('') +
-            '</div></div>' +
+    '</div>' +
+
+    // Tendência + consistência + melhor semana
+    '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">' +
+        (tendLabel ? '<div class="glass-card p-5 border border-slate-200 ' + tendColor + ' flex items-center gap-3">' +
+            '<i data-lucide="' + tendIcon + '" class="w-6 h-6 flex-shrink-0"></i>' +
+            '<div><p class="text-[9px] font-black uppercase tracking-widest mb-0.5">Tendência</p>' +
+            '<p class="font-black text-sm">' + tendLabel + '</p></div>' +
+        '</div>' : '') +
+        '<div class="glass-card p-5 border border-slate-200 flex items-center gap-3 ' + consColor + '">' +
+            '<i data-lucide="activity" class="w-6 h-6 flex-shrink-0"></i>' +
+            '<div><p class="text-[9px] font-black uppercase tracking-widest mb-0.5">Consistência</p>' +
+            '<p class="font-black text-sm">' + consistencia + ' (σ=' + stdDev.toFixed(2) + ')</p></div>' +
         '</div>' +
-        '<div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4 text-violet-400"></i> Últimas Análises</h4><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">' + ultimas + '</div></div>';
+        (melhorSem ? '<div class="glass-card p-5 border border-emerald-200 bg-emerald-50 flex items-center gap-3 text-emerald-700">' +
+            '<i data-lucide="star" class="w-6 h-6 flex-shrink-0"></i>' +
+            '<div><p class="text-[9px] font-black uppercase tracking-widest mb-0.5">Melhor Semana</p>' +
+            '<p class="font-black text-sm">' + melhorSem.sem + ' — ' + fmt(melhorSem.media) + '</p></div>' +
+        '</div>' : '') +
+    '</div>' +
+
+    // Diagnóstico
+    '<div class="glass-card p-7">' +
+        '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">' +
+            '<i data-lucide="zap" class="w-4 h-4 text-amber-400"></i> Diagnóstico Personalizado' +
+        '</h4>' +
+        '<div class="space-y-2">' + diagRows + '</div>' +
+    '</div>' +
+
+    // Pilares
+    '<div class="glass-card p-7">' +
+        '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2">' +
+            '<i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-400"></i> Desempenho por Pilar' +
+        '</h4>' +
+        '<div class="space-y-4">' +
+            bar('Rapport',        v.avg_rapport,        'bg-pink-500') +
+            bar('Produto',        v.avg_produto,        'bg-sky-500') +
+            bar('Apresentação',   v.avg_apresentacao,   'bg-indigo-500') +
+            bar('Pré-Fechamento', v.avg_pre_fechamento, 'bg-amber-500') +
+            bar('Fechamento',     v.avg_fechamento,     'bg-emerald-500') +
+        '</div>' +
+        '<div class="grid grid-cols-2 gap-3 mt-5">' +
+            '<div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">' +
+                '<p class="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-1">Ponto Forte</p>' +
+                '<p class="font-black text-sm text-emerald-700">' + (pilarNomes[maxIdx]||'—') + '</p>' +
+                '<p class="text-xl font-black text-emerald-600">' + fmt(pilarVals[maxIdx]) + '</p>' +
+            '</div>' +
+            '<div class="p-3 bg-red-50 rounded-2xl border border-red-100 text-center">' +
+                '<p class="text-[8px] font-black text-red-400 uppercase tracking-widest mb-1">Ponto Fraco</p>' +
+                '<p class="font-black text-sm text-red-600">' + (pilarNomes[minIdx]||'—') + '</p>' +
+                '<p class="text-xl font-black text-red-500">' + fmt(pilarVals[minIdx]) + '</p>' +
+            '</div>' +
+        '</div>' +
+    '</div>' +
+
+    // Evolução semanal
+    '<div class="glass-card p-7">' +
+        '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">' +
+            '<i data-lucide="trending-up" class="w-4 h-4 text-blue-400"></i> Evolução Semanal' +
+            (piorSem && melhorSem && piorSem.sem !== melhorSem.sem ? '<span class="ml-auto text-[9px] text-slate-400 font-medium normal-case tracking-normal">Melhor: ' + fmt(melhorSem.media) + ' · Pior: ' + fmt(piorSem.media) + '</span>' : '') +
+        '</h4>' +
+        '<div class="space-y-2">' + evolucaoRows + '</div>' +
+    '</div>' +
+
+    // SDR + últimas análises em grid
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">' +
+        '<div class="glass-card p-7">' +
+            '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">' +
+                '<i data-lucide="user-check" class="w-4 h-4 text-violet-400"></i> Qualificação de Leads (SDR)' +
+            '</h4>' +
+            '<div class="space-y-3">' + sdrBars + '</div>' +
+        '</div>' +
+        '<div class="glass-card p-7">' +
+            '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">' +
+                '<i data-lucide="clock" class="w-4 h-4 text-slate-400"></i> Últimas Análises' +
+            '</h4>' +
+            '<div class="space-y-2">' +
+            reunioes.slice(0,5).map(r => {
+                const pilarMini = [r.nota_rapport,r.nota_produto,r.nota_apresentacao,r.nota_pre_fechamento,r.nota_fechamento];
+                return '<div class="p-3 rounded-xl border border-slate-100 bg-white">' +
+                    '<div class="flex justify-between items-center mb-2">' +
+                        '<div>' +
+                            '<p class="text-[9px] font-black text-slate-400">' + new Date(r.created_at).toLocaleDateString('pt-BR') + '</p>' +
+                            '<p class="text-[11px] font-bold text-slate-600">' + (r.produto||'—') + '</p>' +
+                        '</div>' +
+                        '<span class="text-xl font-black ' + sc(r.media_final) + '">' + (r.media_final||'—') + '</span>' +
+                    '</div>' +
+                    '<div class="grid grid-cols-5 gap-1">' +
+                    pilarMini.map((val,i) =>
+                        '<div class="text-center p-1 rounded-lg ' + scBg(val) + '">' +
+                            '<p class="text-[7px] text-slate-400 font-bold">' + ['R','Pr','Ap','PF','F'][i] + '</p>' +
+                            '<p class="font-black text-[10px] ' + sc(val) + '">' + (val||'—') + '</p>' +
+                        '</div>'
+                    ).join('') +
+                    '</div>' +
+                '</div>';
+            }).join('') +
+            '</div>' +
+        '</div>' +
+    '</div>';
 
     lucide.createIcons();
 }
+
 
 // ── Dashboard Gestor ──────────────────────────────────────────────────────────
 
@@ -2101,4 +2284,3 @@ analyzeBtn.addEventListener('click', handleAnalysis);
 </div><!-- /#app-screen -->
 </body>
 </html>
-
