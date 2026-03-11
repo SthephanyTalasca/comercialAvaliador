@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -82,7 +83,7 @@
         </div>
         <div>
             <h1 class="font-black text-[#002d72] text-2xl uppercase tracking-tight mb-1">Nibo Auditor</h1>
-            <p class="text-slate-400 text-sm font-medium">Acesso restrito — Apenas Coordenadores</p>
+            <p class="text-slate-400 text-sm font-medium">Acesso restrito — apenas Heads</p>
         </div>
         <div id="login-error" class="hidden w-full bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-700 font-medium"></div>
         <a href="/api/auth" class="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-200 hover:border-blue-400 text-slate-700 font-bold px-6 py-4 rounded-2xl transition-all shadow-sm hover:shadow-md">
@@ -912,8 +913,12 @@ function renderDashboardData({ reunioes, stats }) {
                 '<div class="w-10 h-10 rounded-full ' + bgColor + ' flex items-center justify-center">' +
                     '<i data-lucide="user-circle" class="w-5 h-5 ' + iconColor + '"></i>' +
                 '</div>' +
-                '<div><p class="font-black text-sm text-slate-800">' + nome + '</p>' +
-                '<p class="text-[10px] text-slate-400 font-bold">' + coData.total + ' reuniões analisadas</p></div>' +
+                '<div>' +
+                    '<p class="font-black text-sm text-slate-800">' + nome + '</p>' +
+                    '<button onclick="abrirAnalysesCoord(\'' + nome.replace(/'/g,"\\'") + '\')" class="text-[10px] text-blue-500 hover:text-blue-700 font-black underline underline-offset-2 transition-colors">' +
+                        coData.total + ' reuniões analisadas →' +
+                    '</button>' +
+                '</div>' +
             '</div>' +
             '<div class="grid grid-cols-3 gap-3">' +
                 '<div class="text-center p-3 bg-slate-50 rounded-2xl"><p class="text-[8px] font-black text-slate-400 uppercase mb-1">Média Vendas</p><p class="text-2xl font-black ' + sc(coData.media_vendas) + '">' + (coData.media_vendas || '—') + '</p></div>' +
@@ -1037,6 +1042,8 @@ function toggleCalendarioInline() {
 }
 
 
+let _reunioesCache = []; // global cache for analysis lookup
+
 async function loadVendedorDash() {
     const nome    = document.getElementById('dash-filter-eu').value;
     const periodo = document.getElementById('dash-filter-periodo-vend').value;
@@ -1048,6 +1055,7 @@ async function loadVendedorDash() {
         const res  = await fetch('/api/dashboard?' + qs);
         const data = await res.json();
         if (data.error) throw new Error(data.error);
+        _reunioesCache = data.reunioes || [];
         renderVendedorDash(nome, data);
     } catch(err) {
         content.innerHTML = '<div class="text-center py-20 text-red-400 font-bold">' + err.message + '</div>';
@@ -1067,7 +1075,8 @@ function renderVendedorDash(nome, obj) {
         lucide.createIcons(); return;
     }
 
-    const v = stats.ranking[0];
+    // Pega o vendedor pelo nome exato, fallback para o primeiro
+    const v = stats.ranking.find(r => r.nome === nome) || stats.ranking[0];
     if (!v) return;
 
     const sc    = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
@@ -1279,13 +1288,17 @@ function renderVendedorDash(nome, obj) {
             '<div class="space-y-2">' +
             reunioes.slice(0,5).map(r => {
                 const pilarMini = [r.nota_rapport,r.nota_produto,r.nota_apresentacao,r.nota_pre_fechamento,r.nota_fechamento];
-                return '<div class="p-3 rounded-xl border border-slate-100 bg-white">' +
+                const rId = r.id;
+                return '<div class="p-3 rounded-xl border border-slate-100 bg-white cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all" onclick="abrirAnaliseCompleta(\''+rId+'\')">' +
                     '<div class="flex justify-between items-center mb-2">' +
                         '<div>' +
                             '<p class="text-[9px] font-black text-slate-400">' + new Date(r.created_at).toLocaleDateString('pt-BR') + '</p>' +
                             '<p class="text-[11px] font-bold text-slate-600">' + (r.produto||'—') + '</p>' +
                         '</div>' +
-                        '<span class="text-xl font-black ' + sc(r.media_final) + '">' + (r.media_final||'—') + '</span>' +
+                        '<div class="flex items-center gap-2">' +
+                            '<span class="text-xl font-black ' + sc(r.media_final) + '">' + (r.media_final||'—') + '</span>' +
+                            '<i data-lucide="eye" class="w-3.5 h-3.5 text-slate-300"></i>' +
+                        '</div>' +
                     '</div>' +
                     '<div class="grid grid-cols-5 gap-1">' +
                     pilarMini.map((val,i) =>
@@ -1354,8 +1367,12 @@ function renderGestaoPanel(vendedores, reunioes) {
             return '<div class="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 hover:shadow-sm transition-all">' +
                 '<div class="flex items-center gap-3">' +
                     '<div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-500 text-sm">' + v.nome.charAt(0) + '</div>' +
-                    '<div><p class="font-bold text-sm text-slate-800">' + v.nome + '</p>' +
-                    '<p class="text-[10px] text-slate-400">' + count + ' análise(s)</p></div>' +
+                    '<div>' +
+                        '<p class="font-bold text-sm text-slate-800">' + v.nome + '</p>' +
+                        '<button onclick="abrirAnalysesVendedor(\'' + v.nome.replace(/'/g, '\\' + '\'') + '\')" class="text-[10px] text-blue-500 hover:text-blue-700 font-black underline underline-offset-2 transition-colors">' +
+                            count + ' análise(s) →' +
+                        '</button>' +
+                    '</div>' +
                 '</div>' +
                 '<div class="flex gap-2">' +
                     '<button data-action="editar" data-id="' + v.id + '" ' +
@@ -2143,6 +2160,437 @@ function abrirModalInativos() {
 }
 
 
+
+// ── Análises por coordenador ──────────────────────────────────────────────────
+async function abrirAnalysesCoord(coordenador) {
+    const old = document.getElementById('modal-analyses-list');
+    if (old) old.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modal-analyses-list';
+    modal.className = 'fixed inset-0 z-[400] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4';
+    modal.innerHTML =
+        '<div class="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col">' +
+            '<div class="p-6 border-b border-slate-100 flex justify-between items-center flex-shrink-0">' +
+                '<div>' +
+                    '<p class="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Análises do time</p>' +
+                    '<h3 class="font-black text-slate-800 text-lg">' + coordenador + '</h3>' +
+                '</div>' +
+                '<button id="mal-close" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full"><i data-lucide="x" class="w-4 h-4 text-slate-500"></i></button>' +
+            '</div>' +
+            '<div id="mal-body" class="overflow-y-auto p-6 space-y-3">' +
+                '<div class="flex items-center justify-center py-10 text-slate-300"><div class="loader mr-3"></div><p class="text-xs font-black uppercase tracking-widest animate-pulse">Carregando...</p></div>' +
+            '</div>' +
+        '</div>';
+    document.body.appendChild(modal);
+    lucide.createIcons();
+    document.getElementById('mal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    try {
+        // Use current period filter from gestor view
+        const periodo  = document.getElementById('dash-filter-periodo')?.value || 'todos';
+        const inicio   = document.getElementById('dash-filter-inicio')?.value || '';
+        const fim      = document.getElementById('dash-filter-fim')?.value || '';
+        let qs = 'coordenador=' + encodeURIComponent(coordenador) + '&periodo=' + periodo + '&vendedor=todos';
+        if (inicio) qs += '&data_inicio=' + encodeURIComponent(inicio);
+        if (fim)    qs += '&data_fim='    + encodeURIComponent(fim);
+
+        const res  = await fetch('/api/dashboard?' + qs);
+        const data = await res.json();
+        const list = (data.reunioes || []);
+        const sc   = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
+        const scBg = n => n >= 4 ? 'bg-emerald-50 border-emerald-200' : n >= 3 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200';
+
+        if (!list.length) {
+            document.getElementById('mal-body').innerHTML = '<p class="text-center text-slate-300 text-sm py-8">Nenhuma análise encontrada.</p>';
+            return;
+        }
+
+        document.getElementById('mal-body').innerHTML = list.map(r =>
+            '<div class="flex items-center gap-3 p-4 rounded-2xl border cursor-pointer hover:shadow-md transition-all ' + scBg(r.media_final) + '" onclick="abrirAnaliseCompleta(\'' + r.id + '\')">' +
+                '<div class="w-11 h-11 rounded-full bg-white border-2 ' + (r.media_final >= 4 ? 'border-emerald-400' : r.media_final >= 3 ? 'border-blue-400' : 'border-red-400') + ' flex items-center justify-center font-black text-lg ' + sc(r.media_final) + ' flex-shrink-0">' + (r.media_final || '?') + '</div>' +
+                '<div class="flex-1 min-w-0">' +
+                    '<p class="font-black text-sm text-slate-800">' + (r.vendedor_nome || 'Não identificado') + '</p>' +
+                    '<p class="text-[10px] text-slate-400 font-bold">' + (r.produto || '—') + ' · ' + new Date(r.created_at).toLocaleDateString('pt-BR', {day:'2-digit',month:'short',year:'numeric'}) + '</p>' +
+                    '<p class="text-[9px] text-slate-400 mt-0.5">' + (r.qual_veredicto || '') + '</p>' +
+                '</div>' +
+                '<div class="flex flex-col items-end gap-1">' +
+                    '<div class="grid grid-cols-5 gap-0.5">' +
+                    ['nota_rapport','nota_produto','nota_apresentacao','nota_pre_fechamento','nota_fechamento'].map((k,i) =>
+                        '<div class="text-center"><p class="text-[6px] text-slate-400">'+['R','Pr','A','PF','F'][i]+'</p><p class="text-[9px] font-black '+sc(r[k])+'">'+( r[k]||'—')+'</p></div>'
+                    ).join('') +
+                    '</div>' +
+                    '<i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 mt-1"></i>' +
+                '</div>' +
+            '</div>'
+        ).join('');
+        lucide.createIcons();
+    } catch(err) {
+        document.getElementById('mal-body').innerHTML = '<p class="text-center text-red-400 font-bold py-8">' + err.message + '</p>';
+    }
+}
+
+
+// ── Análises por vendedor (modal lista) ───────────────────────────────────────
+async function abrirAnalysesVendedor(nome) {
+    const old = document.getElementById('modal-analyses-list');
+    if (old) old.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modal-analyses-list';
+    modal.className = 'fixed inset-0 z-[400] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4';
+    modal.innerHTML =
+        '<div class="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col">' +
+            '<div class="p-6 border-b border-slate-100 flex justify-between items-center flex-shrink-0">' +
+                '<div>' +
+                    '<p class="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Análises do vendedor</p>' +
+                    '<h3 class="font-black text-slate-800 text-lg">' + nome + '</h3>' +
+                '</div>' +
+                '<button id="mal-close" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full"><i data-lucide="x" class="w-4 h-4 text-slate-500"></i></button>' +
+            '</div>' +
+            '<div id="mal-body" class="overflow-y-auto p-6 space-y-3">' +
+                '<div class="flex items-center justify-center py-10 text-slate-300"><div class="loader mr-3"></div><p class="text-xs font-black uppercase tracking-widest animate-pulse">Carregando...</p></div>' +
+            '</div>' +
+        '</div>';
+    document.body.appendChild(modal);
+    lucide.createIcons();
+    document.getElementById('mal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    try {
+        const res  = await fetch('/api/dashboard?vendedor=' + encodeURIComponent(nome) + '&periodo=todos&coordenador=todos');
+        const data = await res.json();
+        const list = (data.reunioes || []);
+        const sc   = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
+        const scBg = n => n >= 4 ? 'bg-emerald-50 border-emerald-200' : n >= 3 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200';
+
+        if (!list.length) {
+            document.getElementById('mal-body').innerHTML = '<p class="text-center text-slate-300 text-sm py-8">Nenhuma análise encontrada.</p>';
+            return;
+        }
+
+        document.getElementById('mal-body').innerHTML = list.map(r =>
+            '<div class="flex items-center gap-3 p-4 rounded-2xl border cursor-pointer hover:shadow-md transition-all ' + scBg(r.media_final) + '" onclick="abrirAnaliseCompleta(\'' + r.id + '\')">' +
+                '<div class="w-11 h-11 rounded-full bg-white border-2 ' + (r.media_final >= 4 ? 'border-emerald-400' : r.media_final >= 3 ? 'border-blue-400' : 'border-red-400') + ' flex items-center justify-center font-black text-lg ' + sc(r.media_final) + ' flex-shrink-0">' + (r.media_final || '?') + '</div>' +
+                '<div class="flex-1 min-w-0">' +
+                    '<p class="font-black text-sm text-slate-800">' + (r.produto || '—') + '</p>' +
+                    '<p class="text-[10px] text-slate-400 font-bold">' + new Date(r.created_at).toLocaleDateString('pt-BR', {day:'2-digit',month:'short',year:'numeric'}) + ' · ' + (r.coordenador || '') + '</p>' +
+                    '<p class="text-[9px] text-slate-400 mt-0.5">' + (r.qual_veredicto || '') + '</p>' +
+                '</div>' +
+                '<div class="flex flex-col items-end gap-1">' +
+                    '<div class="grid grid-cols-5 gap-0.5">' +
+                    ['nota_rapport','nota_produto','nota_apresentacao','nota_pre_fechamento','nota_fechamento'].map((k,i) =>
+                        '<div class="text-center"><p class="text-[6px] text-slate-400">' + ['R','Pr','A','PF','F'][i] + '</p><p class="text-[9px] font-black ' + sc(r[k]) + '">' + (r[k]||'—') + '</p></div>'
+                    ).join('') +
+                    '</div>' +
+                    '<i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 mt-1"></i>' +
+                '</div>' +
+            '</div>'
+        ).join('');
+        lucide.createIcons();
+    } catch(err) {
+        document.getElementById('mal-body').innerHTML = '<p class="text-center text-red-400 font-bold py-8">' + err.message + '</p>';
+    }
+}
+
+// ── Abrir análise completa a partir de ID ────────────────────────────────────
+async function abrirAnaliseCompleta(reuniaoId) {
+    // Close list modal if open
+    const listModal = document.getElementById('modal-analyses-list');
+
+    const old = document.getElementById('modal-analise-full');
+    if (old) old.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modal-analise-full';
+    modal.className = 'fixed inset-0 z-[500] bg-white overflow-y-auto';
+    modal.innerHTML =
+        '<div class="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm">' +
+            '<div class="flex items-center gap-3">' +
+                '<button id="maf-back" class="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-black text-sm transition-colors">' +
+                    '<i data-lucide="arrow-left" class="w-4 h-4"></i> Voltar' +
+                '</button>' +
+                '<div class="w-px h-5 bg-slate-200"></div>' +
+                '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest" id="maf-title">Análise Completa</span>' +
+            '</div>' +
+            '<button id="maf-pdf" class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95">' +
+                '<i data-lucide="file-down" class="w-4 h-4"></i> Exportar PDF' +
+            '</button>' +
+        '</div>' +
+        '<div id="maf-loading" class="flex flex-col items-center py-20 text-slate-300">' +
+            '<div class="loader mb-4"></div>' +
+            '<p class="font-bold text-xs uppercase tracking-widest animate-pulse">Carregando análise...</p>' +
+        '</div>' +
+        '<div id="maf-content" class="hidden max-w-5xl mx-auto px-4 py-8 space-y-8"></div>';
+
+    document.body.appendChild(modal);
+    lucide.createIcons();
+
+    document.getElementById('maf-back').addEventListener('click', () => {
+        modal.remove();
+        if (listModal && document.body.contains(listModal)) { /* keep open */ }
+    });
+
+    try {
+        // Fetch single record via dashboard with ID — use history endpoint
+        // We need the full analise_json, so fetch all and find by ID
+        const res  = await fetch('/api/dashboard?coordenador=todos&periodo=todos&vendedor=todos');
+        const data = await res.json();
+        const r    = (data.reunioes || []).find(x => x.id === reuniaoId);
+        if (!r) throw new Error('Análise não encontrada.');
+
+        const analise = r.analise_json || {};
+        if (!analise.media_final) throw new Error('Dados da análise incompletos.');
+
+        document.getElementById('maf-title').textContent =
+            (r.vendedor_nome || '—') + ' · ' + new Date(r.created_at).toLocaleDateString('pt-BR');
+        document.getElementById('maf-pdf').onclick = () => exportarAnalysePDF(r);
+
+        document.getElementById('maf-loading').classList.add('hidden');
+        document.getElementById('maf-content').classList.remove('hidden');
+        renderAnaliseModal(analise, r);
+        lucide.createIcons();
+    } catch(err) {
+        document.getElementById('maf-loading').innerHTML = '<p class="text-red-400 font-bold py-8">' + err.message + '</p>';
+    }
+}
+
+// ── Render full analysis in modal ────────────────────────────────────────────
+function renderAnaliseModal(data, reuniao) {
+    const box    = document.getElementById('maf-content');
+    const _cfg   = data._config || {};
+    const flds   = _cfg.fields     || [
+        { l:'Rapport',k:'rapport',icon:'heart-handshake'},
+        { l:'Produto',k:'produto',icon:'layers'},
+        { l:'Apresentação',k:'apresentacao',icon:'presentation'},
+        { l:'Pré-Fechamento',k:'pre_fechamento',icon:'funnel'},
+        { l:'Fechamento',k:'fechamento',icon:'handshake'}
+    ];
+    const pCfg   = _cfg.prodConfig  || {};
+    const ckLbl  = _cfg.ckLabels    || {};
+    const sc     = n => n >= 4 ? 'text-emerald-500' : n >= 3 ? 'text-blue-600' : 'text-red-500';
+    const media  = data.media_final || 0;
+
+    // ── Hero ─────────────────────────────────────────────────────────────
+    let heroClass = 'bg-amber-100 text-amber-700';
+    let heroLabel = 'Acompanhamento';
+    if (media >= 4.5) { heroClass = 'bg-emerald-500 text-white'; heroLabel = 'Elite Sales'; }
+    else if (media >= 3.5) { heroClass = 'bg-blue-100 text-blue-700'; heroLabel = 'Alta Performance'; }
+
+    box.innerHTML =
+
+    // Vendor + date info
+    '<div class="flex flex-wrap items-center gap-4 p-5 bg-slate-50 rounded-[2rem] border border-slate-200">' +
+        '<div class="w-12 h-12 rounded-full bg-[#002d72] flex items-center justify-center font-black text-white text-xl flex-shrink-0">' + (reuniao.vendedor_nome||'?').charAt(0) + '</div>' +
+        '<div class="flex-1">' +
+            '<p class="font-black text-slate-800 text-lg">' + (reuniao.vendedor_nome || 'Não identificado') + '</p>' +
+            '<p class="text-[10px] text-slate-400 font-bold">' + (reuniao.coordenador||'') + ' · ' + new Date(reuniao.created_at).toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}) + '</p>' +
+        '</div>' +
+        '<span class="px-4 py-2 rounded-full text-[10px] font-black uppercase ' + heroClass + '">' + heroLabel + '</span>' +
+    '</div>' +
+
+    // Score hero
+    '<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">' +
+        '<div class="glass-card p-10 flex flex-col items-center justify-center text-center border-b-[10px] border-blue-600">' +
+            '<span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Média Global (Máx 5)</span>' +
+            '<div class="text-7xl font-black text-[#002d72] mb-3">' + media.toFixed(1) + '</div>' +
+        '</div>' +
+        '<div class="lg:col-span-3 glass-card p-10 bg-gradient-to-br from-blue-700 to-blue-900 text-white flex flex-col justify-center">' +
+            '<h3 class="font-bold text-blue-200 text-[10px] uppercase tracking-widest mb-4">Diagnóstico Geral</h3>' +
+            '<p class="text-xl md:text-2xl font-bold leading-tight mb-8">' + (data.resumo_executivo||'—') + '</p>' +
+            '<div class="flex gap-4">' +
+                '<div class="p-4 bg-white/10 rounded-2xl border border-white/20 flex-1">' +
+                    '<span class="text-[9px] font-black text-blue-300 uppercase block mb-1 tracking-widest">Probabilidade de Fechamento</span>' +
+                    '<p class="text-base font-bold text-white">' + (data.chance_fechamento||'N/A') + '</p>' +
+                '</div>' +
+                '<div class="p-4 bg-red-500/20 rounded-2xl border border-red-400/30 flex-1">' +
+                    '<span class="text-[9px] font-black text-red-300 uppercase block mb-1 tracking-widest">Alerta de Risco</span>' +
+                    '<p class="text-base font-bold text-white">' + (data.alerta_cancelamento||'Sem alertas críticos.') + '</p>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+    '</div>' +
+
+    // Pilares grid
+    '<div id="maf-notas-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5"></div>' +
+
+    // Radar + Talk time + Checklist
+    '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">' +
+        '<div class="glass-card p-8 min-h-[380px] flex items-center justify-center"><canvas id="radarChart-modal" width="350" height="350"></canvas></div>' +
+        '<div class="space-y-6">' +
+            '<div class="glass-card p-8">' +
+                '<h4 class="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest">Tempo de Fala</h4>' +
+                '<div id="maf-talk" class="space-y-4"></div>' +
+            '</div>' +
+            '<div class="glass-card p-8">' +
+                '<h3 class="font-bold text-slate-800 text-sm mb-6 flex items-center gap-3"><i data-lucide="clipboard-check" class="text-blue-600 w-5 h-5"></i> Checklist do Manual Nibo</h3>' +
+                '<div id="maf-ck" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>' +
+            '</div>' +
+        '</div>' +
+    '</div>' +
+
+    // Fortes / Atenção
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">' +
+        '<div class="bg-emerald-50/60 p-8 rounded-[2rem] border border-emerald-100">' +
+            '<h4 class="text-[10px] font-black text-emerald-700 mb-6 uppercase tracking-widest flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4"></i> Pontos Fortes</h4>' +
+            '<ul class="space-y-3 text-[12px] font-bold text-emerald-900">' +
+                (data.pontos_fortes||[]).map(i=>'<li class="flex items-start gap-2"><span>▶</span>'+i+'</li>').join('') +
+            '</ul>' +
+        '</div>' +
+        '<div class="bg-amber-50/60 p-8 rounded-[2rem] border border-amber-100">' +
+            '<h4 class="text-[10px] font-black text-amber-700 mb-6 uppercase tracking-widest flex items-center gap-2"><i data-lucide="target" class="w-4 h-4"></i> Melhoria Imediata</h4>' +
+            '<ul class="space-y-3 text-[12px] font-bold text-amber-900">' +
+                (data.pontos_atencao||[]).map(i=>'<li class="flex items-start gap-2"><span>▶</span>'+i+'</li>').join('') +
+            '</ul>' +
+        '</div>' +
+    '</div>' +
+
+    // Coaching
+    '<div class="glass-card p-12 shadow-2xl border-t-[10px] border-[#002d72]">' +
+        '<h3 class="text-xl font-extrabold text-[#002d72] uppercase tracking-widest mb-2 flex items-center gap-4"><i data-lucide="graduation-cap"></i> Plano de Coaching</h3>' +
+        '<p class="text-[11px] text-slate-400 font-semibold mb-10 ml-10">O que fazer diferente na próxima reunião</p>' +
+        '<div class="markdown-content">' + marked.parse(data.justificativa_detalhada||'') + '</div>' +
+    '</div>' +
+
+    // SDR Section
+    '<!-- SDR -->' +
+    '<div class="border-t-4 border-violet-600 pt-8 space-y-6">' +
+        '<h2 class="text-xl font-black text-violet-800 uppercase tracking-widest flex items-center gap-3"><i data-lucide="user-check" class="w-6 h-6"></i> Qualificação do Lead (SDR)</h2>' +
+        _buildQualModal(data, pCfg) +
+    '</div>';
+
+    // ── Fill pilares grid ────────────────────────────────────────────────
+    const grid = document.getElementById('maf-notas-grid');
+    if (grid) {
+        grid.innerHTML = flds.map(f => {
+            const score = data['nota_'+f.k] || 0;
+            const col   = score >= 4 ? 'text-emerald-500' : score >= 3 ? 'text-blue-600' : 'text-red-500';
+            const stars = Array.from({length:5},(_,i)=>'<span class="star '+(i<score?'filled':'empty')+'">★</span>').join('');
+            return '<div class="glass-card p-6 flex flex-col items-center text-center">' +
+                '<i data-lucide="'+f.icon+'" class="w-6 h-6 text-slate-300 mb-3 mt-2"></i>' +
+                '<span class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-widest">'+f.l+'</span>' +
+                '<div class="text-5xl font-black '+col+' mb-2 leading-none">'+score+'</div>' +
+                '<div class="stars-row mb-2">'+stars+'</div>' +
+                '<p class="text-[9px] text-slate-400 italic leading-tight font-medium max-w-[95%]">'+(data['porque_'+f.k]||'').substring(0,80)+'...</p>' +
+            '</div>';
+        }).join('');
+    }
+
+    // ── Talk time ────────────────────────────────────────────────────────
+    const tc = parseFloat(data.tempo_fala_consultor || 0);
+    const tl = parseFloat(data.tempo_fala_cliente || 0);
+    const talkEl = document.getElementById('maf-talk');
+    if (talkEl) talkEl.innerHTML =
+        '<div><div class="flex justify-between text-[11px] font-bold mb-2"><span>Consultor</span><span class="text-blue-600">'+(data.tempo_fala_consultor||'0%')+'</span></div><div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600" style="width:'+tc+'%"></div></div></div>' +
+        '<div><div class="flex justify-between text-[11px] font-bold mb-2"><span>Cliente</span><span class="text-emerald-500">'+(data.tempo_fala_cliente||'0%')+'</span></div><div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500" style="width:'+tl+'%"></div></div></div>';
+
+    // ── Checklist ─────────────────────────────────────────────────────────
+    const ck = data.checklist_fechamento || {};
+    const ckEl = document.getElementById('maf-ck');
+    if (ckEl) ckEl.innerHTML = Object.entries(ckLbl).map(([k,l]) =>
+        '<div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">' +
+            '<span class="text-[9px] font-bold text-slate-600 uppercase tracking-tight">'+l+'</span>' +
+            '<div class="w-5 h-5 rounded-full flex items-center justify-center '+(ck[k]?'bg-emerald-500':'bg-slate-300')+'">' +
+                '<i data-lucide="'+(ck[k]?'check':'minus')+'" class="text-white w-3 h-3"></i>' +
+            '</div>' +
+        '</div>'
+    ).join('');
+
+    // ── Radar chart ───────────────────────────────────────────────────────
+    const radarCtx = document.getElementById('radarChart-modal');
+    if (radarCtx && window.Chart) {
+        if (window._modalRadarChart) window._modalRadarChart.destroy();
+        window._modalRadarChart = new Chart(radarCtx.getContext('2d'), {
+            type: 'radar',
+            data: {
+                labels: flds.map(f => f.l),
+                datasets: [{ label: 'Desempenho', data: flds.map(f => data['nota_'+f.k] || 0),
+                    backgroundColor: 'rgba(37,99,235,0.15)', borderColor: '#2563eb', borderWidth: 2,
+                    pointRadius: 4, pointBackgroundColor: '#1e3a8a' }]
+            },
+            options: { scales: { r: { min:0, max:5, ticks:{stepSize:1,display:false}, grid:{color:'#e2e8f0'}, angleLines:{color:'#e2e8f0'}, pointLabels:{font:{size:10,weight:'700'},color:'#475569'} } }, plugins: { legend: { display: false } }, maintainAspectRatio: true }
+        });
+    }
+}
+
+function _buildQualModal(data, pCfg) {
+    const sc = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
+    const foraPortfolio = !data.qual_produto_no_portfolio;
+    const verd = data.qual_veredicto || '';
+    let vc = 'bg-slate-100 text-slate-600 border-slate-200';
+    if (verd.includes('FORA'))       vc = 'bg-purple-100 text-purple-800 border-purple-300';
+    else if (verd.includes('MAL'))   vc = 'bg-red-100 text-red-800 border-red-300';
+    else if (verd.includes('PARC'))  vc = 'bg-yellow-100 text-yellow-800 border-yellow-300';
+    else if (verd.includes('QUAL'))  vc = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+
+    const slaGrid = [
+        [data.qual_sla_1_label, data.qual_sla_1_ok, data.qual_sla_1_ev],
+        [data.qual_sla_2_label, data.qual_sla_2_ok, data.qual_sla_2_ev],
+        [data.qual_sla_3_label, data.qual_sla_3_ok, data.qual_sla_3_ev]
+    ].map(([l,ok,ev]) =>
+        '<div class="rounded-2xl p-5 border flex flex-col gap-3 '+(ok?'bg-emerald-50 border-emerald-100':'bg-red-50 border-red-100')+'">' +
+            '<div class="flex items-center justify-between">' +
+                '<span class="text-[9px] font-black uppercase tracking-widest '+(ok?'text-emerald-700':'text-red-700')+'">'+(l||'—')+'</span>' +
+                '<div class="w-6 h-6 rounded-full flex items-center justify-center '+(ok?'bg-emerald-500':'bg-red-400')+'">' +
+                    '<i data-lucide="'+(ok?'check':'x')+'" class="text-white w-3 h-3"></i>' +
+                '</div>' +
+            '</div>' +
+            '<p class="text-[11px] italic leading-relaxed '+(ok?'text-emerald-700':'text-red-600')+'">'+(ev||'Sem evidência.')+'</p>' +
+        '</div>'
+    ).join('');
+
+    return (foraPortfolio ? '<div class="bg-red-600 text-white p-6 rounded-[2rem] flex items-start gap-4"><i data-lucide="alert-triangle" class="w-8 h-8 flex-shrink-0"></i><div><p class="font-black text-lg uppercase mb-1">⚠️ Produto fora do portfólio Nibo!</p><p class="text-sm font-medium text-red-100">'+(data.qual_produto_alerta||'')+'</p></div></div>' : '') +
+    '<div class="grid grid-cols-1 md:grid-cols-3 gap-6">' +
+        '<div class="glass-card p-6 flex flex-col gap-3">' +
+            '<h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Produto</h4>' +
+            '<span class="px-4 py-2 rounded-full text-sm font-black border inline-flex items-center gap-2 '+(foraPortfolio?'bg-red-100 text-red-800 border-red-300':'bg-blue-100 text-blue-800 border-blue-300')+'">'+(data.qual_produto_identificado||'—')+'</span>' +
+            '<p class="text-[11px] text-slate-500 italic">'+(data.qual_produto_alerta||'')+'</p>' +
+        '</div>' +
+        '<div class="glass-card p-6 flex flex-col gap-3">' +
+            '<h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Veredicto</h4>' +
+            '<div class="px-4 py-3 rounded-2xl border-2 text-sm font-black text-center '+vc+'">'+(verd||'—')+'</div>' +
+        '</div>' +
+        '<div class="glass-card p-6 flex flex-col items-center justify-center text-center border-b-[8px] border-violet-500">' +
+            '<span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Nota SDR</span>' +
+            '<div class="text-6xl font-black text-violet-600 mb-1">'+(data.qual_nota_sdr||'—')+'</div>' +
+            '<span class="text-[9px] text-slate-400 font-bold">/ 10</span>' +
+            '<p class="text-[10px] text-slate-500 mt-3 leading-relaxed font-medium">'+(data.qual_nota_sdr_justificativa||'')+'</p>' +
+        '</div>' +
+    '</div>' +
+    '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">' + slaGrid + '</div>' +
+    '<div class="glass-card p-12 border-t-[10px] border-violet-600">' +
+        '<h3 class="text-xl font-extrabold text-violet-800 uppercase tracking-widest mb-10 border-b pb-6">Análise Completa da Qualificação (SDR)</h3>' +
+        '<div class="markdown-content">' + marked.parse(data.qual_analise_completa||'') + '</div>' +
+    '</div>';
+}
+
+// ── PDF Export ────────────────────────────────────────────────────────────────
+async function exportarAnalysePDF(reuniao) {
+    const btn = document.getElementById('maf-pdf');
+    btn.textContent = 'Gerando PDF...';
+    btn.disabled = true;
+    try {
+        const content = document.getElementById('maf-content');
+        const nomeArq = ('Analise_' + (reuniao.vendedor_nome||'vendedor').replace(/\s+/g,'_') + '_' + new Date(reuniao.created_at).toISOString().split('T')[0]).replace(/[^a-z0-9_-]/gi,'');
+        const opt = {
+            margin:       [10, 10, 10, 10],
+            filename:     nomeArq + '.pdf',
+            image:        { type: 'jpeg', quality: 0.95 },
+            html2canvas:  { scale: 2, useCORS: true, logging: false },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+        await html2pdf().set(opt).from(content).save();
+    } catch(err) {
+        alert('Erro ao gerar PDF: ' + err.message);
+    } finally {
+        btn.innerHTML = '<i data-lucide="file-down" class="w-4 h-4"></i> Exportar PDF';
+        btn.disabled = false;
+        lucide.createIcons();
+    }
+}
+
 // ── Save analysis after render ─────────────────────────────────────────────────
 async function saveAnalysis(coordenador, analise) {
     try {
@@ -2263,10 +2711,10 @@ analyzeBtn.addEventListener('click', handleAnalysis);
                     <div class="flex items-center gap-2">
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Período:</span>
                         <select id="dash-filter-periodo-vend" onchange="loadVendedorDash()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300">
+                            <option value="todos">Todo o período</option>
                             <option value="30">Últimos 30 dias</option>
                             <option value="7">Últimos 7 dias</option>
                             <option value="90">Últimos 90 dias</option>
-                            <option value="todos">Todo o período</option>
                         </select>
                     </div>
                 </div>
@@ -2284,4 +2732,3 @@ analyzeBtn.addEventListener('click', handleAnalysis);
 </div><!-- /#app-screen -->
 </body>
 </html>
-
