@@ -1,5 +1,16 @@
 // api/save.js
-// Salva uma análise no Supabase após ser gerada
+// Salva uma análise no Supabase após ser gerada.
+//
+// MAPEAMENTO DE COLUNAS (nova estrutura 3 etapas):
+//   nota_rapport      ← nota_etapa1  (Consultividade/SPIN)
+//   nota_produto      ← nota_etapa2  (Apresentação da Ferramenta)
+//   nota_apresentacao ← nota_etapa3  (Negociação)
+//   nota_pre_fechamento → null  (coluna mantida no schema, não usada)
+//   nota_fechamento     → null  (coluna mantida no schema, não usada)
+//
+// REGRA MAL QUALIFICADO:
+//   Se _mal_qualificado === true, salva o campo `mal_qualificado = true`
+//   para que o dashboard possa excluir da média do vendedor.
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
@@ -29,23 +40,44 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Coordenador inválido' });
     }
 
+    // ── Detectar formato da análise (novo 3-etapas vs legado 5-pilares) ─────
+    const isNovoFormato = analise.nota_etapa1 !== undefined;
+
     try {
         const row = {
             coordenador,
             vendedor_nome:       analise.vendedor_nome       || 'Não identificado',
             produto:             analise.qual_produto_identificado || null,
             media_final:         analise.media_final         || null,
-            nota_rapport:        analise.nota_rapport        || null,
-            nota_produto:        analise.nota_produto        || null,
-            nota_apresentacao:   analise.nota_apresentacao   || null,
-            nota_pre_fechamento: analise.nota_pre_fechamento || null,
-            nota_fechamento:     analise.nota_fechamento     || null,
+
+            // ── NOVO FORMATO (3 etapas → colunas existentes) ─────────────────
+            // ── LEGADO (5 pilares → colunas existentes) ───────────────────────
+            nota_rapport:        isNovoFormato
+                                    ? (analise.nota_etapa1 || null)
+                                    : (analise.nota_rapport || null),
+            nota_produto:        isNovoFormato
+                                    ? (analise.nota_etapa2 || null)
+                                    : (analise.nota_produto || null),
+            nota_apresentacao:   isNovoFormato
+                                    ? (analise.nota_etapa3 || null)
+                                    : (analise.nota_apresentacao || null),
+            nota_pre_fechamento: isNovoFormato ? null : (analise.nota_pre_fechamento || null),
+            nota_fechamento:     isNovoFormato ? null : (analise.nota_fechamento || null),
+
+            // ── CAMPOS COMUNS ─────────────────────────────────────────────────
             tempo_fala_consultor: analise.tempo_fala_consultor || null,
             tempo_fala_cliente:   analise.tempo_fala_cliente   || null,
             chance_fechamento:   analise.chance_fechamento   || null,
             alerta_cancelamento: analise.alerta_cancelamento || null,
             qual_veredicto:      analise.qual_veredicto      || null,
             qual_nota_sdr:       analise.qual_nota_sdr       || null,
+
+            // ── FLAG MAL QUALIFICADO ──────────────────────────────────────────
+            // Determina se a nota NÃO deve contar na média do vendedor.
+            // Derivado do veredicto SDR (MAL QUALIFICADO ou FORA DE PORTFÓLIO).
+            mal_qualificado:     analise._mal_qualificado === true,
+
+            // ── JSON COMPLETO (preserva todos os sub-critérios para histórico) ─
             analise_json:        analise
         };
 
