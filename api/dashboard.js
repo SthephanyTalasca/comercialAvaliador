@@ -1,63 +1,62 @@
 // api/dashboard.js
-// Retorna dados agregados para o dashboard
+// ─────────────────────────────────────────────────────────────────────────────
+// REGRA MAL QUALIFICADO:
+//   Reuniões onde mal_qualificado = true (lead Mal Qualificado ou Fora de
+//   Portfólio) NÃO contabilizam na média do vendedor nem no ranking.
+//   Elas aparecem apenas em stats.reunioes_mal_qualificadas para relatório
+//   separado.
+// ─────────────────────────────────────────────────────────────────────────────
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 
-export default async function handler(req, res) {
-    if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido' });
-
-    // ── Verificar sessão ─────────────────────────────────────────────────────
+function getSession(req) {
     const cookie = req.headers.cookie || '';
     const match  = cookie.match(/nibo_session=([^;]+)/);
-    if (!match) return res.status(401).json({ error: 'Não autorizado' });
+    if (!match) return null;
     try {
-        const session = JSON.parse(Buffer.from(match[1], 'base64').toString('utf8'));
-        if (!session.exp || Date.now() > session.exp) return res.status(401).json({ error: 'Sessão expirada' });
-        const domain = session.email.toLowerCase().split('@')[1];
-        if (domain !== 'nibo.com.br') return res.status(403).json({ error: 'Acesso negado' });
-    } catch { return res.status(401).json({ error: 'Sessão inválida' }); }
-    // ─────────────────────────────────────────────────────────────────────────
+        const s = JSON.parse(Buffer.from(match[1], 'base64').toString('utf8'));
+        if (s.exp && Date.now() > s.exp) return null;
+        if (s.email.toLowerCase().split('@')[1] !== 'nibo.com.br') return null;
+        return s;
+    } catch { return null; }
+}
 
-    const { coordenador, periodo } = req.query;
+export default async function handler(req, res) {
+    if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido' });
+    if (!getSession(req)) return res.status(401).json({ error: 'Não autorizado' });
+
+    const { coordenador, periodo, inicio, fim, vendedor } = req.query;
+
+    let filter = '';
+
+    if (coordenador && coordenador !== 'todos') {
+        filter += `&coordenador=eq.${encodeURIComponent(coordenador)}`;
+    }
+    if (vendedor && vendedor !== 'todos') {
+        filter += `&vendedor_nome=eq.${encodeURIComponent(vendedor)}`;
+    }
+
+    // Filtro de período
+    if (periodo && periodo !== 'todos') {
+        const now   = new Date();
+        let   desde = null;
+        if (periodo === '7d')  { desde = new Date(now); desde.setDate(now.getDate() - 7); }
+        if (periodo === '30d') { desde = new Date(now); desde.setDate(now.getDate() - 30); }
+        if (periodo === '90d') { desde = new Date(now); desde.setDate(now.getDate() - 90); }
+        if (periodo === 'mes') { desde = new Date(now.getFullYear(), now.getMonth(), 1); }
+        if (periodo === 'custom' && inicio && fim) {
+            filter += `&created_at=gte.${new Date(inicio).toISOString()}&created_at=lte.${new Date(fim + 'T23:59:59').toISOString()}`;
+        } else if (desde) {
+            filter += `&created_at=gte.${desde.toISOString()}`;
+        }
+    }
 
     try {
-        // ── Montar filtros ───────────────────────────────────────────────────
-        const { vendedor, data_inicio, data_fim } = req.query;
-        let filter = '';
-
-        if (coordenador && coordenador !== 'todos') {
-            filter += `&coordenador=eq.${encodeURIComponent(coordenador)}`;
-        }
-
-        // Filtro por vendedor (fuzzy: ilike)
-        if (vendedor && vendedor !== 'todos') {
-            filter += `&vendedor_nome=ilike.*${encodeURIComponent(vendedor.split(' ')[0])}*`;
-        }
-
-        // Período pré-definido (legado)
-        if (periodo && periodo !== 'todos' && !data_inicio) {
-            const days = parseInt(periodo);
-            const since = new Date(Date.now() - days * 86400000).toISOString();
-            filter += `&created_at=gte.${since}`;
-        }
-
-        // Intervalo de datas personalizado (calendário)
-        if (data_inicio) {
-            filter += `&created_at=gte.${new Date(data_inicio).toISOString()}`;
-        }
-        if (data_fim) {
-            // Inclui o dia inteiro
-            const fim = new Date(data_fim);
-            fim.setHours(23, 59, 59, 999);
-            filter += `&created_at=lte.${fim.toISOString()}`;
-        }
-
-        // ── Buscar reuniões ──────────────────────────────────────────────────
         const url = `${SUPABASE_URL}/rest/v1/reunioes?select=*&order=created_at.desc${filter}`;
         const response = await fetch(url, {
             headers: {
-                'apikey':         SUPABASE_KEY,
+                'apikey':        SUPABASE_KEY,
                 'Authorization': `Bearer ${SUPABASE_KEY}`
             }
         });
@@ -68,14 +67,9 @@ export default async function handler(req, res) {
         }
 
         const reunioes = await response.json();
+        if (!reunioes.length) return res.status(200).json({ reunioes: [], stats: null });
 
-        if (!reunioes.length) {
-            return res.status(200).json({ reunioes: [], stats: null });
-        }
-
-        // ── Calcular stats ───────────────────────────────────────────────────
         const stats = calcStats(reunioes);
-
         return res.status(200).json({ reunioes, stats });
 
     } catch (error) {
@@ -84,10 +78,23 @@ export default async function handler(req, res) {
     }
 }
 
+// ── Helper: detecta mal qualificado (campo novo ou derivado do veredicto) ─────
+function isMalQualificado(r) {
+    if (r.mal_qualificado === true) return true;
+    const v = (r.qual_veredicto || '').toUpperCase();
+    return v.includes('MAL') || v.includes('FORA');
+}
+
 function calcStats(reunioes) {
     const total = reunioes.length;
-    const avg = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length) : 0;
-    const medias = reunioes.map(r => r.media_final).filter(Boolean);
+    const avg = arr => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+
+    // Separar bem qualificados das RDs com lead mal qualificado
+    const reunioesBoas = reunioes.filter(r => !isMalQualificado(r));
+    const reunioesMalQ = reunioes.filter(r => isMalQualificado(r));
+
+    // Média geral só conta reuniões bem qualificadas
+    const medias = reunioesBoas.map(r => r.media_final).filter(Boolean);
 
     // ── Por coordenador ──────────────────────────────────────────────────────
     const porCoordenador = {};
@@ -97,9 +104,13 @@ function calcStats(reunioes) {
         }
         const c = porCoordenador[r.coordenador];
         c.total++;
-        if (r.media_final) c.medias.push(r.media_final);
+        if (isMalQualificado(r)) {
+            c.mal_qualificados++;
+            // NÃO inclui na média de vendas do coordenador
+        } else {
+            if (r.media_final) c.medias.push(r.media_final);
+        }
         if (r.qual_nota_sdr) c.sdr_notas.push(r.qual_nota_sdr);
-        if (r.qual_veredicto?.includes('MAL') || r.qual_veredicto?.includes('FORA')) c.mal_qualificados++;
     }
     for (const k of Object.keys(porCoordenador)) {
         const c = porCoordenador[k];
@@ -107,41 +118,72 @@ function calcStats(reunioes) {
         c.media_sdr    = +avg(c.sdr_notas).toFixed(1);
     }
 
-    // ── Ranking vendedores ───────────────────────────────────────────────────
+    // ── Ranking vendedores (EXCLUI reuniões mal qualificadas da média) ────────
     const porVendedor = {};
     for (const r of reunioes) {
         if (!porVendedor[r.vendedor_nome]) {
             porVendedor[r.vendedor_nome] = {
-                nome: r.vendedor_nome,
-                coordenador: r.coordenador,
-                total: 0, medias: [],
+                nome:              r.vendedor_nome,
+                coordenador:       r.coordenador,
+                total:             0,   // todas as RDs (incluindo mal qualif.)
+                total_validas:     0,   // RDs que contam na média
+                total_mal_qualif:  0,   // RDs que NÃO contam na média
+                medias: [],
+                // ── NOVO: 3 etapas (colunas: rapport=etapa1, produto=etapa2, apresentacao=etapa3)
+                etapa1: [],
+                etapa2: [],
+                etapa3: [],
+                // ── LEGADO: 5 pilares (para registros antigos sem novo formato)
                 rapport: [], produto: [], apresentacao: [],
                 pre_fechamento: [], fechamento: []
             };
         }
         const v = porVendedor[r.vendedor_nome];
         v.total++;
-        if (r.media_final)         v.medias.push(r.media_final);
-        if (r.nota_rapport)        v.rapport.push(r.nota_rapport);
-        if (r.nota_produto)        v.produto.push(r.nota_produto);
-        if (r.nota_apresentacao)   v.apresentacao.push(r.nota_apresentacao);
-        if (r.nota_pre_fechamento) v.pre_fechamento.push(r.nota_pre_fechamento);
-        if (r.nota_fechamento)     v.fechamento.push(r.nota_fechamento);
+
+        if (isMalQualificado(r)) {
+            v.total_mal_qualif++;
+            // ❌ NÃO adiciona nas médias — conforme regra de negócio
+        } else {
+            v.total_validas++;
+            if (r.media_final)         v.medias.push(r.media_final);
+
+            // Detectar formato e usar colunas corretas
+            const temEtapas = r.nota_pre_fechamento === null && r.nota_fechamento === null;
+            if (temEtapas) {
+                // Novo formato: rapport=etapa1, produto=etapa2, apresentacao=etapa3
+                if (r.nota_rapport)      v.etapa1.push(r.nota_rapport);
+                if (r.nota_produto)      v.etapa2.push(r.nota_produto);
+                if (r.nota_apresentacao) v.etapa3.push(r.nota_apresentacao);
+            } else {
+                // Legado: 5 pilares
+                if (r.nota_rapport)        v.rapport.push(r.nota_rapport);
+                if (r.nota_produto)        v.produto.push(r.nota_produto);
+                if (r.nota_apresentacao)   v.apresentacao.push(r.nota_apresentacao);
+                if (r.nota_pre_fechamento) v.pre_fechamento.push(r.nota_pre_fechamento);
+                if (r.nota_fechamento)     v.fechamento.push(r.nota_fechamento);
+            }
+        }
     }
 
     const ranking = Object.values(porVendedor).map(v => ({
         ...v,
-        media:          +avg(v.medias).toFixed(1),
-        avg_rapport:    +avg(v.rapport).toFixed(1),
-        avg_produto:    +avg(v.produto).toFixed(1),
-        avg_apresentacao: +avg(v.apresentacao).toFixed(1),
-        avg_pre_fechamento: +avg(v.pre_fechamento).toFixed(1),
-        avg_fechamento: +avg(v.fechamento).toFixed(1),
-    })).sort((a,b) => b.media - a.media);
+        media:             +avg(v.medias).toFixed(1),
+        // Novo formato
+        avg_etapa1:        +avg(v.etapa1).toFixed(1),
+        avg_etapa2:        +avg(v.etapa2).toFixed(1),
+        avg_etapa3:        +avg(v.etapa3).toFixed(1),
+        // Legado (para backward compat)
+        avg_rapport:       +avg(v.rapport).toFixed(1),
+        avg_produto:       +avg(v.produto).toFixed(1),
+        avg_apresentacao:  +avg(v.apresentacao).toFixed(1),
+        avg_pre_fechamento:+avg(v.pre_fechamento).toFixed(1),
+        avg_fechamento:    +avg(v.fechamento).toFixed(1),
+    })).sort((a, b) => b.media - a.media);
 
-    // ── Evolução temporal (por semana) ───────────────────────────────────────
+    // ── Evolução temporal (por semana) — só conta RDs válidas ───────────────
     const porSemana = {};
-    for (const r of reunioes) {
+    for (const r of reunioesBoas) {
         const d   = new Date(r.created_at);
         const mon = new Date(d);
         mon.setDate(d.getDate() - d.getDay());
@@ -152,13 +194,13 @@ function calcStats(reunioes) {
     }
     const evolucao = Object.values(porSemana)
         .map(s => ({ semana: s.semana, media: +avg(s.medias).toFixed(1), total: s.total }))
-        .sort((a,b) => a.semana.localeCompare(b.semana));
+        .sort((a, b) => a.semana.localeCompare(b.semana));
 
-    // ── SDR stats ────────────────────────────────────────────────────────────
+    // ── SDR stats (todos, incluindo mal qualificados — para donut/barras) ────
     const veredictos = { QUALIFICADO: 0, PARCIALMENTE: 0, MAL: 0, FORA: 0, SEM: 0 };
     for (const r of reunioes) {
-        const v = r.qual_veredicto || '';
-        if (v.includes('FORA'))  veredictos.FORA++;
+        const v = (r.qual_veredicto || '').toUpperCase();
+        if (v.includes('FORA'))       veredictos.FORA++;
         else if (v.includes('MAL'))   veredictos.MAL++;
         else if (v.includes('PARC'))  veredictos.PARCIALMENTE++;
         else if (v.includes('QUAL'))  veredictos.QUALIFICADO++;
@@ -167,10 +209,23 @@ function calcStats(reunioes) {
 
     return {
         total,
-        media_geral:    +avg(medias).toFixed(1),
+        total_validas:   reunioesBoas.length,
+        total_mal_qualif: reunioesMalQ.length,
+        media_geral:     +avg(medias).toFixed(1),
         porCoordenador,
         ranking,
         evolucao,
-        veredictos
+        veredictos,
+        // ── Relatório separado de leads mal qualificados ───────────────────
+        reunioes_mal_qualificadas: reunioesMalQ.map(r => ({
+            id:            r.id,
+            coordenador:   r.coordenador,
+            vendedor_nome: r.vendedor_nome,
+            produto:       r.produto,
+            qual_veredicto: r.qual_veredicto,
+            qual_nota_sdr:  r.qual_nota_sdr,
+            chance_fechamento: r.chance_fechamento,
+            created_at:    r.created_at
+        }))
     };
 }
