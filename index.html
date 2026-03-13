@@ -1,718 +1,164 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nibo AI - Auditoria de Vendas</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; color: #0f172a; }
-        .glass-card { background: white; border: 1px solid #e2e8f0; border-radius: 2.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); transition: all 0.3s ease; }
-        .glass-card:hover { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCHES PARA index.html — Estrutura 3 etapas + Relatório Mal Qualificados
+//
+// Este arquivo documenta EXATAMENTE quais trechos substituir no index.html.
+// Cada bloco começa com "── SUBSTITUIR:" indicando o trecho original,
+// seguido de "── POR:" com o novo código.
+// ═══════════════════════════════════════════════════════════════════════════
 
-        .markdown-content h1, .markdown-content h2 { font-weight: 800; color: #1e3a8a; margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1rem; text-transform: uppercase; border-bottom: 2px solid #2563eb; padding-bottom: 0.5rem; }
-        .markdown-content p { margin-bottom: 1rem; color: #475569; line-height: 1.6; font-size: 0.9rem; }
-        .markdown-content ul { list-style-type: none; padding-left: 0; margin-bottom: 1.25rem; }
-        .markdown-content li { position: relative; padding-left: 1.5rem; margin-bottom: 0.4rem; color: #475569; font-size: 0.85rem; }
-        .markdown-content li::before { content: "•"; position: absolute; left: 0; color: #2563eb; font-weight: bold; }
-        .markdown-content strong { color: #1e3a8a; }
-        .markdown-content blockquote { border-left: 3px solid #2563eb; padding-left: 1rem; margin: 1rem 0; background: #eff6ff; border-radius: 0 0.5rem 0.5rem 0; padding: 0.75rem 1rem; }
-        .markdown-content blockquote p { color: #1e40af; font-style: italic; margin: 0; }
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH 1 — Estado global: adicionar suporte ao novo formato
+// Encontre e substitua as linhas de declaração de variáveis globais
+// ═══════════════════════════════════════════════════════════════════════════
 
-        .tag-concorrente { animation: pulse-tag 2s infinite; }
-        @keyframes pulse-tag { 0%,100%{opacity:1} 50%{opacity:.7} }
+// ── SUBSTITUIR:
+// let radarChartInstance = null;
+// let pilarData = [];
+// let fields    = [];
+// let prodConfig = {};
+// let ckLabels  = {};
 
-        .pilar-card { cursor: pointer; position: relative; transition: all 0.2s ease; border: 1px solid #e2e8f0; }
-        .pilar-card:hover { transform: translateY(-4px); border-color: #93c5fd; box-shadow: 0 12px 24px -4px rgba(37,99,235,0.15); }
-        .pilar-card .click-hint { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font-size: 8px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; opacity: 0; transition: opacity .2s; white-space: nowrap; }
-        .pilar-card:hover .click-hint { opacity: 1; }
-        .pilar-card .zoom-icon { position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; background: #eff6ff; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all .2s; }
-        .pilar-card:hover .zoom-icon { background: #2563eb; }
-        .pilar-card:hover .zoom-icon svg { color: white !important; }
-
-        .stars-row { display: flex; gap: 2px; justify-content: center; margin-bottom: 4px; }
-        .star { font-size: 14px; }
-        .star.filled { color: #f59e0b; }
-        .star.empty { color: #e2e8f0; }
-
-        #justification-modal { transition: opacity .3s ease; }
-        #modal-content-box { transition: transform .3s ease; max-height: 90vh; overflow-y: auto; }
-        .score-ring { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; border: 5px solid; flex-shrink: 0; }
-
-        .section-tab { cursor: pointer; transition: all .2s; padding: 12px 0; font-size: .875rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-        .section-tab.active { border-bottom: 3px solid #2563eb; color: #1e3a8a; }
-        .section-tab:not(.active) { color: #94a3b8; border-bottom: 3px solid transparent; }
-
-        .ctx-row { display: flex; gap: 8px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
-        .ctx-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; min-width: 130px; flex-shrink: 0; padding-top: 2px; }
-        .ctx-value { font-size: 12px; color: #334155; font-weight: 500; line-height: 1.5; }
-
-        .produto-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
-        .produto-ok    { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
-        .produto-alert { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; animation: pulse-tag 1.5s infinite; }
-
-        .verd-q  { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
-        .verd-p  { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
-        .verd-m  { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
-        .verd-f  { background: #fdf2f8; color: #7c3aed; border-color: #c4b5fd; }
-        .verd-s  { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
-
-        .qb-sim    { background: #d1fae5; color: #065f46; }
-        .qb-parcial{ background: #fef3c7; color: #92400e; }
-        .qb-nao    { background: #fee2e2; color: #991b1b; }
-        .qb-alto   { background: #d1fae5; color: #065f46; }
-        .qb-moder  { background: #dbeafe; color: #1e40af; }
-        .qb-fraco  { background: #fef3c7; color: #92400e; }
-        .qb-sem    { background: #fee2e2; color: #991b1b; }
-    </style>
-</head>
-<body class="pb-20 antialiased">
-
-<!-- LOGIN SCREEN -->
-<div id="login-screen" class="hidden fixed inset-0 z-[200] bg-[#001a4d] flex items-center justify-center p-6">
-    <div class="bg-white rounded-[2.5rem] p-12 max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-6">
-        <div class="bg-[#002d72] p-4 rounded-2xl">
-            <i data-lucide="shield-check" class="text-white w-10 h-10"></i>
-        </div>
-        <div>
-            <h1 class="font-black text-[#002d72] text-2xl uppercase tracking-tight mb-1">Nibo Auditor</h1>
-            <p class="text-slate-400 text-sm font-medium">Acesso restrito — apenas Heads</p>
-        </div>
-        <div id="login-error" class="hidden w-full bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-700 font-medium"></div>
-        <a href="/api/auth" class="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-200 hover:border-blue-400 text-slate-700 font-bold px-6 py-4 rounded-2xl transition-all shadow-sm hover:shadow-md">
-            <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-            Entrar com Google Nibo
-        </a>
-        <p class="text-[10px] text-slate-300 font-medium">Somente emails autorizados têm acesso</p>
-    </div>
-</div>
-
-<!-- APP SCREEN -->
-<div id="app-screen" class="hidden">
-
-<nav class="bg-[#002d72] text-white py-4 px-8 sticky top-0 z-50 shadow-xl border-b border-blue-400">
-    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-        <div class="flex items-center gap-3">
-            <div class="bg-white p-2.5 rounded-2xl shadow-inner">
-                <i data-lucide="shield-check" class="text-[#002d72] w-6 h-6"></i>
-            </div>
-            <div>
-                <h1 class="font-extrabold text-lg uppercase tracking-tight">Nibo <span class="text-blue-400">Auditor de Vendas</span></h1>
-                <p class="text-[9px] text-blue-200 uppercase tracking-widest font-bold mt-1">Performance de Consultores + Qualificação de Leads (SDR)</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-3">
-            <img id="user-avatar" src="" class="w-8 h-8 rounded-full border-2 border-blue-300 hidden" />
-            <div id="user-info" class="text-right hidden">
-                <p id="user-name"  class="text-sm font-bold leading-none"></p>
-                <p id="user-email" class="text-[10px] text-blue-300 font-medium mt-0.5"></p>
-            </div>
-            <button onclick="showDashboard()" class="ml-2 flex items-center gap-1.5 bg-blue-800/40 hover:bg-blue-600 border border-blue-400/30 text-blue-200 hover:text-white px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all">
-                <i data-lucide="layout-dashboard" class="w-3 h-3"></i> Dashboard
-            </button>
-            <button onclick="handleLogout()" class="ml-2 flex items-center gap-1.5 bg-blue-900/40 hover:bg-red-600 border border-blue-400/30 hover:border-red-400 text-blue-200 hover:text-white px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all">
-                <i data-lucide="log-out" class="w-3 h-3"></i> Sair
-            </button>
-        </div>
-    </div>
-</nav>
-
-<main class="max-w-7xl mx-auto px-4 mt-8">
-
-    <section class="mb-10">
-        <div class="glass-card p-8 md:p-10">
-            <div class="flex items-center gap-3 mb-6">
-                <i data-lucide="message-square" class="text-blue-600"></i>
-                <h2 class="font-bold text-slate-800 text-lg">Submeter Transcrição</h2>
-            </div>
-            <div class="flex gap-4 mb-6">
-                <label class="flex-1 cursor-pointer">
-                    <input type="radio" name="coordenador" value="Simone Rangel" class="hidden peer" />
-                    <div class="peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 border-2 border-slate-200 rounded-2xl p-4 text-center transition-all hover:border-blue-300">
-                        <i data-lucide="user-circle" class="w-5 h-5 mx-auto mb-1"></i>
-                        <p class="font-black text-sm">Simone Rangel</p>
-                        <p class="text-[10px] font-medium opacity-70">Coordenadora</p>
-                    </div>
-                </label>
-                <label class="flex-1 cursor-pointer">
-                    <input type="radio" name="coordenador" value="Jonathan Dornelas" class="hidden peer" />
-                    <div class="peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 border-2 border-slate-200 rounded-2xl p-4 text-center transition-all hover:border-blue-300">
-                        <i data-lucide="user-circle" class="w-5 h-5 mx-auto mb-1"></i>
-                        <p class="font-black text-sm">Jonathan Dornelas</p>
-                        <p class="text-[10px] font-medium opacity-70">Coordenador</p>
-                    </div>
-                </label>
-            </div>
-            <textarea id="transcript-input" rows="5" class="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] focus:ring-4 ring-blue-500/5 focus:outline-none transition-all text-sm mb-6" placeholder="Cole aqui o diálogo completo da reunião..."></textarea>
-            <div class="flex justify-end">
-                <button id="analyze-btn" class="flex items-center gap-3 bg-blue-600 hover:bg-[#002d72] text-white px-10 py-4 rounded-2xl font-bold text-sm shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span id="btn-text">Gerar Auditoria Completa</span>
-                    <i data-lucide="zap" class="w-4 h-4"></i>
-                </button>
-            </div>
-        </div>
-    </section>
-
-    <div id="results-section" class="hidden space-y-8">
-
-        <div id="loading-spinner" class="flex flex-col items-center py-20">
-            <div class="loader mb-4"></div>
-            <p class="text-slate-400 font-bold text-xs uppercase tracking-widest animate-pulse">Auditando reunião e qualificação do lead...</p>
-        </div>
-
-        <div id="analysis-content" class="hidden space-y-8">
-
-            <!-- HERO -->
-            <!-- Vendedor identificado + correção rápida -->
-            <div id="vendedor-banner" class="hidden bg-white border border-slate-200 rounded-[2rem] p-5 flex items-center gap-4 shadow-sm">
-                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-black text-blue-600 text-lg flex-shrink-0" id="vendedor-avatar">?</div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Consultor identificado pela IA</p>
-                    <p id="vendedor-nome-display" class="font-black text-slate-800 text-base truncate"></p>
-                </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <select id="vendedor-corrigir-sel" class="text-xs font-bold border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 ring-blue-300 max-w-[180px]">
-                        <option value="">— Corrigir vendedor —</option>
-                    </select>
-                    <button id="vendedor-corrigir-btn" class="hidden flex items-center gap-1.5 bg-blue-600 hover:bg-[#002d72] text-white px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95">
-                        <i data-lucide="check" class="w-3 h-3"></i> Salvar
-                    </button>
-                    <span id="vendedor-salvo-tag" class="hidden px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black">✅ Salvo</span>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                <div class="lg:col-span-1 glass-card p-10 flex flex-col items-center justify-center text-center border-b-[10px] border-blue-600">
-                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Média Global (Máx 5)</span>
-                    <div id="media-final" class="text-7xl font-black text-[#002d72] mb-3">0.0</div>
-                    <div id="status-tag" class="px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">---</div>
-                </div>
-                <div class="lg:col-span-3 glass-card p-10 bg-gradient-to-br from-blue-700 to-blue-900 text-white flex flex-col justify-center">
-                    <div id="concorrentes-tags" class="flex flex-wrap gap-2 mb-4"></div>
-                    <h3 class="font-bold text-blue-200 text-[10px] uppercase tracking-widest mb-4">Diagnóstico Geral</h3>
-                    <p id="resumo-text" class="text-xl md:text-2xl font-bold leading-tight mb-8"></p>
-                    <div class="flex gap-4">
-                        <div class="p-4 bg-white/10 rounded-2xl border border-white/20 flex-1">
-                            <span class="text-[9px] font-black text-blue-300 uppercase block mb-1 tracking-widest">Probabilidade de Fechamento:</span>
-                            <p id="chance-text" class="text-base font-bold text-white"></p>
-                        </div>
-                        <div class="p-4 bg-red-500/20 rounded-2xl border border-red-400/30 flex-1">
-                            <span class="text-[9px] font-black text-red-300 uppercase block mb-1 tracking-widest">Alerta de Risco:</span>
-                            <p id="alerta-text" class="text-base font-bold text-white"></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TABS -->
-            <div class="flex border-b border-slate-200 gap-8 px-2">
-                <button onclick="showSection('vendas')" id="tab-vendas" class="section-tab active"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> Auditoria de Vendas</button>
-                <button onclick="showSection('qualif')" id="tab-qualif" class="section-tab"><i data-lucide="user-check" class="w-4 h-4"></i> Qualificação do Lead (SDR)</button>
-            </div>
-
-            <!-- ════════════════════════════════ -->
-            <!-- SEÇÃO VENDAS                    -->
-            <!-- ════════════════════════════════ -->
-            <div id="section-vendas" class="space-y-8">
-
-                <p class="text-[11px] text-slate-400 font-semibold flex items-center gap-2 px-1">
-                    <i data-lucide="mouse-pointer-click" class="w-4 h-4 text-blue-400"></i>
-                    Clique em qualquer pilar para ver a justificativa completa
-                </p>
-
-                <div id="notas-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5"></div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="glass-card p-8 min-h-[380px] flex items-center justify-center">
-                        <canvas id="radarChart"></canvas>
-                    </div>
-                    <div class="space-y-6">
-                        <div class="glass-card p-8">
-                            <h4 class="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest">Tempo de Fala</h4>
-                            <div id="talk-time-container" class="space-y-6"></div>
-                        </div>
-                        <div class="glass-card p-8">
-                            <h3 class="font-bold text-slate-800 text-sm mb-6 flex items-center gap-3">
-                                <i data-lucide="clipboard-check" class="text-blue-600 w-5 h-5"></i>
-                                Checklist do Manual Nibo
-                            </h3>
-                            <div id="checklist-container" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-emerald-50/60 p-8 rounded-[2rem] border border-emerald-100">
-                        <h4 class="text-[10px] font-black text-emerald-700 mb-6 uppercase tracking-widest flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4"></i> Pontos Fortes</h4>
-                        <ul id="lista-fortes" class="space-y-3 text-[12px] font-bold text-emerald-900"></ul>
-                    </div>
-                    <div class="bg-amber-50/60 p-8 rounded-[2rem] border border-amber-100">
-                        <h4 class="text-[10px] font-black text-amber-700 mb-6 uppercase tracking-widest flex items-center gap-2"><i data-lucide="target" class="w-4 h-4"></i> Melhoria Imediata</h4>
-                        <ul id="lista-atencao" class="space-y-3 text-[12px] font-bold text-amber-900"></ul>
-                    </div>
-                </div>
-
-                <!-- COACHING REPORT -->
-                <div class="glass-card p-12 md:p-16 shadow-2xl border-t-[10px] border-[#002d72]">
-                    <h3 class="text-xl font-extrabold text-[#002d72] uppercase tracking-widest mb-2 flex items-center gap-4">
-                        <i data-lucide="graduation-cap"></i>
-                        Plano de Coaching — Para o Consultor
-                    </h3>
-                    <p class="text-[11px] text-slate-400 font-semibold mb-10 ml-10">O que fazer diferente na sua próxima reunião</p>
-                    <div id="markdown-body" class="markdown-content"></div>
-                </div>
-            </div>
-
-            <!-- ════════════════════════════════ -->
-            <!-- SEÇÃO QUALIFICAÇÃO              -->
-            <!-- ════════════════════════════════ -->
-            <div id="section-qualif" class="hidden space-y-6">
-
-                <div id="qual-fora-portfolio-alert" class="hidden bg-red-600 text-white p-6 rounded-[2rem] flex items-start gap-4 shadow-xl">
-                    <i data-lucide="alert-triangle" class="w-8 h-8 flex-shrink-0 mt-0.5"></i>
-                    <div>
-                        <p class="font-black text-lg uppercase tracking-wide mb-1">⚠️ Produto fora do portfólio Nibo!</p>
-                        <p id="qual-fora-portfolio-text" class="text-sm font-medium text-red-100 leading-relaxed"></p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="glass-card p-8 flex flex-col gap-4">
-                        <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Produto Identificado</h4>
-                        <div id="qual-produto-badge-wrap"></div>
-                        <p id="qual-produto-alerta-text" class="text-[11px] text-slate-500 italic leading-relaxed"></p>
-                    </div>
-                    <div class="glass-card p-8 flex flex-col gap-4">
-                        <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Veredicto da Qualificação</h4>
-                        <div id="qual-veredicto-badge" class="px-5 py-3 rounded-2xl border-2 text-sm font-black text-center tracking-wide"></div>
-                    </div>
-                    <div class="glass-card p-8 flex flex-col items-center justify-center text-center border-b-[8px] border-violet-500">
-                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Nota do SDR</span>
-                        <div id="qual-nota-sdr" class="text-6xl font-black text-violet-600 mb-1">—</div>
-                        <span class="text-[9px] text-slate-400 font-bold">/ 10</span>
-                        <p id="qual-nota-sdr-just" class="text-[10px] text-slate-500 mt-3 leading-relaxed font-medium text-center"></p>
-                    </div>
-                </div>
-
-                <div class="glass-card p-8">
-                    <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2">
-                        <i data-lucide="info" class="w-4 h-4 text-blue-400"></i> Contexto Extraído da Reunião
-                    </h4>
-                    <div id="qual-contexto-rows"></div>
-                </div>
-
-                <div class="glass-card p-8">
-                    <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2">
-                        <i data-lucide="search" class="w-4 h-4 text-blue-400"></i> Critérios Gerais de Qualificação
-                    </h4>
-                    <div id="qual-criterios" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                </div>
-
-                <div class="glass-card p-8">
-                    <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-2">
-                        <i data-lucide="check-square" class="w-4 h-4 text-blue-400"></i> SLA de Qualificação
-                    </h4>
-                    <p id="qual-sla-produto-label" class="text-[11px] text-blue-600 font-bold mb-6 uppercase tracking-widest"></p>
-                    <div id="qual-sla-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
-                </div>
-
-                <div class="glass-card p-12 border-t-[10px] border-violet-600">
-                    <h3 class="text-xl font-extrabold text-violet-800 uppercase tracking-widest mb-10 border-b pb-6 flex items-center gap-4">
-                        <i data-lucide="file-search"></i> Análise Completa da Qualificação (SDR)
-                    </h3>
-                    <div id="qual-markdown-body" class="markdown-content"></div>
-                </div>
-
-            </div>
-
-        </div>
-    </div>
-</main>
-
-<!-- MODAL PILAR -->
-<div id="justification-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm opacity-0 p-4">
-    <div id="modal-content-box" class="bg-white rounded-[2rem] p-8 max-w-lg w-full shadow-2xl transform scale-95 flex flex-col gap-5">
-        <div class="flex justify-between items-center">
-            <span id="modal-title" class="text-[11px] font-black uppercase text-slate-400 tracking-widest">Pilar</span>
-            <button onclick="closeModal()" class="bg-slate-100 hover:bg-slate-200 p-2.5 rounded-full text-slate-500 transition-colors">
-                <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-        </div>
-        <div class="flex items-start gap-5">
-            <div id="modal-score-ring" class="score-ring"><span id="modal-score">0</span></div>
-            <div class="flex-1">
-                <div id="modal-stars" class="stars-row justify-start mb-3"></div>
-                <p id="modal-text" class="text-[13px] text-slate-600 font-medium leading-relaxed"></p>
-            </div>
-        </div>
-        <div class="w-full h-px bg-slate-100"></div>
-        <div id="modal-improvement-container" class="rounded-2xl p-4 border">
-            <div class="flex items-center gap-2 mb-2">
-                <i id="modal-improvement-icon" data-lucide="target" class="w-4 h-4"></i>
-                <span id="modal-improvement-label" class="text-[9px] font-bold uppercase tracking-widest block"></span>
-            </div>
-            <p id="modal-improvement-text" class="text-[13px] leading-relaxed font-medium"></p>
-        </div>
-    </div>
-</div>
-
-<script>
-lucide.createIcons();
-
-// ── Auth ─────────────────────────────────────────────────────────────────────
-async function initAuth() {
-    const params     = new URLSearchParams(window.location.search);
-    const authError  = params.get('auth_error');
-    const emailAttempt = params.get('email');
-    if (authError) {
-        window.history.replaceState({}, '', '/');
-        const errEl = document.getElementById('login-error');
-        errEl.classList.remove('hidden');
-        if (authError === 'dominio_invalido') {
-            errEl.textContent = `Acesso negado. Apenas contas @nibo.com.br podem entrar. (Tentativa: ${emailAttempt || 'desconhecido'})`;
-        } else if (authError === 'email_nao_autorizado') {
-            errEl.textContent = `Conta @nibo.com.br não autorizada: ${emailAttempt || 'desconhecido'}. Fale com o responsável.`;
-        } else {
-            errEl.textContent = 'Erro ao autenticar. Tente novamente.';
-        }
-        document.getElementById('login-screen').classList.remove('hidden');
-        lucide.createIcons();
-        return;
-    }
-    try {
-        const res = await fetch('/api/me');
-        if (!res.ok) throw new Error('not authenticated');
-        const user = await res.json();
-        document.getElementById('app-screen').classList.remove('hidden');
-        document.getElementById('user-info').classList.remove('hidden');
-        document.getElementById('user-name').textContent  = user.name;
-        document.getElementById('user-email').textContent = user.email;
-        if (user.picture) {
-            const avatar = document.getElementById('user-avatar');
-            avatar.src = user.picture;
-            avatar.classList.remove('hidden');
-        }
-        lucide.createIcons();
-    } catch {
-        document.getElementById('login-screen').classList.remove('hidden');
-        lucide.createIcons();
-    }
-}
-initAuth();
-
-async function handleLogout() {
-    await fetch('/api/logout');
-    window.location.href = '/';
-}
-
-// ── App state ─────────────────────────────────────────────────────────────────
-const analyzeBtn      = document.getElementById('analyze-btn');
-const transcriptInput = document.getElementById('transcript-input');
-const resultsSection  = document.getElementById('results-section');
-const loadingSpinner  = document.getElementById('loading-spinner');
-const analysisContent = document.getElementById('analysis-content');
-const btnText         = document.getElementById('btn-text');
+// ── POR:
+/*
 let radarChartInstance = null;
-let pilarData = [];
-let fields    = [];
-let prodConfig = {};
-let ckLabels  = {};
+let pilarData   = [];
+let fields      = [];
+let prodConfig  = {};
+let ckLabels    = {};
+let _novoFormato = false; // true quando análise usa 3 etapas
+*/
 
-function getScoreColor(n) {
-    if (n >= 4) return { text: 'text-emerald-500', border: '#10b981', bg: '#ecfdf5' };
-    if (n >= 3) return { text: 'text-blue-600',    border: '#2563eb', bg: '#eff6ff' };
-    return              { text: 'text-red-500',    border: '#ef4444', bg: '#fef2f2' };
-}
 
-function buildStars(score) {
-    return Array.from({length:5}, (_,i) =>
-        `<span class="star ${i < score ? 'filled' : 'empty'}">★</span>`
-    ).join('');
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH 2 — HTML: substituir grid de pilares por grid de 3 etapas
+// Encontre: <div id="notas-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5"></div>
+// ═══════════════════════════════════════════════════════════════════════════
 
-function showSection(name) {
-    ['vendas','qualif'].forEach(s => {
-        document.getElementById('section-'+s).classList.toggle('hidden', s !== name);
-        document.getElementById('tab-'+s).classList.toggle('active', s === name);
-    });
-}
+// ── POR:
+/*
+<p class="text-[11px] text-slate-400 font-semibold flex items-center gap-2 px-1">
+    <i data-lucide="mouse-pointer-click" class="w-4 h-4 text-blue-400"></i>
+    Clique em qualquer etapa para ver a justificativa e sub-critérios completos
+</p>
+<div id="notas-grid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+*/
+// (também remova o <p> de instrução antigo que ficava acima do grid)
 
-// ── Analysis ──────────────────────────────────────────────────────────────────
-async function handleAnalysis() {
-    const prompt = transcriptInput.value.trim();
-    if (!prompt) return;
 
-    // Verificar coordenador selecionado
-    const coordRadio = document.querySelector('input[name="coordenador"]:checked');
-    if (!coordRadio) {
-        alert("Selecione o coordenador responsável antes de analisar.");
-        return;
-    }
-    const coordenador = coordRadio.value;
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH 3 — JS: renderDashboard — pilarData agora inclui criterios
+// ═══════════════════════════════════════════════════════════════════════════
 
-    resultsSection.classList.remove('hidden');
-    loadingSpinner.classList.remove('hidden');
-    analysisContent.classList.add('hidden');
-    analyzeBtn.disabled = true;
-    btnText.textContent = "Analisando...";
-    // Reset vendor banner from previous analysis
-    window._currentReuniaoId = null;
-    const _prevBanner = document.getElementById('vendedor-banner');
-    if (_prevBanner) _prevBanner.classList.add('hidden');
-    const _prevSalvo = document.getElementById('vendedor-salvo-tag');
-    if (_prevSalvo) _prevSalvo.classList.add('hidden');
-    try {
-        const response = await fetch('/api/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt })
-        });
-        const text = await response.text();
-        let data;
-        try { data = JSON.parse(text); }
-        catch (e) { throw new Error("Erro de comunicação com o servidor."); }
-        if (data.error) throw new Error(data.error);
-        renderDashboard(data);
-        // Salvar análise no Supabase e armazenar ID para reatribuição
-        window._currentCoordenador = coordenador;
-        window._currentReuniaoId   = null; // will be set after save
-        saveAnalysis(coordenador, data).then(id => {
-            window._currentReuniaoId = id;
-        });
-    } catch (err) {
-        alert("Erro na análise: " + err.message);
-        resultsSection.classList.add('hidden');
-    } finally {
-        analyzeBtn.disabled = false;
-        btnText.textContent = "Gerar Auditoria Completa";
-    }
-}
+// ── SUBSTITUIR (bloco pilarData):
+// pilarData = fields.map(f => ({
+//     label:    f.l,
+//     icon:     f.icon,
+//     score:    data[`nota_${f.k}`]     || 0,
+//     porque:   data[`porque_${f.k}`]   || "Sem justificativa disponível.",
+//     melhoria: data[`melhoria_${f.k}`] || "Critério de excelência atingido."
+// }));
 
-function renderDashboard(data) {
-    loadingSpinner.classList.add('hidden');
-    analysisContent.classList.remove('hidden');
+// ── POR:
+/*
+_novoFormato = fields.length === 3 && fields[0].criterios?.length > 0;
+pilarData = fields.map(f => ({
+    label:    f.l,
+    icon:     f.icon,
+    color:    f.color || 'blue',
+    score:    data[`nota_${f.k}`]     || 0,
+    porque:   data[`porque_${f.k}`]   || "Sem justificativa disponível.",
+    melhoria: data[`melhoria_${f.k}`] || "Critério de excelência atingido.",
+    criterios: (f.criterios || []).map(c => ({
+        label:    c.l,
+        desc:     c.desc || '',
+        score:    data[`nota_${c.k}`]     || 0,
+        porque:   data[`porque_${c.k}`]   || '',
+        melhoria: data[`melhoria_${c.k}`] || ''
+    }))
+}));
+*/
 
-    // Load config from server response
-    if (data._config) {
-        fields    = data._config.fields     || [];
-        prodConfig = data._config.prodConfig || {};
-        ckLabels  = data._config.ckLabels   || {};
-    }
 
-    const media = data.media_final || 0;
-    document.getElementById('media-final').textContent = media.toFixed(1);
-    document.getElementById('resumo-text').textContent = data.resumo_executivo || "—";
-    document.getElementById('chance-text').textContent = data.chance_fechamento || "N/A";
-    document.getElementById('alerta-text').textContent = data.alerta_cancelamento || "Sem alertas críticos.";
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH 4 — JS: renderDashboard — novo innerHTML para notas-grid
+// ═══════════════════════════════════════════════════════════════════════════
 
-    // ── Banner do vendedor ────────────────────────────────────────────────
-    renderVendedorBanner(data);
+// ── SUBSTITUIR (bloco que seta notas-grid innerHTML):
+// document.getElementById('notas-grid').innerHTML = pilarData.map((p, idx) => {
+//     ... código antigo de 5 pilares
+// }).join('');
 
-    document.getElementById('concorrentes-tags').innerHTML =
-        (data.concorrentes_detectados || []).map(c => `
-            <span class="px-3 py-1 bg-red-600 text-white text-[9px] font-black rounded-lg shadow uppercase tracking-widest flex items-center gap-1.5 tag-concorrente">
-                <i data-lucide="alert-circle" class="w-3 h-3"></i> ${c}
-            </span>`).join('');
+// ── POR: (cole esta função completa no lugar)
+/*
+document.getElementById('notas-grid').innerHTML = pilarData.map((p, idx) => {
+    const col = getScoreColor(p.score);
+    const colorMap = {
+        blue:   { border: 'border-blue-500',   badge: 'bg-blue-600',   text: 'text-blue-700',   bg: 'bg-blue-50',   light: 'bg-blue-100'   },
+        violet: { border: 'border-violet-500', badge: 'bg-violet-600', text: 'text-violet-700', bg: 'bg-violet-50', light: 'bg-violet-100' },
+        emerald:{ border: 'border-emerald-500',badge: 'bg-emerald-600',text: 'text-emerald-700',bg: 'bg-emerald-50',light: 'bg-emerald-100'}
+    };
+    const cm = colorMap[p.color] || colorMap.blue;
+    const etapaNum = idx + 1;
 
-    const status = document.getElementById('status-tag');
-    if (media >= 4.5)      { status.textContent = "Elite Sales";      status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg"; }
-    else if (media >= 3.5) { status.textContent = "Alta Performance"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700"; }
-    else                   { status.textContent = "Acompanhamento";   status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; }
-
-    pilarData = fields.map(f => ({
-        label:    f.l,
-        icon:     f.icon,
-        score:    data[`nota_${f.k}`]     || 0,
-        porque:   data[`porque_${f.k}`]   || "Sem justificativa disponível.",
-        melhoria: data[`melhoria_${f.k}`] || "Critério de excelência atingido."
-    }));
-
-    document.getElementById('notas-grid').innerHTML = pilarData.map((p, idx) => {
-        const col = getScoreColor(p.score);
-        const preview = p.porque.substring(0, 80).replace(/"/g, '').replace(/'/g, '') + (p.porque.length > 80 ? '...' : '');
+    const criteriosHTML = (p.criterios || []).map(c => {
+        const cc = getScoreColor(c.score);
         return `
-            <div onclick="openModal(${idx})" class="pilar-card bg-white rounded-[2rem] p-6 flex flex-col items-center text-center justify-center min-h-[200px]">
-                <div class="zoom-icon"><i data-lucide="zoom-in" class="w-3 h-3 text-blue-400"></i></div>
-                <i data-lucide="${p.icon}" class="w-6 h-6 text-slate-300 mb-3 mt-2"></i>
-                <span class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-widest">${p.label}</span>
-                <div class="text-5xl font-black ${col.text} mb-2 leading-none">${p.score}</div>
-                <div class="stars-row mb-3">${buildStars(p.score)}</div>
-                <p class="text-[9px] text-slate-400 italic leading-tight font-medium max-w-[95%] line-clamp-3">${preview}</p>
-                <span class="click-hint">ver detalhes →</span>
+            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-white border border-slate-100 hover:border-slate-200 transition-all">
+                <div class="flex-shrink-0 w-8 h-8 rounded-lg ${cm.light} flex items-center justify-center">
+                    <span class="text-xs font-black ${cm.text}">${c.score || '—'}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[9px] font-black text-slate-600 uppercase tracking-wide truncate">${c.label}</p>
+                    <p class="text-[8px] text-slate-400 truncate italic">${c.desc}</p>
+                </div>
+                <div class="flex-shrink-0">${buildStars(c.score).replace(/star/g,'star-sm')}</div>
             </div>`;
     }).join('');
 
-    const tc = parseFloat(data.tempo_fala_consultor || 0);
-    const tl = parseFloat(data.tempo_fala_cliente   || 0);
-    document.getElementById('talk-time-container').innerHTML = `
-        <div>
-            <div class="flex justify-between text-[11px] font-bold mb-2"><span>Consultor</span><span class="text-blue-600">${data.tempo_fala_consultor||'0%'}</span></div>
-            <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600" style="width:${tc}%"></div></div>
-        </div>
-        <div>
-            <div class="flex justify-between text-[11px] font-bold mb-2"><span>Cliente</span><span class="text-emerald-500">${data.tempo_fala_cliente||'0%'}</span></div>
-            <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500" style="width:${tl}%"></div></div>
-        </div>`;
-
-    const ck = data.checklist_fechamento || {};
-    document.getElementById('checklist-container').innerHTML = Object.entries(ckLabels).map(([k,l]) => `
-        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-            <span class="text-[9px] font-bold text-slate-600 uppercase tracking-tight">${l}</span>
-            <div class="w-5 h-5 rounded-full flex items-center justify-center ${ck[k]?'bg-emerald-500':'bg-slate-300'}">
-                <i data-lucide="${ck[k]?'check':'minus'}" class="text-white w-3 h-3"></i>
-            </div>
-        </div>`).join('');
-
-    document.getElementById('lista-fortes').innerHTML  = (data.pontos_fortes  ||[]).map(i=>`<li class="flex items-start gap-2"><span>▶</span>${i}</li>`).join('');
-    document.getElementById('lista-atencao').innerHTML = (data.pontos_atencao ||[]).map(i=>`<li class="flex items-start gap-2"><span>▶</span>${i}</li>`).join('');
-    document.getElementById('markdown-body').innerHTML = marked.parse(data.justificativa_detalhada||"");
-
-    renderRadar(data);
-    renderQualificacao(data);
-    lucide.createIcons();
-}
-
-function renderQualificacao(data) {
-    const foraPortfolio = !data.qual_produto_no_portfolio;
-    const alertEl = document.getElementById('qual-fora-portfolio-alert');
-    if (foraPortfolio) {
-        alertEl.classList.remove('hidden');
-        document.getElementById('qual-fora-portfolio-text').textContent =
-            data.qual_produto_alerta || "O produto apresentado não faz parte do portfólio Nibo.";
-    } else {
-        alertEl.classList.add('hidden');
-    }
-
-    const prodNome = (data.qual_produto_identificado || '').toUpperCase();
-    const fallbackCfg = { color: 'bg-red-100 text-red-800 border-red-300', icon: 'alert-triangle' };
-    let prodCfg = prodConfig['FORA'] || fallbackCfg;
-    for (const key of Object.keys(prodConfig)) {
-        if (prodNome.includes(key)) { prodCfg = prodConfig[key]; break; }
-    }
-
-    document.getElementById('qual-produto-badge-wrap').innerHTML = `
-        <span class="produto-badge border ${foraPortfolio ? 'produto-alert' : 'produto-ok'} ${prodCfg.color}">
-            <i data-lucide="${prodCfg.icon}" class="w-4 h-4"></i>
-            ${data.qual_produto_identificado || '—'}
-        </span>`;
-    document.getElementById('qual-produto-alerta-text').textContent = data.qual_produto_alerta || '';
-
-    const verd   = data.qual_veredicto || "SEM DADOS";
-    const verdEl = document.getElementById('qual-veredicto-badge');
-    verdEl.textContent = verd;
-    let vc = 'verd-s';
-    if (verd.includes('FORA'))  vc = 'verd-f';
-    else if (verd.includes('MAL'))  vc = 'verd-m';
-    else if (verd.includes('PARC')) vc = 'verd-p';
-    else if (verd.includes('QUAL')) vc = 'verd-q';
-    verdEl.className = `px-5 py-3 rounded-2xl border-2 text-sm font-black text-center tracking-wide ${vc}`;
-
-    document.getElementById('qual-nota-sdr').textContent      = data.qual_nota_sdr ?? '—';
-    document.getElementById('qual-nota-sdr-just').textContent = data.qual_nota_sdr_justificativa || '';
-
-    const ctx = data.qual_contexto || {};
-    document.getElementById('qual-contexto-rows').innerHTML = [
-        ['Produto Apresentado', ctx.produto_apresentado],
-        ['Qtd. Clientes/CNPJs', ctx.qtd_clientes_cnpjs],
-        ['Sistema Contábil',    ctx.sistema_contabil],
-        ['Interesse',           ctx.interesse_demonstrado],
-        ['Cenário/Problema',    ctx.cenario_problema],
-        ['Participantes',       ctx.participantes],
-        ['Sabia o que veria?',  ctx.sabia_o_que_veria]
-    ].map(([l,v]) => `
-        <div class="ctx-row">
-            <span class="ctx-label">${l}</span>
-            <span class="ctx-value">${v||'—'}</span>
-        </div>`).join('');
-
-    function qbClass(val) {
-        const v = (val||'').toLowerCase();
-        if (v.includes('sim') || v.includes('alto') || v.includes('claro'))    return 'qb-sim';
-        if (v.includes('parc') || v.includes('moder') || v.includes('superf')) return 'qb-parcial';
-        if (v.includes('fraco')) return 'qb-fraco';
-        return 'qb-nao';
-    }
-
-    document.getElementById('qual-criterios').innerHTML = [
-        ['Lead sabia o que veria?',      data.qual_sabia_o_que_veria,     data.qual_sabia_evidencia],
-        ['Produto correto apresentado?', data.qual_produto_correto,       data.qual_produto_evidencia],
-        ['Interesse real do cliente?',   data.qual_interesse_real,        data.qual_interesse_evidencia],
-        ['Cenário diagnosticado?',       data.qual_cenario_diagnosticado, data.qual_cenario_evidencia]
-    ].map(([t,v,ev]) => `
-        <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest">${t}</span>
-                <span class="px-3 py-1 rounded-full text-[10px] font-black ${qbClass(v)}">${v||'—'}</span>
-            </div>
-            <p class="text-[11px] text-slate-500 leading-relaxed italic">${ev||'Sem evidência.'}</p>
-        </div>`).join('');
-
-    document.getElementById('qual-sla-produto-label').textContent =
-        `Critérios específicos para: ${data.qual_produto_identificado || '—'}`;
-
-    document.getElementById('qual-sla-grid').innerHTML = [
-        [data.qual_sla_1_label, data.qual_sla_1_ok, data.qual_sla_1_ev],
-        [data.qual_sla_2_label, data.qual_sla_2_ok, data.qual_sla_2_ev],
-        [data.qual_sla_3_label, data.qual_sla_3_ok, data.qual_sla_3_ev]
-    ].map(([l,ok,ev]) => `
-        <div class="rounded-2xl p-5 border flex flex-col gap-3 ${ok?'bg-emerald-50 border-emerald-100':'bg-red-50 border-red-100'}">
-            <div class="flex items-center justify-between">
-                <span class="text-[9px] font-black uppercase tracking-widest ${ok?'text-emerald-700':'text-red-700'}">${l||'—'}</span>
-                <div class="w-6 h-6 rounded-full flex items-center justify-center ${ok?'bg-emerald-500':'bg-red-400'}">
-                    <i data-lucide="${ok?'check':'x'}" class="text-white w-3 h-3"></i>
+    return `
+        <div onclick="openModal(${idx})" class="pilar-card bg-white rounded-[2rem] p-6 flex flex-col cursor-pointer border-t-4 ${cm.border} shadow-sm hover:shadow-md transition-all">
+            <div class="zoom-icon"><i data-lucide="zoom-in" class="w-3 h-3 text-blue-400"></i></div>
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl ${cm.light} flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="${p.icon}" class="w-5 h-5 ${cm.text}"></i>
+                </div>
+                <div>
+                    <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Etapa ${etapaNum}</span>
+                    <p class="text-[11px] font-black text-slate-700 leading-tight">${p.label}</p>
+                </div>
+                <div class="ml-auto text-center">
+                    <div class="text-4xl font-black ${col.text} leading-none">${p.score}</div>
+                    <div class="stars-row mt-1">${buildStars(p.score)}</div>
                 </div>
             </div>
-            <p class="text-[11px] italic leading-relaxed ${ok?'text-emerald-700':'text-red-600'}">${ev||'Sem evidência.'}</p>
-        </div>`).join('');
+            <div class="space-y-2 mb-4">${criteriosHTML}</div>
+            <span class="click-hint mt-auto">ver detalhes completos →</span>
+        </div>`;
+}).join('');
+*/
 
-    document.getElementById('qual-markdown-body').innerHTML = marked.parse(data.qual_analise_completa||"");
-}
 
-function renderRadar(data) {
-    const ctx = document.getElementById('radarChart').getContext('2d');
-    if (radarChartInstance) radarChartInstance.destroy();
-    radarChartInstance = new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels: fields.map(f => f.l),
-            datasets: [{
-                label: 'Desempenho',
-                data: fields.map(f => data[`nota_${f.k}`] || 0),
-                backgroundColor: 'rgba(37,99,235,0.15)',
-                borderColor: '#2563eb',
-                borderWidth: 2,
-                pointRadius: 4,
-                pointBackgroundColor: '#1e3a8a'
-            }]
-        },
-        options: {
-            scales: { r: { min:0, max:5, ticks:{stepSize:1,display:false}, grid:{color:'#e2e8f0'}, angleLines:{color:'#e2e8f0'}, pointLabels:{font:{size:10,weight:'700'},color:'#475569'} } },
-            plugins: { legend: { display: false } },
-            maintainAspectRatio: true
-        }
-    });
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH 5 — JS: openModal — mostrar sub-critérios dentro do modal
+// ═══════════════════════════════════════════════════════════════════════════
 
+// ── SUBSTITUIR função openModal inteira por:
+/*
 function openModal(idx) {
     const p       = pilarData[idx];
     const modal   = document.getElementById('justification-modal');
-    const modalBox = document.getElementById('modal-content-box');
     const col     = getScoreColor(p.score);
-    document.getElementById('modal-title').textContent = p.label;
-    document.getElementById('modal-score').textContent = p.score;
+
+    document.getElementById('modal-title').textContent  = `Etapa ${idx+1} — ${p.label}`;
+    document.getElementById('modal-score').textContent  = p.score;
     const ring = document.getElementById('modal-score-ring');
     ring.style.borderColor = col.border;
     ring.style.background  = col.bg;
     ring.style.color       = col.border;
-    document.getElementById('modal-stars').innerHTML  = buildStars(p.score);
-    document.getElementById('modal-text').textContent = p.porque;
+    document.getElementById('modal-stars').innerHTML    = buildStars(p.score);
+    document.getElementById('modal-text').textContent   = p.porque;
+
+    // Painel de melhoria
     const isMax = p.score >= 5;
     const ic = document.getElementById('modal-improvement-container');
     const ii = document.getElementById('modal-improvement-icon');
@@ -723,2012 +169,309 @@ function openModal(idx) {
         ii.setAttribute('data-lucide','award'); ii.className = "w-4 h-4 text-emerald-600";
         il.className = "text-[9px] font-bold uppercase tracking-widest block text-emerald-700";
         il.textContent = "Excelência atingida!";
-        it.className = "text-[13px] leading-relaxed font-medium text-emerald-900";
+        it.textContent = p.melhoria || 'Critério de excelência atingido.';
     } else {
         ic.className = "rounded-2xl p-4 border bg-amber-50 border-amber-100";
-        ii.setAttribute('data-lucide','target'); ii.className = "w-4 h-4 text-amber-600";
-        il.className = "text-[9px] font-bold uppercase tracking-widest block text-amber-700";
-        il.textContent = "O que faltou para o 5?";
-        it.className = "text-[13px] leading-relaxed font-medium text-amber-900";
-    }
-    it.textContent = p.melhoria;
-    modal.classList.remove('hidden'); modal.classList.add('flex');
-    setTimeout(() => {
-        modal.classList.remove('opacity-0');
-        modalBox.classList.remove('scale-95'); modalBox.classList.add('scale-100');
-        lucide.createIcons();
-    }, 10);
-}
-
-function closeModal() {
-    const modal   = document.getElementById('justification-modal');
-    const modalBox = document.getElementById('modal-content-box');
-    modal.classList.add('opacity-0');
-    modalBox.classList.remove('scale-100'); modalBox.classList.add('scale-95');
-    setTimeout(() => { modal.classList.remove('flex'); modal.classList.add('hidden'); }, 300);
-}
-
-document.getElementById('justification-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-
-// ── Vendedores carregados da API (sem dados no frontend) ─────────────────────
-let VENDORS_CACHE = [];   // preenchido por loadVendorsCache()
-
-async function loadVendorsCache() {
-    try {
-        const res = await fetch('/api/vendors');
-        VENDORS_CACHE = await res.json();
-    } catch { VENDORS_CACHE = []; }
-}
-
-async function populateEuSelect() {
-    const sel = document.getElementById('dash-filter-eu');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">— selecione seu nome —</option>';
-    if (!VENDORS_CACHE.length) await loadVendorsCache();
-    const byCoord = {};
-    VENDORS_CACHE.forEach(v => {
-        if (!byCoord[v.coordenador]) byCoord[v.coordenador] = [];
-        byCoord[v.coordenador].push(v);
-    });
-    Object.entries(byCoord).forEach(([coord, vends]) => {
-        const g = document.createElement('optgroup');
-        g.label = 'Time ' + coord;
-        vends.forEach(v => {
-            const o = document.createElement('option');
-            o.value = v.nome; o.textContent = v.nome;
-            g.appendChild(o);
-        });
-        sel.appendChild(g);
-    });
-}
-
-
-let dashMode = 'gestor';
-let dashChartEvolucao = null;
-
-function setDashMode(mode) {
-    dashMode = mode;
-    const btns = {
-        gestor:    { id: 'dash-mode-gestor',     active: 'bg-[#002d72] text-white shadow-md',   inactive: 'bg-slate-200 text-slate-500' },
-        vendedor:  { id: 'dash-mode-vendedor',   active: 'bg-violet-600 text-white shadow-md',  inactive: 'bg-slate-200 text-slate-500' },
-        gestao:    { id: 'dash-mode-gestao',     active: 'bg-emerald-600 text-white shadow-md', inactive: 'bg-slate-200 text-slate-500' },
-        historico: { id: 'dash-mode-historico',   active: 'bg-slate-700 text-white shadow-md',   inactive: 'bg-slate-200 text-slate-500' }
-    };
-    Object.entries(btns).forEach(([k,b]) => {
-        const el = document.getElementById(b.id);
-        if (!el) return;
-        el.className = 'flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ' + (k === mode ? b.active : b.inactive);
-    });
-    document.getElementById('dash-filters-gestor').classList.toggle('hidden', mode !== 'gestor');
-    document.getElementById('dash-filters-vendedor').classList.toggle('hidden', mode !== 'vendedor');
-    document.getElementById('dash-content').innerHTML = '<div class="flex flex-col items-center py-20 text-slate-300"><i data-lucide="bar-chart-2" class="w-12 h-12 mb-3"></i><p class="font-bold text-sm">Selecione os filtros acima.</p></div>';
-    lucide.createIcons();
-    if (mode === 'gestor') loadDashboard();
-    if (mode === 'gestao') loadGestaoPanel();
-    if (mode === 'vendedor') populateEuSelect();
-    if (mode === 'calendario') loadCalendario();
-    if (mode === 'historico') loadHistorico();
-}
-
-async function onCoordChange() {
-    const coord = document.getElementById('dash-filter-coord').value;
-    const sel   = document.getElementById('dash-filter-vendedor');
-    sel.innerHTML = '<option value="todos">Todos</option>';
-    if (!VENDORS_CACHE.length) await loadVendorsCache();
-    const filtrados = coord === 'todos' ? VENDORS_CACHE : VENDORS_CACHE.filter(v => v.coordenador === coord);
-    filtrados.forEach(v => {
-        const o = document.createElement('option');
-        o.value = v.nome; o.textContent = v.nome;
-        sel.appendChild(o);
-    });
-    loadDashboard();
-}
-
-async function showDashboard() {
-    document.getElementById('dashboard-modal').classList.remove('hidden');
-    lucide.createIcons();
-    await loadVendorsCache();
-    loadDashboard();
-}
-
-function closeDashboard() {
-    document.getElementById('dashboard-modal').classList.add('hidden');
-}
-
-async function loadDashboard() {
-    const coord    = document.getElementById('dash-filter-coord').value;
-    const vendedor = document.getElementById('dash-filter-vendedor')?.value || 'todos';
-    const periodo  = document.getElementById('dash-filter-periodo').value;
-    const loading  = document.getElementById('dash-loading');
-    const content  = document.getElementById('dash-content');
-    loading.classList.remove('hidden');
-    try {
-        const inicio  = document.getElementById('dash-filter-inicio')?.value || '';
-        const fim     = document.getElementById('dash-filter-fim')?.value || '';
-        let qs = 'coordenador=' + encodeURIComponent(coord) + '&periodo=' + periodo + '&vendedor=' + encodeURIComponent(vendedor);
-        if (inicio) qs += '&data_inicio=' + encodeURIComponent(inicio);
-        if (fim)    qs += '&data_fim='    + encodeURIComponent(fim);
-        const res  = await fetch('/api/dashboard?' + qs);
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
-        renderDashboardData(data);
-    } catch(err) {
-        content.innerHTML = '<div class="text-center py-20 text-red-400 font-bold">' + err.message + '</div>';
-    } finally {
-        loading.classList.add('hidden');
-    }
-}
-
-function renderDashboardData({ reunioes, stats }) {
-    const content = document.getElementById('dash-content');
-
-    if (!stats || reunioes.length === 0) {
-        content.innerHTML =
-            '<div class="flex flex-col items-center py-20 text-slate-300">' +
-                '<i data-lucide="inbox" class="w-12 h-12 mb-3"></i>' +
-                '<p class="font-bold text-sm">Nenhuma análise encontrada para este período.</p>' +
-                '<p class="text-xs mt-1">Faça análises e elas aparecerão aqui.</p>' +
-            '</div>';
-        lucide.createIcons();
-        return;
+        ii.setAttribute('data-lucide','lightbulb'); ii.className = "w-4 h-4 text-amber-500";
+        il.className = "text-[9px] font-bold uppercase tracking-widest block text-amber-600";
+        il.textContent = "Como melhorar";
+        it.textContent = p.melhoria || '';
     }
 
-    const sc   = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
-    const scBg = n => n >= 4 ? 'bg-emerald-50 border-emerald-200' : n >= 3 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200';
+    // ── Sub-critérios (só exibe se formato novo) ──────────────────────────
+    let subEl = document.getElementById('modal-subcriterios');
+    if (!subEl) {
+        subEl = document.createElement('div');
+        subEl.id = 'modal-subcriterios';
+        ic.parentNode.insertBefore(subEl, ic.nextSibling);
+    }
 
-    // KPIs
-    const kpis =
-        '<div class="grid grid-cols-2 md:grid-cols-4 gap-4">' +
-            '<div class="glass-card p-6 text-center border-b-4 border-blue-600">' +
-                '<p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Total de Reuniões</p>' +
-                '<p class="text-4xl font-black text-blue-700">' + stats.total + '</p>' +
-            '</div>' +
-            '<div class="glass-card p-6 text-center border-b-4 border-emerald-500">' +
-                '<p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Média Geral</p>' +
-                '<p class="text-4xl font-black ' + sc(stats.media_geral) + '">' + stats.media_geral + '</p>' +
-                '<p class="text-[9px] text-slate-400 font-bold">/ 5.0</p>' +
-            '</div>' +
-            '<div class="glass-card p-6 text-center border-b-4 border-violet-500">' +
-                '<p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Leads Qualificados</p>' +
-                '<p class="text-4xl font-black text-violet-600">' + stats.veredictos.QUALIFICADO + '</p>' +
-                '<p class="text-[9px] text-slate-400 font-bold">' + Math.round(stats.veredictos.QUALIFICADO / stats.total * 100) + '% do total</p>' +
-            '</div>' +
-            '<div class="glass-card p-6 text-center border-b-4 border-red-400">' +
-                '<p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Fora do Portfólio</p>' +
-                '<p class="text-4xl font-black text-red-500">' + stats.veredictos.FORA + '</p>' +
-                '<p class="text-[9px] text-slate-400 font-bold">reuniões perdidas</p>' +
-            '</div>' +
-        '</div>';
+    if (p.criterios && p.criterios.length > 0) {
+        subEl.innerHTML = `
+            <div class="mt-6">
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <i data-lucide="list-checks" class="w-4 h-4 text-blue-400"></i>
+                    Critérios desta etapa
+                </h4>
+                <div class="space-y-4">
+                    ${p.criterios.map(c => {
+                        const cc = getScoreColor(c.score);
+                        return `<div class="p-4 rounded-2xl border ${c.score >= 4 ? 'border-emerald-100 bg-emerald-50' : c.score >= 3 ? 'border-blue-100 bg-blue-50' : 'border-red-100 bg-red-50'}">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-[11px] font-black ${cc.text} uppercase tracking-wide">${c.label}</p>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-2xl font-black ${cc.text}">${c.score}</span>
+                                    <span class="text-[10px] text-slate-400 font-bold">/5</span>
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-slate-500 italic mb-1">${c.desc}</p>
+                            <p class="text-[11px] text-slate-700 font-medium leading-relaxed mb-2">${c.porque || ''}</p>
+                            ${c.melhoria && c.score < 5 ? `<p class="text-[10px] text-amber-700 font-bold flex items-start gap-1"><i data-lucide="lightbulb" class="w-3 h-3 mt-0.5 flex-shrink-0"></i>${c.melhoria}</p>` : ''}
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>`;
+        lucide.createIcons({ el: subEl });
+    } else {
+        subEl.innerHTML = '';
+    }
 
-    // Por coordenador
-    const coordCards = Object.entries(stats.porCoordenador).map(function(entry) {
-        const nome = entry[0]; const coData = entry[1];
-        const isSimone = nome.includes('Simone');
-        const border = isSimone ? 'border-blue-500' : 'border-violet-500';
-        const iconColor = isSimone ? 'text-blue-600' : 'text-violet-600';
-        const bgColor = isSimone ? 'bg-blue-100' : 'bg-violet-100';
-        return '<div class="glass-card p-8 border-t-4 ' + border + '">' +
-            '<div class="flex items-center gap-3 mb-6">' +
-                '<div class="w-10 h-10 rounded-full ' + bgColor + ' flex items-center justify-center">' +
-                    '<i data-lucide="user-circle" class="w-5 h-5 ' + iconColor + '"></i>' +
-                '</div>' +
-                '<div>' +
-                    '<p class="font-black text-sm text-slate-800">' + nome + '</p>' +
-                    '<button onclick="abrirAnalysesCoord(\'' + nome.replace(/'/g,"\\'") + '\')" class="text-[10px] text-blue-500 hover:text-blue-700 font-black underline underline-offset-2 transition-colors">' +
-                        coData.total + ' reuniões analisadas →' +
-                    '</button>' +
-                '</div>' +
-            '</div>' +
-            '<div class="grid grid-cols-3 gap-3">' +
-                '<div class="text-center p-3 bg-slate-50 rounded-2xl"><p class="text-[8px] font-black text-slate-400 uppercase mb-1">Média Vendas</p><p class="text-2xl font-black ' + sc(coData.media_vendas) + '">' + (coData.media_vendas || '—') + '</p></div>' +
-                '<div class="text-center p-3 bg-slate-50 rounded-2xl"><p class="text-[8px] font-black text-slate-400 uppercase mb-1">Nota SDR</p><p class="text-2xl font-black ' + sc(coData.media_sdr / 2) + '">' + (coData.media_sdr || '—') + '</p></div>' +
-                '<div class="text-center p-3 bg-red-50 rounded-2xl"><p class="text-[8px] font-black text-red-400 uppercase mb-1">Mal Qualif.</p><p class="text-2xl font-black text-red-500">' + coData.mal_qualificados + '</p></div>' +
-            '</div>' +
-        '</div>';
-    }).join('');
+    lucide.createIcons({ el: document.getElementById('justification-modal') });
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+*/
 
-    // Ranking vendedores
-    const ranking = stats.ranking.map(function(v, i) {
-        const pilarLabels = ['Rapport','Produto','Apres.','Pré-F.','Fecha.'];
-        const pilarVals   = [v.avg_rapport, v.avg_produto, v.avg_apresentacao, v.avg_pre_fechamento, v.avg_fechamento];
-        const pilarCols   = pilarLabels.map(function(l, idx) {
-            const val = pilarVals[idx];
-            return '<div class="text-center"><p class="text-[8px] text-slate-400 font-bold">' + l + '</p><p class="font-black text-xs ' + sc(val) + '">' + (val || '—') + '</p></div>';
-        }).join('');
-        const medalColor = v.media >= 4 ? 'border-emerald-300' : v.media >= 3 ? 'border-blue-300' : 'border-red-300';
-        return '<div class="flex items-center gap-4 p-4 rounded-2xl border ' + scBg(v.media) + ' hover:shadow-sm transition-all">' +
-            '<div class="w-8 h-8 rounded-full bg-white border-2 ' + medalColor + ' flex items-center justify-center font-black text-sm text-slate-600">' + (i + 1) + '</div>' +
-            '<div class="flex-1"><p class="font-black text-sm text-slate-800">' + v.nome + '</p>' +
-            '<p class="text-[10px] text-slate-400 font-bold">' + v.coordenador + ' · ' + v.total + ' reuniões</p></div>' +
-            '<div class="grid grid-cols-5 gap-2 text-center hidden md:grid">' + pilarCols + '</div>' +
-            '<div class="text-3xl font-black ' + sc(v.media) + ' min-w-[50px] text-right">' + v.media + '</div>' +
-        '</div>';
-    }).join('');
 
-    // Veredictos SDR
-    const vColors = { QUALIFICADO: 'bg-emerald-500', PARCIALMENTE: 'bg-yellow-400', MAL: 'bg-red-500', FORA: 'bg-purple-500', SEM: 'bg-slate-300' };
-    const vLabels = { QUALIFICADO: 'Qualificado', PARCIALMENTE: 'Parcial', MAL: 'Mal Qualif.', FORA: 'Fora Portf.', SEM: 'Sem dados' };
-    const veredictosBars = Object.entries(stats.veredictos).map(function(entry) {
-        const k = entry[0]; const v = entry[1];
-        const pct = Math.round(v / stats.total * 100);
-        return '<div class="flex items-center gap-3">' +
-            '<span class="text-[9px] font-black text-slate-500 uppercase w-24 flex-shrink-0">' + (vLabels[k] || k) + '</span>' +
-            '<div class="flex-1 h-4 bg-slate-100 rounded-full overflow-hidden">' +
-                '<div class="h-full ' + (vColors[k] || 'bg-slate-300') + ' rounded-full" style="width:' + pct + '%"></div>' +
-            '</div>' +
-            '<span class="text-xs font-black text-slate-600 w-12 text-right">' + v + ' (' + pct + '%)</span>' +
-        '</div>';
-    }).join('');
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH 6 — JS: renderRadar — atualizar labels para 3 etapas
+// ═══════════════════════════════════════════════════════════════════════════
 
-    // Evolução
-    const evolucaoChart = stats.evolucao.length > 1
-        ? '<div class="glass-card p-8">' +
-              '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">' +
-                  '<i data-lucide="trending-up" class="w-4 h-4 text-blue-400"></i> Evolução Temporal (Média por Semana)' +
-              '</h4>' +
-              '<canvas id="dashEvolucaoChart" height="80"></canvas>' +
-          '</div>'
-        : '';
+// ── SUBSTITUIR função renderRadar inteira por:
+/*
+function renderRadar(data) {
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    if (radarChartInstance) radarChartInstance.destroy();
 
-    content.innerHTML =
-        kpis +
-        '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">' + coordCards + '</div>' +
-        evolucaoChart +
-        '<div class="glass-card p-8">' +
-            '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">' +
-                '<i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i> Ranking de Vendedores' +
-            '</h4>' +
-            '<div class="space-y-3">' + ranking + '</div>' +
-        '</div>' +
-        '<div class="glass-card p-8">' +
-            '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">' +
-                '<i data-lucide="user-check" class="w-4 h-4 text-violet-400"></i> Qualificação de Leads (SDR)' +
-            '</h4>' +
-            '<div class="space-y-4">' + veredictosBars + '</div>' +
-        '</div>';
+    const labels = fields.map(f => f.l);
+    const valores = fields.map(f => data[`nota_${f.k}`] || 0);
 
-    lucide.createIcons();
-
-    if (stats.evolucao.length > 1) {
-        if (window.dashChartEvolucao) window.dashChartEvolucao.destroy();
-        const ctx = document.getElementById('dashEvolucaoChart').getContext('2d');
-        window.dashChartEvolucao = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: stats.evolucao.map(function(e) { return e.semana; }),
-                datasets: [{
-                    label: 'Média de Vendas',
-                    data: stats.evolucao.map(function(e) { return e.media; }),
-                    borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.08)',
-                    borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#1e3a8a', tension: 0.3, fill: true
-                }]
+    radarChartInstance = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Desempenho por Etapa',
+                data: valores,
+                backgroundColor: 'rgba(37,99,235,0.15)',
+                borderColor: '#2563eb',
+                borderWidth: 2,
+                pointRadius: 5,
+                pointBackgroundColor: '#1e3a8a'
+            }]
+        },
+        options: {
+            scales: {
+                r: {
+                    min: 0, max: 5,
+                    ticks: { stepSize: 1, display: false },
+                    grid: { color: '#e2e8f0' },
+                    angleLines: { color: '#e2e8f0' },
+                    pointLabels: { font: { size: 11, weight: '700' }, color: '#475569' }
+                }
             },
-            options: {
-                scales: { y: { min: 0, max: 5, ticks: { stepSize: 1 } } },
-                plugins: { legend: { display: false } },
-                maintainAspectRatio: true
-            }
-        });
-    }
-}
-
-
-// ── Período e calendário inline ───────────────────────────────────────────────
-function onPeriodoChange() {
-    const val = document.getElementById('dash-filter-periodo').value;
-    const customRange = document.getElementById('dash-custom-range');
-    if (val === 'custom') {
-        customRange.classList.remove('hidden');
-    } else {
-        customRange.classList.add('hidden');
-        document.getElementById('dash-filter-inicio').value = '';
-        document.getElementById('dash-filter-fim').value   = '';
-        loadDashboard();
-    }
-}
-
-let calendarVisible = false;
-function toggleCalendarioInline() {
-    calendarVisible = !calendarVisible;
-    const btn = document.getElementById('btn-cal-toggle');
-    if (calendarVisible) {
-        btn.className = 'flex items-center gap-1.5 px-3 py-2 bg-sky-600 border border-sky-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all';
-        loadCalendario();
-    } else {
-        btn.className = 'flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:border-sky-400 text-slate-500 hover:text-sky-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all';
-        loadDashboard();
-    }
-}
-
-
-let _reunioesCache = []; // global cache for analysis lookup
-
-async function loadVendedorDash() {
-    const nome    = document.getElementById('dash-filter-eu').value;
-    const periodo = document.getElementById('dash-filter-periodo-vend').value;
-    const content = document.getElementById('dash-content');
-    if (!nome) return;
-    content.innerHTML = '<div class="flex flex-col items-center py-16 text-slate-300"><div class="loader mb-4"></div><p class="font-bold text-xs uppercase tracking-widest animate-pulse">Carregando seu desempenho...</p></div>';
-    try {
-        const qs = 'vendedor=' + encodeURIComponent(nome) + '&periodo=' + periodo + '&coordenador=todos';
-        const res  = await fetch('/api/dashboard?' + qs);
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
-        _reunioesCache = data.reunioes || [];
-        renderVendedorDash(nome, data);
-    } catch(err) {
-        content.innerHTML = '<div class="text-center py-20 text-red-400 font-bold">' + err.message + '</div>';
-    }
-}
-
-function renderVendedorDash(nome, obj) {
-    const reunioes = obj.reunioes; const stats = obj.stats;
-    const content  = document.getElementById('dash-content');
-
-    if (!stats || !reunioes.length) {
-        content.innerHTML =
-            '<div class="flex flex-col items-center py-20 text-slate-300">' +
-                '<i data-lucide="inbox" class="w-12 h-12 mb-3"></i>' +
-                '<p class="font-bold text-sm">Nenhuma análise encontrada para ' + nome + '.</p>' +
-            '</div>';
-        lucide.createIcons(); return;
-    }
-
-    // Pega o vendedor pelo nome exato, fallback para o primeiro
-    const v = stats.ranking.find(r => r.nome === nome) || stats.ranking[0];
-    if (!v) return;
-
-    const sc    = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
-    const scBg  = n => n >= 4 ? 'bg-emerald-100' : n >= 3 ? 'bg-blue-100' : 'bg-red-100';
-    const scBar = n => n >= 4 ? 'bg-emerald-500' : n >= 3 ? 'bg-blue-500' : 'bg-red-400';
-    const fmt   = n => (typeof n === 'number' && !isNaN(n)) ? n.toFixed(1) : '—';
-
-    const bar = (label, val, color) =>
-        '<div>' +
-            '<div class="flex justify-between text-[10px] font-black mb-1.5">' +
-                '<span class="text-slate-500 uppercase tracking-widest">' + label + '</span>' +
-                '<span class="' + sc(val) + '">' + fmt(val) + ' / 5</span>' +
-            '</div>' +
-            '<div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden">' +
-                '<div class="h-full ' + color + ' rounded-full transition-all" style="width:' + Math.round(((val||0)/5)*100) + '%"></div>' +
-            '</div>' +
-        '</div>';
-
-    // ── Tendência: comparar últimos 30d vs 30d anteriores ─────────────────
-    const now      = Date.now();
-    const d30      = 30 * 86400000;
-    const recentes = reunioes.filter(r => now - new Date(r.created_at) <= d30);
-    const antigos  = reunioes.filter(r => { const age = now - new Date(r.created_at); return age > d30 && age <= d30*2; });
-    const avg      = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
-    const avgRec   = avg(recentes.map(r=>r.media_final).filter(Boolean));
-    const avgAnt   = avg(antigos.map(r=>r.media_final).filter(Boolean));
-
-    let tendencia = null, tendLabel = '', tendIcon = '', tendColor = '';
-    if (avgRec !== null && avgAnt !== null) {
-        const diff = avgRec - avgAnt;
-        if (diff >= 0.3)       { tendencia = 'subindo';   tendLabel = '+' + diff.toFixed(1) + ' vs mês anterior'; tendIcon = 'trending-up';   tendColor = 'text-emerald-600 bg-emerald-50 border-emerald-200'; }
-        else if (diff <= -0.3) { tendencia = 'caindo';    tendLabel = diff.toFixed(1) + ' vs mês anterior';       tendIcon = 'trending-down';  tendColor = 'text-red-500 bg-red-50 border-red-200'; }
-        else                   { tendencia = 'estável';   tendLabel = 'Estável vs mês anterior';                  tendIcon = 'minus';          tendColor = 'text-slate-500 bg-slate-50 border-slate-200'; }
-    } else if (avgRec !== null) {
-        tendLabel = 'Dados insuficientes para comparar'; tendIcon = 'info'; tendColor = 'text-slate-400 bg-slate-50 border-slate-200';
-    }
-
-    // ── Análise de consistência ───────────────────────────────────────────
-    const medias      = reunioes.map(r=>r.media_final).filter(Boolean);
-    const mediaGeral  = avg(medias) || 0;
-    const variance    = avg(medias.map(m => Math.pow(m - mediaGeral, 2))) || 0;
-    const stdDev      = Math.sqrt(variance);
-    const consistencia = stdDev < 0.5 ? 'Alta' : stdDev < 1.0 ? 'Média' : 'Baixa';
-    const consColor    = stdDev < 0.5 ? 'text-emerald-600 bg-emerald-50' : stdDev < 1.0 ? 'text-blue-600 bg-blue-50' : 'text-red-500 bg-red-50';
-
-    // ── Melhor / pior semana ──────────────────────────────────────────────
-    const bySemana = {};
-    reunioes.forEach(r => {
-        const d   = new Date(r.created_at);
-        const mon = new Date(d); mon.setDate(d.getDate() - d.getDay());
-        const key = mon.toISOString().split('T')[0];
-        if (!bySemana[key]) bySemana[key] = [];
-        if (r.media_final) bySemana[key].push(r.media_final);
+            plugins: { legend: { display: false } },
+            maintainAspectRatio: true
+        }
     });
-    const semanas = Object.entries(bySemana)
-        .map(([sem, vals]) => ({ sem, media: avg(vals), count: vals.length }))
-        .filter(s => s.count >= 2)
-        .sort((a,b) => b.media - a.media);
-    const melhorSem = semanas[0];
-    const piorSem   = semanas[semanas.length - 1];
+}
+*/
 
-    // ── Pilar mais fraco / mais forte ─────────────────────────────────────
-    const pilarNomes = ['Rapport','Produto','Apresentação','Pré-Fechamento','Fechamento'];
-    const pilarVals  = [v.avg_rapport, v.avg_produto, v.avg_apresentacao, v.avg_pre_fechamento, v.avg_fechamento];
-    const maxIdx     = pilarVals.indexOf(Math.max(...pilarVals.filter(Boolean)));
-    const minIdx     = pilarVals.indexOf(Math.min(...pilarVals.filter(Boolean)));
 
-    // ── Evolução semanal (mini table) ────────────────────────────────────
-    const evolucaoRows = stats.evolucao.slice(-8).map(e => {
-        const pct  = Math.round((e.media / 5) * 100);
-        const prev = stats.evolucao[stats.evolucao.indexOf(e) - 1];
-        const seta = prev ? (e.media > prev.media ? '↑' : e.media < prev.media ? '↓' : '→') : '';
-        const setaColor = seta === '↑' ? 'text-emerald-500' : seta === '↓' ? 'text-red-400' : 'text-slate-400';
-        return '<div class="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-white">' +
-            '<span class="text-[9px] font-black text-slate-400 w-20 flex-shrink-0">' + e.semana + '</span>' +
-            '<div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">' +
-                '<div class="h-full ' + scBar(e.media) + ' rounded-full" style="width:' + pct + '%"></div>' +
-            '</div>' +
-            '<span class="text-xs font-black ' + sc(e.media) + ' w-8 text-right">' + fmt(e.media) + '</span>' +
-            '<span class="text-sm font-black ' + setaColor + ' w-4 text-center">' + seta + '</span>' +
-        '</div>';
-    }).join('') || '<p class="text-slate-300 text-xs text-center py-4">Sem dados suficientes</p>';
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH 7 — JS: renderVendedorPerf — barras das 3 etapas em vez de 5 pilares
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Encontre no bloco de Meu Desempenho o trecho que constrói as barras de pilares:
+//   bar('Rapport',        v.avg_rapport,        'bg-pink-500') +
+//   bar('Produto',        v.avg_produto,        'bg-sky-500') +
+//   ...
+//
+// ── SUBSTITUIR por:
+/*
+    // Detectar se vendedor tem dados no novo formato
+    const temEtapas = v.avg_etapa1 > 0 || v.avg_etapa2 > 0 || v.avg_etapa3 > 0;
 
-    // ── Diagnóstico personalizado ─────────────────────────────────────────
-    const diagnostico = [];
-    if (v.avg_fechamento < 3)      diagnostico.push({ icon: 'alert-circle', color: 'text-red-500',    msg: 'Fechamento abaixo da média — foco em técnicas de objeção e comprometimento.' });
-    if (v.avg_pre_fechamento < 3)  diagnostico.push({ icon: 'alert-circle', color: 'text-red-500',    msg: 'Pré-fechamento fraco — trabalhe ancoragem e sondagem antes de fechar.' });
-    if (v.avg_rapport < 3)         diagnostico.push({ icon: 'alert-circle', color: 'text-red-500',    msg: 'Rapport baixo — conexão com o cliente precisa melhorar.' });
-    if (v.avg_produto < 3)         diagnostico.push({ icon: 'alert-circle', color: 'text-amber-500',  msg: 'Conhecimento de produto — reforce os diferenciais e cases do portfólio.' });
-    if (v.avg_apresentacao < 3)    diagnostico.push({ icon: 'alert-circle', color: 'text-amber-500',  msg: 'Apresentação precisa de estrutura — siga o fluxo: dor → solução → valor.' });
-    if (tendencia === 'caindo')    diagnostico.push({ icon: 'trending-down', color: 'text-red-500',   msg: 'Queda nos últimos 30 dias — retomar treinamentos e acompanhamento com gestor.' });
-    if (tendencia === 'subindo')   diagnostico.push({ icon: 'trending-up',   color: 'text-emerald-600', msg: 'Evolução positiva nos últimos 30 dias — manter o ritmo!' });
-    if (mediaGeral >= 4.5)         diagnostico.push({ icon: 'star',          color: 'text-amber-500',  msg: 'Desempenho excelente — referência para o time.' });
-    if (consistencia === 'Alta')   diagnostico.push({ icon: 'check-circle',  color: 'text-emerald-600', msg: 'Consistência alta — resultados estáveis e previsíveis.' });
-    if (consistencia === 'Baixa')  diagnostico.push({ icon: 'shuffle',       color: 'text-amber-500',  msg: 'Resultados inconsistentes — foco em processo, não em performance pontual.' });
+    const barEtapas = temEtapas
+        ? bar('Consultividade / SPIN',      v.avg_etapa1, 'bg-blue-500') +
+          bar('Apresentação da Ferramenta', v.avg_etapa2, 'bg-violet-500') +
+          bar('Negociação',                 v.avg_etapa3, 'bg-emerald-500')
+        : bar('Rapport',        v.avg_rapport,        'bg-pink-500') +
+          bar('Produto',        v.avg_produto,        'bg-sky-500') +
+          bar('Apresentação',   v.avg_apresentacao,   'bg-indigo-500') +
+          bar('Pré-Fechamento', v.avg_pre_fechamento, 'bg-amber-500') +
+          bar('Fechamento',     v.avg_fechamento,     'bg-emerald-500');
 
-    const diagRows = diagnostico.map(d =>
-        '<div class="flex items-start gap-3 p-3 rounded-xl bg-white border border-slate-100">' +
-            '<i data-lucide="' + d.icon + '" class="w-4 h-4 mt-0.5 flex-shrink-0 ' + d.color + '"></i>' +
-            '<p class="text-[11px] font-medium text-slate-600">' + d.msg + '</p>' +
-        '</div>'
-    ).join('') || '<div class="p-3 text-center text-slate-300 text-xs">Sem diagnóstico disponível — analise mais reuniões.</div>';
+    // Encontrar melhor/pior
+    const pilarNomes = temEtapas
+        ? ['Consultividade/SPIN', 'Apresentação', 'Negociação']
+        : ['Rapport','Produto','Apresentação','Pré-Fechamento','Fechamento'];
+    const pilarVals  = temEtapas
+        ? [v.avg_etapa1, v.avg_etapa2, v.avg_etapa3]
+        : [v.avg_rapport, v.avg_produto, v.avg_apresentacao, v.avg_pre_fechamento, v.avg_fechamento];
+*/
 
-    // ── SDR veredictos ────────────────────────────────────────────────────
-    const vColors = { QUALIFICADO:'bg-emerald-500', PARCIALMENTE:'bg-yellow-400', MAL:'bg-red-500', FORA:'bg-purple-500', SEM:'bg-slate-300' };
-    const vLabels = { QUALIFICADO:'Qualificado', PARCIALMENTE:'Parcial', MAL:'Mal Qualif.', FORA:'Fora Portf.', SEM:'Sem dados' };
-    const sdrBars = Object.entries(stats.veredictos).map(([k,val]) => {
-        const pct = stats.total ? Math.round(val/stats.total*100) : 0;
-        return '<div class="flex items-center gap-3">' +
-            '<span class="text-[9px] font-black text-slate-500 uppercase w-20 flex-shrink-0">' + (vLabels[k]||k) + '</span>' +
-            '<div class="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">' +
-                '<div class="h-full ' + (vColors[k]||'bg-slate-300') + ' rounded-full" style="width:' + pct + '%"></div>' +
-            '</div>' +
-            '<span class="text-xs font-black text-slate-600 w-10 text-right">' + val + '</span>' +
-        '</div>';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH 8 — JS: renderDashboardContent — Relatório de Leads Mal Qualificados
+//
+// Adicione esta seção NO FINAL do innerHTML do dashboard content,
+// após a seção de "Qualificação de Leads (SDR)":
+// ═══════════════════════════════════════════════════════════════════════════
+
+/*
+// Dentro da função que monta o conteúdo do dashboard (renderDashboardContent ou similar),
+// adicione após o bloco de veredictosBars:
+
+// ── Badge de alerta no KPI header ────────────────────────────────────────
+// Na seção de KPIs, adicione um card extra para mal qualificados:
+const kpiMalQual = stats.total_mal_qualif > 0
+    ? `<div class="glass-card p-6 border-t-4 border-orange-400">
+          <p class="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-1">Leads Mal Qualificados</p>
+          <p class="text-4xl font-black text-orange-500">${stats.total_mal_qualif}</p>
+          <p class="text-[10px] text-slate-400 font-bold mt-1">NÃO contam na média ↓</p>
+          <button onclick="scrollToRelatorioMalQual()" class="mt-2 text-[9px] font-black text-orange-500 underline">ver relatório →</button>
+       </div>`
+    : '';
+
+// ── Seção de Relatório de RDs com Lead Mal Qualificado ───────────────────
+const relatorioMalQual = stats.reunioes_mal_qualificadas?.length > 0
+    ? `<div id="relatorio-mal-qualificado" class="glass-card p-8 border-t-4 border-orange-500">
+          <h4 class="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+              <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+              Relatório — Leads Mal Qualificados / Fora de Portfólio
+          </h4>
+          <p class="text-[10px] text-slate-400 font-medium mb-6">
+              Estas reuniões <strong class="text-orange-600">não contabilizam</strong> na média dos vendedores.
+              São exibidas aqui para acompanhamento e feedback.
+          </p>
+          <div class="overflow-x-auto">
+              <table class="w-full text-[10px]">
+                  <thead>
+                      <tr class="border-b border-orange-100">
+                          <th class="text-left py-2 px-3 font-black text-slate-500 uppercase tracking-wide">Vendedor</th>
+                          <th class="text-left py-2 px-3 font-black text-slate-500 uppercase tracking-wide">Gestor</th>
+                          <th class="text-left py-2 px-3 font-black text-slate-500 uppercase tracking-wide">Produto</th>
+                          <th class="text-left py-2 px-3 font-black text-slate-500 uppercase tracking-wide">Veredicto</th>
+                          <th class="text-center py-2 px-3 font-black text-slate-500 uppercase tracking-wide">Nota SDR</th>
+                          <th class="text-left py-2 px-3 font-black text-slate-500 uppercase tracking-wide">Data</th>
+                          <th class="text-center py-2 px-3 font-black text-slate-500 uppercase tracking-wide">Análise</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      ${stats.reunioes_mal_qualificadas.map(r => {
+                          const isMAL  = (r.qual_veredicto||'').toUpperCase().includes('MAL');
+                          const badge  = isMAL
+                              ? 'bg-red-100 text-red-700 border-red-200'
+                              : 'bg-orange-100 text-orange-700 border-orange-200';
+                          const data   = new Date(r.created_at).toLocaleDateString('pt-BR', {day:'2-digit',month:'short',year:'numeric'});
+                          const sdrCol = (r.qual_nota_sdr||0) >= 7 ? 'text-emerald-600' : (r.qual_nota_sdr||0) >= 5 ? 'text-amber-500' : 'text-red-500';
+                          return `<tr class="border-b border-slate-50 hover:bg-orange-50/40 transition-colors">
+                              <td class="py-3 px-3 font-black text-slate-700">${r.vendedor_nome || '—'}</td>
+                              <td class="py-3 px-3 text-slate-500">${r.coordenador || '—'}</td>
+                              <td class="py-3 px-3 text-slate-500">${r.produto || '—'}</td>
+                              <td class="py-3 px-3">
+                                  <span class="px-2 py-1 rounded-lg border text-[9px] font-black ${badge} uppercase tracking-wide">
+                                      ${r.qual_veredicto || '—'}
+                                  </span>
+                              </td>
+                              <td class="py-3 px-3 text-center font-black ${sdrCol}">${r.qual_nota_sdr || '—'}</td>
+                              <td class="py-3 px-3 text-slate-400">${data}</td>
+                              <td class="py-3 px-3 text-center">
+                                  <button onclick="abrirAnaliseCompleta('${r.id}')"
+                                      class="text-blue-500 hover:text-blue-700 font-black text-[9px] underline">
+                                      ver →
+                                  </button>
+                              </td>
+                          </tr>`;
+                      }).join('')}
+                  </tbody>
+              </table>
+          </div>
+      </div>`
+    : `<div class="glass-card p-6 border border-emerald-100 bg-emerald-50/40 text-center">
+          <i data-lucide="check-circle" class="w-8 h-8 text-emerald-500 mx-auto mb-2"></i>
+          <p class="text-[11px] font-black text-emerald-700">Nenhum lead mal qualificado no período selecionado 🎉</p>
+       </div>`;
+*/
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH 9 — JS: função auxiliar para scroll até o relatório
+// ═══════════════════════════════════════════════════════════════════════════
+
+/*
+function scrollToRelatorioMalQual() {
+    const el = document.getElementById('relatorio-mal-qualificado');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+*/
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH 10 — CSS: estrelas pequenas para sub-critérios
+// Adicione dentro do <style> do index.html:
+// ═══════════════════════════════════════════════════════════════════════════
+
+/*
+.star-sm { font-size: 8px; color: #e2e8f0; }
+.star-sm.filled { color: #f59e0b; }
+*/
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH 11 — JS: ranking no dashboard — exibir 3 etapas em vez de 5 pilares
+//
+// Encontre o trecho que monta os cards do ranking de vendedores.
+// Procure por: const pilarLabels = ['Rapport','Produto','Apres.','Pré-F.','Fecha.'];
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── SUBSTITUIR esse bloco por:
+/*
+    const temEtapas = v.avg_etapa1 > 0 || v.avg_etapa2 > 0 || v.avg_etapa3 > 0;
+    const pilarLabels = temEtapas
+        ? ['Consult.', 'Apres.', 'Negoc.']
+        : ['Rapport', 'Produto', 'Apres.', 'Pré-F.', 'Fecha.'];
+    const pilarVals = temEtapas
+        ? [v.avg_etapa1, v.avg_etapa2, v.avg_etapa3]
+        : [v.avg_rapport, v.avg_produto, v.avg_apresentacao, v.avg_pre_fechamento, v.avg_fechamento];
+
+    const pilarCols = pilarLabels.map(function(l, idx) {
+        const val = pilarVals[idx];
+        return '<div class="text-center"><p class="text-[8px] text-slate-400 font-bold">' + l + '</p>' +
+               '<p class="font-black text-xs ' + sc(val) + '">' + (val || '—') + '</p></div>';
     }).join('');
-
-    // ── RENDER ────────────────────────────────────────────────────────────
-    content.innerHTML =
-
-    // Hero card
-    '<div class="glass-card p-8 bg-gradient-to-r from-[#002d72] to-blue-700 text-white flex flex-wrap items-center gap-6">' +
-        '<div class="w-16 h-16 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-2xl font-black flex-shrink-0">' + nome.charAt(0) + '</div>' +
-        '<div class="flex-1">' +
-            '<p class="text-blue-200 text-[10px] font-black uppercase tracking-widest mb-1">Seu Desempenho</p>' +
-            '<h3 class="text-2xl font-black">' + nome + '</h3>' +
-            '<p class="text-blue-300 text-xs font-bold">' + v.coordenador + ' · ' + v.total + ' reunião(ões) analisada(s)</p>' +
-        '</div>' +
-        '<div class="flex gap-6">' +
-            '<div class="text-center"><p class="text-blue-200 text-[9px] font-black uppercase tracking-widest mb-1">Média</p><p class="text-5xl font-black">' + fmt(v.media) + '</p><p class="text-blue-300 text-[10px]">/ 5.0</p></div>' +
-            (avgRec !== null ? '<div class="text-center"><p class="text-blue-200 text-[9px] font-black uppercase tracking-widest mb-1">Último Mês</p><p class="text-5xl font-black ' + (avgRec >= 4 ? 'text-emerald-300' : avgRec >= 3 ? 'text-white' : 'text-red-300') + '">' + fmt(avgRec) + '</p><p class="text-blue-300 text-[10px]">/ 5.0</p></div>' : '') +
-        '</div>' +
-    '</div>' +
-
-    // Tendência + consistência + melhor semana
-    '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">' +
-        (tendLabel ? '<div class="glass-card p-5 border border-slate-200 ' + tendColor + ' flex items-center gap-3">' +
-            '<i data-lucide="' + tendIcon + '" class="w-6 h-6 flex-shrink-0"></i>' +
-            '<div><p class="text-[9px] font-black uppercase tracking-widest mb-0.5">Tendência</p>' +
-            '<p class="font-black text-sm">' + tendLabel + '</p></div>' +
-        '</div>' : '') +
-        '<div class="glass-card p-5 border border-slate-200 flex items-center gap-3 ' + consColor + '">' +
-            '<i data-lucide="activity" class="w-6 h-6 flex-shrink-0"></i>' +
-            '<div><p class="text-[9px] font-black uppercase tracking-widest mb-0.5">Consistência</p>' +
-            '<p class="font-black text-sm">' + consistencia + ' (σ=' + stdDev.toFixed(2) + ')</p></div>' +
-        '</div>' +
-        (melhorSem ? '<div class="glass-card p-5 border border-emerald-200 bg-emerald-50 flex items-center gap-3 text-emerald-700">' +
-            '<i data-lucide="star" class="w-6 h-6 flex-shrink-0"></i>' +
-            '<div><p class="text-[9px] font-black uppercase tracking-widest mb-0.5">Melhor Semana</p>' +
-            '<p class="font-black text-sm">' + melhorSem.sem + ' — ' + fmt(melhorSem.media) + '</p></div>' +
-        '</div>' : '') +
-    '</div>' +
-
-    // Diagnóstico
-    '<div class="glass-card p-7">' +
-        '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">' +
-            '<i data-lucide="zap" class="w-4 h-4 text-amber-400"></i> Diagnóstico Personalizado' +
-        '</h4>' +
-        '<div class="space-y-2">' + diagRows + '</div>' +
-    '</div>' +
-
-    // Pilares
-    '<div class="glass-card p-7">' +
-        '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2">' +
-            '<i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-400"></i> Desempenho por Pilar' +
-        '</h4>' +
-        '<div class="space-y-4">' +
-            bar('Rapport',        v.avg_rapport,        'bg-pink-500') +
-            bar('Produto',        v.avg_produto,        'bg-sky-500') +
-            bar('Apresentação',   v.avg_apresentacao,   'bg-indigo-500') +
-            bar('Pré-Fechamento', v.avg_pre_fechamento, 'bg-amber-500') +
-            bar('Fechamento',     v.avg_fechamento,     'bg-emerald-500') +
-        '</div>' +
-        '<div class="grid grid-cols-2 gap-3 mt-5">' +
-            '<div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">' +
-                '<p class="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-1">Ponto Forte</p>' +
-                '<p class="font-black text-sm text-emerald-700">' + (pilarNomes[maxIdx]||'—') + '</p>' +
-                '<p class="text-xl font-black text-emerald-600">' + fmt(pilarVals[maxIdx]) + '</p>' +
-            '</div>' +
-            '<div class="p-3 bg-red-50 rounded-2xl border border-red-100 text-center">' +
-                '<p class="text-[8px] font-black text-red-400 uppercase tracking-widest mb-1">Ponto Fraco</p>' +
-                '<p class="font-black text-sm text-red-600">' + (pilarNomes[minIdx]||'—') + '</p>' +
-                '<p class="text-xl font-black text-red-500">' + fmt(pilarVals[minIdx]) + '</p>' +
-            '</div>' +
-        '</div>' +
-    '</div>' +
-
-    // Evolução semanal
-    '<div class="glass-card p-7">' +
-        '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">' +
-            '<i data-lucide="trending-up" class="w-4 h-4 text-blue-400"></i> Evolução Semanal' +
-            (piorSem && melhorSem && piorSem.sem !== melhorSem.sem ? '<span class="ml-auto text-[9px] text-slate-400 font-medium normal-case tracking-normal">Melhor: ' + fmt(melhorSem.media) + ' · Pior: ' + fmt(piorSem.media) + '</span>' : '') +
-        '</h4>' +
-        '<div class="space-y-2">' + evolucaoRows + '</div>' +
-    '</div>' +
-
-    // SDR + últimas análises em grid
-    '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">' +
-        '<div class="glass-card p-7">' +
-            '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">' +
-                '<i data-lucide="user-check" class="w-4 h-4 text-violet-400"></i> Qualificação de Leads (SDR)' +
-            '</h4>' +
-            '<div class="space-y-3">' + sdrBars + '</div>' +
-        '</div>' +
-        '<div class="glass-card p-7">' +
-            '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">' +
-                '<i data-lucide="clock" class="w-4 h-4 text-slate-400"></i> Últimas Análises' +
-            '</h4>' +
-            '<div class="space-y-2">' +
-            reunioes.slice(0,5).map(r => {
-                const pilarMini = [r.nota_rapport,r.nota_produto,r.nota_apresentacao,r.nota_pre_fechamento,r.nota_fechamento];
-                const rId = r.id;
-                return '<div class="p-3 rounded-xl border border-slate-100 bg-white cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all" onclick="abrirAnaliseCompleta(\''+rId+'\')">' +
-                    '<div class="flex justify-between items-center mb-2">' +
-                        '<div>' +
-                            '<p class="text-[9px] font-black text-slate-400">' + new Date(r.created_at).toLocaleDateString('pt-BR') + '</p>' +
-                            '<p class="text-[11px] font-bold text-slate-600">' + (r.produto||'—') + '</p>' +
-                        '</div>' +
-                        '<div class="flex items-center gap-2">' +
-                            '<span class="text-xl font-black ' + sc(r.media_final) + '">' + (r.media_final||'—') + '</span>' +
-                            '<i data-lucide="eye" class="w-3.5 h-3.5 text-slate-300"></i>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="grid grid-cols-5 gap-1">' +
-                    pilarMini.map((val,i) =>
-                        '<div class="text-center p-1 rounded-lg ' + scBg(val) + '">' +
-                            '<p class="text-[7px] text-slate-400 font-bold">' + ['R','Pr','Ap','PF','F'][i] + '</p>' +
-                            '<p class="font-black text-[10px] ' + sc(val) + '">' + (val||'—') + '</p>' +
-                        '</div>'
-                    ).join('') +
-                    '</div>' +
-                '</div>';
-            }).join('') +
-            '</div>' +
-        '</div>' +
-    '</div>';
-
-    lucide.createIcons();
-}
-
-
-// ── Dashboard Gestor ──────────────────────────────────────────────────────────
-
-// ── Gestão de Vendedores ──────────────────────────────────────────────────────
-let todosVendedores = [];
-
-async function loadGestaoPanel() {
-    const content = document.getElementById('dash-content');
-    content.innerHTML = '<div class="flex flex-col items-center py-16 text-slate-300"><div class="loader mb-4"></div><p class="font-bold text-xs uppercase tracking-widest animate-pulse">Carregando painel de gestão...</p></div>';
-    try {
-        const [vendRes, reunRes] = await Promise.all([
-            fetch('/api/vendors?incluir_inativos=1'),
-            fetch('/api/dashboard?coordenador=todos&periodo=todos&vendedor=todos')
-        ]);
-        const vendedores  = await vendRes.json();
-        const { reunioes } = await reunRes.json();
-        todosVendedores = vendedores;
-        renderGestaoPanel(vendedores, reunioes || []);
-    } catch(err) {
-        content.innerHTML = '<div class="text-center py-20 text-red-400 font-bold">' + err.message + '</div>';
-    }
-}
-
-function renderGestaoPanel(vendedores, reunioes) {
-    const content = document.getElementById('dash-content');
-    const ativos   = vendedores.filter(v => v.ativo);
-    const inativos = vendedores.filter(v => !v.ativo);
-
-    // Store vendor map for event delegation
-    window._vendMap = {};
-    vendedores.forEach(v => { window._vendMap[v.id] = v; });
-
-    // Group actives by coord
-    const byCoord = {};
-    ativos.forEach(v => {
-        if (!byCoord[v.coordenador]) byCoord[v.coordenador] = [];
-        byCoord[v.coordenador].push(v);
-    });
-
-    const sc = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
-
-    const vendorRows = Object.entries(byCoord).map(([coord, lista]) => {
-        const isSimone = coord.includes('Simone');
-        const border = isSimone ? 'border-blue-500' : 'border-violet-500';
-        const badge  = isSimone ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700';
-        const rows = lista.map(v => {
-            const count = reunioes.filter(r => r.vendedor_nome && r.vendedor_nome.toLowerCase().includes(v.nome.split(' ')[0].toLowerCase())).length;
-            return '<div class="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 hover:shadow-sm transition-all">' +
-                '<div class="flex items-center gap-3">' +
-                    '<div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-500 text-sm">' + v.nome.charAt(0) + '</div>' +
-                    '<div>' +
-                        '<p class="font-bold text-sm text-slate-800">' + v.nome + '</p>' +
-                        '<button onclick="abrirAnalysesVendedor(\'' + v.nome.replace(/'/g, '\\' + '\'') + '\')" class="text-[10px] text-blue-500 hover:text-blue-700 font-black underline underline-offset-2 transition-colors">' +
-                            count + ' análise(s) →' +
-                        '</button>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="flex gap-2">' +
-                    '<button data-action="editar" data-id="' + v.id + '" ' +
-                        'class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-600 text-blue-500 hover:text-white border border-blue-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all" title="Editar">' +
-                        '<i data-lucide="pencil" class="w-3 h-3"></i>' +
-                    '</button>' +
-                    '<button data-action="del-registros" data-id="' + v.id + '" ' +
-                        'class="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-600 text-amber-600 hover:text-white border border-amber-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all" title="Excluir análises">' +
-                        '<i data-lucide="trash-2" class="w-3 h-3"></i>' +
-                    '</button>' +
-                    '<button data-action="demitir" data-id="' + v.id + '" ' +
-                        'class="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-500 hover:text-white border border-red-200 hover:border-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all" title="Demitir">' +
-                        '<i data-lucide="user-minus" class="w-3 h-3"></i>' +
-                    '</button>' +
-                '</div>' +
-            '</div>';
-        }).join('');
-        return '<div class="glass-card p-6 border-t-4 ' + border + '">' +
-            '<p class="text-[9px] font-black uppercase tracking-widest mb-4"><span class="px-3 py-1 rounded-full ' + badge + '">' + coord + '</span></p>' +
-            '<div class="space-y-2">' + rows + '</div>' +
-        '</div>';
-    }).join('');
-
-    // Desativados: mostrar só contagem com link para reativar via modal
-    const inativosList = inativos.length > 0 ?
-        '<div class="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl">' +
-            '<p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">' +
-                '<i data-lucide="user-x" class="w-3 h-3 inline mr-1"></i> ' +
-                inativos.length + ' vendedor(es) desativado(s)' +
-            '</p>' +
-            '<button onclick="abrirModalInativos()" class="text-[10px] font-black text-blue-500 hover:text-blue-700 uppercase tracking-widest transition-colors">Ver / Reativar →</button>' +
-        '</div>' : '';
-
-    const vendOptions = ativos.map(v => '<option value="' + v.nome + '">' + v.nome + '</option>').join('');
-
-    // lastAnalises moved to renderHistorico
-
-    content.innerHTML =
-        '<div class="glass-card p-6 border border-red-200 bg-red-50 flex items-center justify-between gap-4">' +
-            '<div>' +
-                '<p class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Registros não identificados</p>' +
-                '<p class="text-xs text-red-400">Análises onde a IA não conseguiu identificar o vendedor.</p>' +
-            '</div>' +
-            '<button onclick="excluirNaoIdentificados()" class="flex items-center gap-2 bg-red-500 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95">' +
-                '<i data-lucide="trash-2" class="w-3 h-3"></i> Excluir todos' +
-            '</button>' +
-        '</div>' +
-        '<div class="glass-card p-8 border-t-4 border-emerald-500">' +
-            '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">' +
-                '<i data-lucide="user-plus" class="w-4 h-4 text-emerald-500"></i> Cadastrar Novo Vendedor' +
-            '</h4>' +
-            '<div class="flex flex-wrap gap-3 items-end">' +
-                '<div class="flex-1 min-w-[200px]">' +
-                    '<label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Nome Completo</label>' +
-                    '<input id="novo-vend-nome" type="text" placeholder="Ex: João Silva" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ring-blue-300" />' +
-                '</div>' +
-                '<div class="min-w-[200px]">' +
-                    '<label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Time</label>' +
-                    '<select id="novo-vend-coord" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold bg-white focus:outline-none focus:ring-2 ring-blue-300">' +
-                        '<option value="">— Selecione —</option>' +
-                        '<option value="Simone Rangel">Simone Rangel</option>' +
-                        '<option value="Jonathan Dornelas">Jonathan Dornelas</option>' +
-                    '</select>' +
-                '</div>' +
-                '<button onclick="cadastrarVendedor()" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-black text-sm uppercase tracking-widest transition-all shadow-md active:scale-95">' +
-                    '<i data-lucide="plus" class="w-4 h-4"></i> Cadastrar' +
-                '</button>' +
-            '</div>' +
-            '<p id="novo-vend-msg" class="text-[11px] font-bold mt-3 hidden"></p>' +
-        '</div>' +
-        '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">' + vendorRows + '</div>' +
-        inativosList +
-        '<div class="glass-card p-6 flex items-center justify-between gap-4 bg-slate-50 border border-slate-200">' +
-            '<div>' +
-                '<p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-2">' +
-                    '<i data-lucide="clock" class="w-3 h-3"></i> Histórico de Análises' +
-                '</p>' +
-                '<p class="text-xs text-slate-400">Visualize, reatribua ou exclua registros individuais.</p>' +
-            '</div>' +
-            '<button onclick="setDashMode(\'historico\')" class="flex items-center gap-2 bg-[#002d72] hover:bg-blue-800 text-white px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all">' +
-                '<i data-lucide="arrow-right" class="w-3 h-3"></i> Abrir Histórico' +
-            '</button>' +
-        '</div>';
-
-    // Event delegation — no inline onclick with data
-    content.addEventListener('click', gestaoClickHandler);
-    lucide.createIcons();
-}
-
-function gestaoClickHandler(e) {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    const action = btn.dataset.action;
-    const id     = btn.dataset.id;
-    if (action === 'demitir') {
-        const v = window._vendMap[id];
-        if (v) confirmarDemissao(v.id, v.nome);
-    } else if (action === 'reativar') {
-        const v = window._vendMap[id];
-        if (v) reativarVendedor(v.id, v.nome, v.coordenador);
-    } else if (action === 'reassign') {
-        reatribuirAnalise(id);
-    } else if (action === 'editar') {
-        const v = window._vendMap[id];
-        if (v) abrirModalEditarVendedor(v);
-    } else if (action === 'del-registros') {
-        const v = window._vendMap[id];
-        if (v) excluirRegistrosVendedor(v.nome);
-    }
-}
-
-
-async function cadastrarVendedor() {
-    const nome      = document.getElementById('novo-vend-nome').value.trim();
-    const coordenador = document.getElementById('novo-vend-coord').value;
-    const msg       = document.getElementById('novo-vend-msg');
-    if (!nome || !coordenador) {
-        msg.className = 'text-[11px] font-bold mt-3 text-red-500';
-        msg.textContent = '⚠️ Preencha nome e time.';
-        msg.classList.remove('hidden'); return;
-    }
-    try {
-        const res  = await fetch('/api/vendors', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome, coordenador })
-        });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error);
-        msg.className = 'text-[11px] font-bold mt-3 text-emerald-600';
-        msg.textContent = (data.reativado ? '♻️ Vendedor reativado: ' : '✅ Vendedor cadastrado: ') + nome;
-        msg.classList.remove('hidden');
-        document.getElementById('novo-vend-nome').value = '';
-        document.getElementById('novo-vend-coord').value = '';
-        setTimeout(() => loadGestaoPanel(), 1000);
-    } catch(err) {
-        msg.className = 'text-[11px] font-bold mt-3 text-red-500';
-        msg.textContent = '❌ Erro: ' + err.message;
-        msg.classList.remove('hidden');
-    }
-}
-
-function confirmarDemissao(id, nome) {
-    if (!confirm('Desativar ' + nome + '?\n\nO histórico de análises será mantido, mas o vendedor não aparecerá mais nos filtros.')) return;
-    desativarVendedor(id, nome);
-}
-
-async function desativarVendedor(id, nome) {
-    try {
-        const res  = await fetch('/api/vendors', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id })
-        });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error);
-        loadGestaoPanel();
-    } catch(err) {
-        alert('Erro ao desativar: ' + err.message);
-    }
-}
-
-async function reativarVendedor(id, nome, coordenador) {
-    if (!confirm('Reativar ' + nome + '?')) return;
-    try {
-        const res  = await fetch('/api/vendors', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome, coordenador })
-        });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error);
-        loadGestaoPanel();
-    } catch(err) {
-        alert('Erro ao reativar: ' + err.message);
-    }
-}
-
-async function reatribuirAnalise(reuniaoId) {
-    const sel  = document.getElementById('reassign-' + reuniaoId);
-    const nome = sel?.value;
-    if (!nome) { alert('Selecione o vendedor correto.'); return; }
-    try {
-        const res  = await fetch('/api/reassign', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reuniao_id: reuniaoId, vendedor_nome: nome })
-        });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error);
-        // Visual feedback
-        const btn = sel.nextElementSibling;
-        btn.textContent = '✅';
-        btn.className = 'px-3 py-1.5 bg-emerald-500 text-white rounded-xl text-[10px] font-black transition-all';
-        setTimeout(() => loadGestaoPanel(), 1500);
-    } catch(err) {
-        alert('Erro ao reatribuir: ' + err.message);
-    }
-}
-
-
-// ── Excluir registros ────────────────────────────────────────────────────────
-async function excluirNaoIdentificados() {
-    if (!confirm('Excluir TODOS os registros onde o vendedor não foi identificado?\nEsta ação não pode ser desfeita.')) return;
-    try {
-        const res  = await fetch('/api/records', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ modo: 'nao_id' })
-        });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error);
-        alert(data.count + ' registro(s) excluído(s).');
-        loadGestaoPanel();
-    } catch(err) {
-        alert('Erro ao excluir: ' + err.message);
-    }
-}
-
-async function excluirRegistrosVendedor(nome) {
-    if (!nome) return;
-    if (!confirm('Excluir TODAS as análises de "' + nome + '"?\n\nO cadastro do vendedor será mantido. Apenas os registros de análise serão removidos.\nEsta ação não pode ser desfeita.')) return;
-    try {
-        const res  = await fetch('/api/records', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ modo: 'vendedor', nome })
-        });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error);
-        alert(data.count + ' análise(s) de "' + nome + '" excluída(s).\nO cadastro do vendedor foi mantido.');
-        loadGestaoPanel();
-    } catch(err) {
-        alert('Erro ao excluir: ' + err.message);
-    }
-}
-
-// ── Modal editar vendedor ─────────────────────────────────────────────────────
-function abrirModalEditarVendedor(v) {
-    // Remove previous modal if any
-    const old = document.getElementById('edit-vendor-modal');
-    if (old) old.remove();
-
-    const modal = document.createElement('div');
-    modal.id = 'edit-vendor-modal';
-    modal.className = 'fixed inset-0 z-[300] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4';
-    modal.innerHTML =
-        '<div class="bg-white rounded-[2rem] p-8 w-full max-w-sm shadow-2xl">' +
-            '<div class="flex justify-between items-center mb-6">' +
-                '<h3 class="font-black text-slate-800 text-lg">Editar Vendedor</h3>' +
-                '<button id="edit-vendor-close" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition-colors">' +
-                    '<i data-lucide="x" class="w-4 h-4 text-slate-500"></i>' +
-                '</button>' +
-            '</div>' +
-            '<div class="space-y-4">' +
-                '<div>' +
-                    '<label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Nome</label>' +
-                    '<input id="edit-vend-nome" type="text" value="' + v.nome.replace(/"/g, '&quot;') + '" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 ring-blue-300" />' +
-                '</div>' +
-                '<div>' +
-                    '<label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Time</label>' +
-                    '<select id="edit-vend-coord" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold bg-white focus:outline-none focus:ring-2 ring-blue-300">' +
-                        '<option value="Simone Rangel"' + (v.coordenador === 'Simone Rangel' ? ' selected' : '') + '>Simone Rangel</option>' +
-                        '<option value="Jonathan Dornelas"' + (v.coordenador === 'Jonathan Dornelas' ? ' selected' : '') + '>Jonathan Dornelas</option>' +
-                    '</select>' +
-                '</div>' +
-                '<p id="edit-vend-msg" class="text-[11px] font-bold hidden"></p>' +
-                '<button id="edit-vend-save" class="w-full bg-blue-600 hover:bg-[#002d72] text-white py-3 rounded-xl font-black text-sm uppercase tracking-widest transition-all active:scale-95">' +
-                    'Salvar alterações' +
-                '</button>' +
-            '</div>' +
-        '</div>';
-
-    document.body.appendChild(modal);
-    lucide.createIcons();
-
-    document.getElementById('edit-vendor-close').addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-
-    document.getElementById('edit-vend-save').addEventListener('click', async () => {
-        const nome       = document.getElementById('edit-vend-nome').value.trim();
-        const coordenador = document.getElementById('edit-vend-coord').value;
-        const msg        = document.getElementById('edit-vend-msg');
-        if (!nome) { msg.className = 'text-[11px] font-bold text-red-500'; msg.textContent = '⚠️ Nome obrigatório.'; msg.classList.remove('hidden'); return; }
-        try {
-            const res  = await fetch('/api/vendors', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: v.id, nome, coordenador })
-            });
-            const data = await res.json();
-            if (!data.ok) throw new Error(data.error);
-            msg.className = 'text-[11px] font-bold text-emerald-600';
-            msg.textContent = '✅ Atualizado!';
-            msg.classList.remove('hidden');
-            setTimeout(() => { modal.remove(); loadGestaoPanel(); }, 800);
-        } catch(err) {
-            msg.className = 'text-[11px] font-bold text-red-500';
-            msg.textContent = '❌ ' + err.message;
-            msg.classList.remove('hidden');
-        }
-    });
-}
-
-// ── Calendário ────────────────────────────────────────────────────────────────
-let calendarData   = [];
-let calCurrentYear  = new Date().getFullYear();
-let calCurrentMonth = new Date().getMonth(); // 0-indexed
-
-async function loadCalendario() {
-    const content = document.getElementById('dash-content');
-    content.innerHTML = '<div class="flex flex-col items-center py-16 text-slate-300"><div class="loader mb-4"></div><p class="font-bold text-xs uppercase tracking-widest animate-pulse">Carregando calendário...</p></div>';
-    try {
-        const res  = await fetch('/api/dashboard?coordenador=todos&periodo=todos&vendedor=todos');
-        const data = await res.json();
-        calendarData = data.reunioes || [];
-        renderCalendario();
-    } catch(err) {
-        content.innerHTML = '<div class="text-center py-20 text-red-400 font-bold">' + err.message + '</div>';
-    }
-}
-
-function renderCalendario() {
-    const content = document.getElementById('dash-content');
-    const year    = calCurrentYear;
-    const month   = calCurrentMonth;
-    const monthName = new Date(year, month, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-
-    // Build day → reunioes map
-    const byDay = {};
-    calendarData.forEach(r => {
-        const d = new Date(r.created_at);
-        if (d.getFullYear() === year && d.getMonth() === month) {
-            const key = d.getDate();
-            if (!byDay[key]) byDay[key] = [];
-            byDay[key].push(r);
-        }
-    });
-
-    const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const sc = n => n >= 4 ? '#10b981' : n >= 3 ? '#2563eb' : '#ef4444';
-
-    // Build calendar grid
-    let cells = '';
-    // Empty cells before first day
-    for (let i = 0; i < firstDay; i++) {
-        cells += '<div class="min-h-[80px] bg-slate-50 rounded-xl border border-slate-100 opacity-40"></div>';
-    }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-        const reunioes = byDay[day] || [];
-        const isToday  = (new Date().getDate() === day && new Date().getMonth() === month && new Date().getFullYear() === year);
-        const dots = reunioes.slice(0, 4).map(r => {
-            const color = sc(r.media_final);
-            return '<div class="w-2 h-2 rounded-full flex-shrink-0" style="background:' + color + '" title="' + (r.vendedor_nome || '') + ' — ' + (r.media_final || '?') + '"></div>';
-        }).join('');
-        const more = reunioes.length > 4 ? '<span class="text-[8px] text-slate-400 font-black">+' + (reunioes.length - 4) + '</span>' : '';
-
-        cells +=
-            '<div class="min-h-[80px] rounded-xl border p-2 cursor-pointer hover:shadow-md transition-all ' +
-                (isToday ? 'border-blue-400 bg-blue-50' : reunioes.length > 0 ? 'border-slate-200 bg-white hover:border-blue-300' : 'border-slate-100 bg-white') +
-            '" onclick="showDayDetail(' + day + ',' + month + ',' + year + ')">' +
-                '<p class="text-[10px] font-black mb-2 ' + (isToday ? 'text-blue-600' : 'text-slate-500') + '">' + day + '</p>' +
-                (reunioes.length > 0
-                    ? '<div class="flex flex-wrap gap-1">' + dots + more + '</div>' +
-                      '<p class="text-[9px] text-slate-400 mt-1 font-bold">' + reunioes.length + ' reunião(ões)</p>'
-                    : '') +
-            '</div>';
-    }
-
-    const weekdays = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-    const headers = weekdays.map(d => '<div class="text-center text-[9px] font-black text-slate-400 uppercase tracking-widest py-2">' + d + '</div>').join('');
-
-    // Stats for this month
-    const thisMonthReunions = Object.values(byDay).flat();
-    const avg = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : '—';
-    const medias = thisMonthReunions.map(r => r.media_final).filter(Boolean);
-
-    content.innerHTML =
-        '<div class="glass-card p-6">' +
-            // Nav
-            '<div class="flex items-center justify-between mb-6">' +
-                '<button onclick="calNav(-1)" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">' +
-                    '<i data-lucide="chevron-left" class="w-5 h-5 text-slate-600"></i>' +
-                '</button>' +
-                '<h3 class="font-black text-slate-800 text-lg capitalize">' + monthName + '</h3>' +
-                '<button onclick="calNav(1)" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">' +
-                    '<i data-lucide="chevron-right" class="w-5 h-5 text-slate-600"></i>' +
-                '</button>' +
-            '</div>' +
-            // Mini stats
-            '<div class="grid grid-cols-3 gap-3 mb-6">' +
-                '<div class="text-center p-3 bg-blue-50 rounded-2xl border border-blue-100">' +
-                    '<p class="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">Reuniões</p>' +
-                    '<p class="text-2xl font-black text-blue-600">' + thisMonthReunions.length + '</p>' +
-                '</div>' +
-                '<div class="text-center p-3 bg-emerald-50 rounded-2xl border border-emerald-100">' +
-                    '<p class="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-1">Média</p>' +
-                    '<p class="text-2xl font-black text-emerald-600">' + avg(medias) + '</p>' +
-                '</div>' +
-                '<div class="text-center p-3 bg-slate-50 rounded-2xl border border-slate-200">' +
-                    '<p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Legenda</p>' +
-                    '<div class="flex justify-center gap-2 mt-1">' +
-                        '<div class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-emerald-500"></div><span class="text-[8px] text-slate-500">≥4</span></div>' +
-                        '<div class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-blue-500"></div><span class="text-[8px] text-slate-500">≥3</span></div>' +
-                        '<div class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-red-400"></div><span class="text-[8px] text-slate-500">&lt;3</span></div>' +
-                    '</div>' +
-                '</div>' +
-            '</div>' +
-            // Grid
-            '<div class="grid grid-cols-7 gap-1.5">' + headers + cells + '</div>' +
-        '</div>';
-
-    lucide.createIcons();
-}
-
-function calNav(dir) {
-    calCurrentMonth += dir;
-    if (calCurrentMonth > 11) { calCurrentMonth = 0; calCurrentYear++; }
-    if (calCurrentMonth < 0)  { calCurrentMonth = 11; calCurrentYear--; }
-    renderCalendario();
-}
-
-function showDayDetail(day, month, year) {
-    const reunioes = calendarData.filter(r => {
-        const d = new Date(r.created_at);
-        return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
-    });
-    if (!reunioes.length) return;
-
-    const old = document.getElementById('day-detail-modal');
-    if (old) old.remove();
-
-    const sc = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
-    const dateLabel = new Date(year, month, day).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-
-    const rows = reunioes.map(r =>
-        '<div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">' +
-            '<div class="flex justify-between items-start mb-2">' +
-                '<div>' +
-                    '<p class="font-black text-sm text-slate-800">' + (r.vendedor_nome || 'Não identificado') + '</p>' +
-                    '<p class="text-[10px] text-slate-400">' + (r.produto || '—') + ' · ' + (r.coordenador || '') + '</p>' +
-                '</div>' +
-                '<span class="text-2xl font-black ' + sc(r.media_final) + '">' + (r.media_final || '—') + '</span>' +
-            '</div>' +
-            '<div class="flex gap-2">' +
-                ['R','Pr','Ap','PF','F'].map(function(l, i) {
-                    const v = [r.nota_rapport,r.nota_produto,r.nota_apresentacao,r.nota_pre_fechamento,r.nota_fechamento][i];
-                    return '<div class="text-center px-2 py-1 rounded-lg bg-white border border-slate-100"><p class="text-[7px] text-slate-400 font-bold">' + l + '</p><p class="text-xs font-black ' + sc(v) + '">' + (v||'—') + '</p></div>';
-                }).join('') +
-            '</div>' +
-        '</div>'
-    ).join('');
-
-    const modal = document.createElement('div');
-    modal.id = 'day-detail-modal';
-    modal.className = 'fixed inset-0 z-[300] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4';
-    modal.innerHTML =
-        '<div class="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl max-h-[80vh] overflow-y-auto">' +
-            '<div class="flex justify-between items-center mb-6">' +
-                '<div>' +
-                    '<p class="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Detalhes do dia</p>' +
-                    '<h3 class="font-black text-slate-800 capitalize">' + dateLabel + '</h3>' +
-                '</div>' +
-                '<button id="day-modal-close" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full">' +
-                    '<i data-lucide="x" class="w-4 h-4 text-slate-500"></i>' +
-                '</button>' +
-            '</div>' +
-            '<div class="space-y-3">' + rows + '</div>' +
-        '</div>';
-
-    document.body.appendChild(modal);
-    lucide.createIcons();
-    document.getElementById('day-modal-close').addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-}
-
-
-// ── Banner vendedor na análise ────────────────────────────────────────────────
-async function renderVendedorBanner(data) {
-    const banner    = document.getElementById('vendedor-banner');
-    const display   = document.getElementById('vendedor-nome-display');
-    const avatar    = document.getElementById('vendedor-avatar');
-    const sel       = document.getElementById('vendedor-corrigir-sel');
-    const btn       = document.getElementById('vendedor-corrigir-btn');
-    const salvoTag  = document.getElementById('vendedor-salvo-tag');
-
-    const nome = data.vendedor_nome || 'Não identificado';
-    display.textContent = nome;
-    avatar.textContent  = nome.charAt(0).toUpperCase();
-
-    // Color avatar by score
-    const media = data.media_final || 0;
-    avatar.className = 'w-10 h-10 rounded-full flex items-center justify-center font-black text-lg flex-shrink-0 ' +
-        (media >= 4 ? 'bg-emerald-100 text-emerald-700' : media >= 3 ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600');
-
-    // Populate vendor select from cache
-    sel.innerHTML = '<option value="">— Corrigir vendedor —</option>';
-    if (!VENDORS_CACHE.length) await loadVendorsCache();
-    VENDORS_CACHE.forEach(v => {
-        const o = document.createElement('option');
-        o.value = v.nome;
-        o.textContent = v.nome;
-        if (v.nome === nome) o.selected = true;
-        sel.appendChild(o);
-    });
-
-    // Show/hide save button when selection changes
-    sel.onchange = () => {
-        const changed = sel.value && sel.value !== nome;
-        btn.classList.toggle('hidden', !changed);
-        salvoTag.classList.add('hidden');
-    };
-
-    // Save correction
-    btn.onclick = async () => {
-        const novoNome = sel.value;
-        if (!novoNome) return;
-        btn.disabled = true;
-        btn.textContent = 'Salvando...';
-        try {
-            // Wait for reuniao_id if save is still in progress
-            let attempts = 0;
-            while (!window._currentReuniaoId && attempts < 20) {
-                await new Promise(r => setTimeout(r, 300));
-                attempts++;
-            }
-            if (!window._currentReuniaoId) throw new Error('ID da análise não disponível. Tente pelo painel de Gestão.');
-            const res  = await fetch('/api/reassign', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reuniao_id: window._currentReuniaoId, vendedor_nome: novoNome })
-            });
-            const d = await res.json();
-            if (!d.ok) throw new Error(d.error);
-            // Update UI
-            display.textContent = novoNome;
-            avatar.textContent  = novoNome.charAt(0).toUpperCase();
-            btn.classList.add('hidden');
-            salvoTag.classList.remove('hidden');
-        } catch(err) {
-            alert('Erro ao corrigir: ' + err.message);
-            btn.disabled = false;
-            btn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Salvar';
-            lucide.createIcons();
-        }
-    };
-
-    banner.classList.remove('hidden');
-    lucide.createIcons();
-}
-
-
-// ── Histórico de Análises ─────────────────────────────────────────────────────
-let historicoPage     = 0;
-const HISTORICO_LIMIT = 15;
-let historicoAtivos   = [];
-
-async function loadHistorico(page) {
-    if (page !== undefined) historicoPage = page;
-    const content = document.getElementById('dash-content');
-    content.innerHTML =
-        '<div class="flex flex-col items-center py-16 text-slate-300">' +
-            '<div class="loader mb-4"></div>' +
-            '<p class="font-bold text-xs uppercase tracking-widest animate-pulse">Carregando histórico...</p>' +
-        '</div>';
-    try {
-        const [reunRes, vendRes] = await Promise.all([
-            fetch('/api/dashboard?coordenador=todos&periodo=todos&vendedor=todos'),
-            fetch('/api/vendors')
-        ]);
-        const { reunioes } = await reunRes.json();
-        historicoAtivos = await vendRes.json();
-        renderHistorico(reunioes || []);
-    } catch(err) {
-        content.innerHTML = '<div class="text-center py-20 text-red-400 font-bold">' + err.message + '</div>';
-    }
-}
-
-function renderHistorico(reunioes) {
-    const content  = document.getElementById('dash-content');
-    const sc       = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
-    const scBg     = n => n >= 4 ? 'bg-emerald-50' : n >= 3 ? 'bg-blue-50' : 'bg-red-50';
-
-    // Search + filter state
-    const searchVal  = document.getElementById('hist-search')?.value?.toLowerCase() || '';
-    const coordFilt  = document.getElementById('hist-filter-coord')?.value || 'todos';
-    const vendFilt   = document.getElementById('hist-filter-vend')?.value  || 'todos';
-
-    let filtered = reunioes;
-    if (coordFilt !== 'todos') filtered = filtered.filter(r => r.coordenador === coordFilt);
-    if (vendFilt  !== 'todos') filtered = filtered.filter(r => r.vendedor_nome === vendFilt);
-    if (searchVal) filtered = filtered.filter(r =>
-        (r.vendedor_nome || '').toLowerCase().includes(searchVal) ||
-        (r.produto       || '').toLowerCase().includes(searchVal) ||
-        (r.coordenador   || '').toLowerCase().includes(searchVal)
-    );
-
-    const total = filtered.length;
-    const start = historicoPage * HISTORICO_LIMIT;
-    const page  = filtered.slice(start, start + HISTORICO_LIMIT);
-    const pages = Math.ceil(total / HISTORICO_LIMIT);
-
-    const vendOptions = historicoAtivos
-        .map(v => '<option value="' + v.nome + '">' + v.nome + '</option>')
-        .join('');
-
-    const rows = page.map(r => {
-        const vOpts = '<option value="">— Corrigir para —</option>' +
-            historicoAtivos.map(v =>
-                '<option value="' + v.nome + '"' + (v.nome === r.vendedor_nome ? ' selected' : '') + '>' + v.nome + '</option>'
-            ).join('');
-        const isNaoId = !r.vendedor_nome || r.vendedor_nome.includes('identificado');
-        return '<div class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-100 hover:shadow-sm transition-all">' +
-            '<div class="w-9 h-9 rounded-full ' + scBg(r.media_final) + ' flex items-center justify-center font-black text-xs ' + sc(r.media_final) + ' flex-shrink-0">' + (r.media_final || '?') + '</div>' +
-            '<div class="flex-1 min-w-0">' +
-                '<div class="flex items-center gap-2 mb-0.5">' +
-                    '<p class="text-[9px] font-black text-slate-400">' + new Date(r.created_at).toLocaleDateString('pt-BR') + '</p>' +
-                    '<span class="text-[8px] px-2 py-0.5 bg-slate-100 rounded-full font-bold text-slate-400">' + (r.coordenador || '') + '</span>' +
-                    (isNaoId ? '<span class="text-[8px] px-2 py-0.5 bg-red-100 rounded-full font-bold text-red-500">não identificado</span>' : '') +
-                '</div>' +
-                '<p class="font-black text-sm text-slate-800 truncate">' + (r.vendedor_nome || 'Não identificado') + '</p>' +
-                '<p class="text-[10px] text-slate-400 truncate">' + (r.produto || '—') + '</p>' +
-            '</div>' +
-            '<div class="flex items-center gap-2 flex-shrink-0">' +
-                '<select data-reassign-id="' + r.id + '" class="hist-reassign-sel text-xs font-bold border border-slate-200 rounded-xl px-2 py-1.5 bg-slate-50 focus:outline-none max-w-[150px]">' + vOpts + '</select>' +
-                '<button data-action="hist-reassign" data-id="' + r.id + '" class="p-2 bg-blue-50 hover:bg-blue-600 text-blue-500 hover:text-white border border-blue-200 rounded-xl transition-all" title="Salvar reatribuição">' +
-                    '<i data-lucide="check" class="w-3 h-3"></i>' +
-                '</button>' +
-                '<button data-action="hist-delete" data-id="' + r.id + '" class="p-2 bg-red-50 hover:bg-red-600 text-red-400 hover:text-white border border-red-200 rounded-xl transition-all" title="Excluir registro">' +
-                    '<i data-lucide="trash-2" class="w-3 h-3"></i>' +
-                '</button>' +
-            '</div>' +
-        '</div>';
-    }).join('');
-
-    const pagination = pages > 1 ?
-        '<div class="flex items-center justify-center gap-3 pt-2">' +
-            '<button onclick="histNavPage(-1)" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-black text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-all ' + (historicoPage === 0 ? 'opacity-40 pointer-events-none' : '') + '">← Anterior</button>' +
-            '<span class="text-[11px] font-black text-slate-400">' + (historicoPage + 1) + ' / ' + pages + ' — ' + total + ' registros</span>' +
-            '<button onclick="histNavPage(1)" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-black text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-all ' + (historicoPage >= pages - 1 ? 'opacity-40 pointer-events-none' : '') + '">Próximo →</button>' +
-        '</div>' : '';
-
-    content.innerHTML =
-        '<div class="glass-card p-6">' +
-            '<div class="flex flex-wrap gap-3 items-center mb-6">' +
-                '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mr-2">' +
-                    '<i data-lucide="clock" class="w-4 h-4"></i> Histórico' +
-                '</h4>' +
-                '<input id="hist-search" type="text" placeholder="Buscar vendedor, produto..." ' +
-                    'oninput="refilterHistorico(' + JSON.stringify(reunioes).replace(/</g,'\u003c') + ')" ' +
-                    'class="flex-1 min-w-[160px] border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 ring-blue-300" />' +
-                '<select id="hist-filter-coord" onchange="refilterHistorico(' + JSON.stringify(reunioes).replace(/</g,'\u003c') + ')" class="text-xs font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none">' +
-                    '<option value="todos">Todos os times</option>' +
-                    '<option value="Simone Rangel">Simone Rangel</option>' +
-                    '<option value="Jonathan Dornelas">Jonathan Dornelas</option>' +
-                '</select>' +
-                '<select id="hist-filter-vend" onchange="refilterHistorico(' + JSON.stringify(reunioes).replace(/</g,'\u003c') + ')" class="text-xs font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none">' +
-                    '<option value="todos">Todos os vendedores</option>' + vendOptions +
-                '</select>' +
-            '</div>' +
-            '<div class="space-y-2" id="hist-rows">' + (rows || '<p class="text-slate-300 text-sm text-center py-8">Nenhum registro encontrado.</p>') + '</div>' +
-            pagination +
-        '</div>';
-
-    lucide.createIcons();
-
-    // Event delegation for this panel
-    const histPanel = document.getElementById('hist-rows');
-    if (histPanel) {
-        histPanel.addEventListener('click', async function(e) {
-            const btn = e.target.closest('[data-action]');
-            if (!btn) return;
-            const action = btn.dataset.action;
-            const id     = btn.dataset.id;
-
-            if (action === 'hist-delete') {
-                if (!confirm('Excluir este registro permanentemente?')) return;
-                try {
-                    const res  = await fetch('/api/records', {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ modo: 'single', id })
-                    });
-                    const d = await res.json();
-                    if (!d.ok) throw new Error(d.error);
-                    btn.closest('.flex').remove();
-                } catch(err) { alert('Erro: ' + err.message); }
-            }
-
-            if (action === 'hist-reassign') {
-                const sel  = document.querySelector('[data-reassign-id="' + id + '"]');
-                const nome = sel?.value;
-                if (!nome) { alert('Selecione o vendedor correto.'); return; }
-                try {
-                    const res  = await fetch('/api/reassign', {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ reuniao_id: id, vendedor_nome: nome })
-                    });
-                    const d = await res.json();
-                    if (!d.ok) throw new Error(d.error);
-                    btn.innerHTML = '✅';
-                    btn.className = 'p-2 bg-emerald-100 text-emerald-600 rounded-xl';
-                } catch(err) { alert('Erro: ' + err.message); }
-            }
-        });
-    }
-}
-
-function refilterHistorico(reunioes) {
-    historicoPage = 0;
-    renderHistorico(reunioes);
-}
-
-function histNavPage(dir) {
-    historicoPage += dir;
-    loadHistorico();
-}
-
-
-// ── Modal inativos ────────────────────────────────────────────────────────────
-function abrirModalInativos() {
-    const inativos = Object.values(window._vendMap || {}).filter(v => !v.ativo);
-    if (!inativos.length) { alert('Nenhum vendedor desativado.'); return; }
-
-    const old = document.getElementById('modal-inativos');
-    if (old) old.remove();
-
-    const rows = inativos.map(v =>
-        '<div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">' +
-            '<div class="flex items-center gap-3">' +
-                '<div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-black text-slate-400 text-sm">' + v.nome.charAt(0) + '</div>' +
-                '<div><p class="font-bold text-sm text-slate-500 line-through">' + v.nome + '</p>' +
-                '<p class="text-[10px] text-slate-400">' + v.coordenador + '</p></div>' +
-            '</div>' +
-            '<button data-action="reativar" data-id="' + v.id + '" ' +
-                'class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">' +
-                '<i data-lucide="user-plus" class="w-3 h-3"></i> Reativar' +
-            '</button>' +
-        '</div>'
-    ).join('');
-
-    const modal = document.createElement('div');
-    modal.id = 'modal-inativos';
-    modal.className = 'fixed inset-0 z-[300] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4';
-    modal.innerHTML =
-        '<div class="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl">' +
-            '<div class="flex justify-between items-center mb-6">' +
-                '<h3 class="font-black text-slate-800">Vendedores Desativados</h3>' +
-                '<button id="modal-inativos-close" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition-colors">' +
-                    '<i data-lucide="x" class="w-4 h-4 text-slate-500"></i>' +
-                '</button>' +
-            '</div>' +
-            '<div class="space-y-2">' + rows + '</div>' +
-        '</div>';
-
-    document.body.appendChild(modal);
-    lucide.createIcons();
-
-    document.getElementById('modal-inativos-close').addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-
-    // Delegate reativar clicks inside modal
-    modal.addEventListener('click', async e => {
-        const btn = e.target.closest('[data-action="reativar"]');
-        if (!btn) return;
-        const id = btn.dataset.id;
-        const v  = window._vendMap[id];
-        if (!v) return;
-        if (!confirm('Reativar ' + v.nome + '?')) return;
-        try {
-            const res  = await fetch('/api/vendors', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nome: v.nome, coordenador: v.coordenador })
-            });
-            const d = await res.json();
-            if (!d.ok) throw new Error(d.error);
-            modal.remove();
-            loadGestaoPanel();
-        } catch(err) { alert('Erro: ' + err.message); }
-    });
-}
-
-
-
-// ── Análises por coordenador ──────────────────────────────────────────────────
-async function abrirAnalysesCoord(coordenador) {
-    const old = document.getElementById('modal-analyses-list');
-    if (old) old.remove();
-
-    const modal = document.createElement('div');
-    modal.id = 'modal-analyses-list';
-    modal.className = 'fixed inset-0 z-[400] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4';
-    modal.innerHTML =
-        '<div class="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col">' +
-            '<div class="p-6 border-b border-slate-100 flex justify-between items-center flex-shrink-0">' +
-                '<div>' +
-                    '<p class="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Análises do time</p>' +
-                    '<h3 class="font-black text-slate-800 text-lg">' + coordenador + '</h3>' +
-                '</div>' +
-                '<button id="mal-close" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full"><i data-lucide="x" class="w-4 h-4 text-slate-500"></i></button>' +
-            '</div>' +
-            '<div id="mal-body" class="overflow-y-auto p-6 space-y-3">' +
-                '<div class="flex items-center justify-center py-10 text-slate-300"><div class="loader mr-3"></div><p class="text-xs font-black uppercase tracking-widest animate-pulse">Carregando...</p></div>' +
-            '</div>' +
-        '</div>';
-    document.body.appendChild(modal);
-    lucide.createIcons();
-    document.getElementById('mal-close').addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-
-    try {
-        // Use current period filter from gestor view
-        const periodo  = document.getElementById('dash-filter-periodo')?.value || 'todos';
-        const inicio   = document.getElementById('dash-filter-inicio')?.value || '';
-        const fim      = document.getElementById('dash-filter-fim')?.value || '';
-        let qs = 'coordenador=' + encodeURIComponent(coordenador) + '&periodo=' + periodo + '&vendedor=todos';
-        if (inicio) qs += '&data_inicio=' + encodeURIComponent(inicio);
-        if (fim)    qs += '&data_fim='    + encodeURIComponent(fim);
-
-        const res  = await fetch('/api/dashboard?' + qs);
-        const data = await res.json();
-        const list = (data.reunioes || []);
-        const sc   = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
-        const scBg = n => n >= 4 ? 'bg-emerald-50 border-emerald-200' : n >= 3 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200';
-
-        if (!list.length) {
-            document.getElementById('mal-body').innerHTML = '<p class="text-center text-slate-300 text-sm py-8">Nenhuma análise encontrada.</p>';
-            return;
-        }
-
-        document.getElementById('mal-body').innerHTML = list.map(r =>
-            '<div class="flex items-center gap-3 p-4 rounded-2xl border cursor-pointer hover:shadow-md transition-all ' + scBg(r.media_final) + '" onclick="abrirAnaliseCompleta(\'' + r.id + '\')">' +
-                '<div class="w-11 h-11 rounded-full bg-white border-2 ' + (r.media_final >= 4 ? 'border-emerald-400' : r.media_final >= 3 ? 'border-blue-400' : 'border-red-400') + ' flex items-center justify-center font-black text-lg ' + sc(r.media_final) + ' flex-shrink-0">' + (r.media_final || '?') + '</div>' +
-                '<div class="flex-1 min-w-0">' +
-                    '<p class="font-black text-sm text-slate-800">' + (r.vendedor_nome || 'Não identificado') + '</p>' +
-                    '<p class="text-[10px] text-slate-400 font-bold">' + (r.produto || '—') + ' · ' + new Date(r.created_at).toLocaleDateString('pt-BR', {day:'2-digit',month:'short',year:'numeric'}) + '</p>' +
-                    '<p class="text-[9px] text-slate-400 mt-0.5">' + (r.qual_veredicto || '') + '</p>' +
-                '</div>' +
-                '<div class="flex flex-col items-end gap-1">' +
-                    '<div class="grid grid-cols-5 gap-0.5">' +
-                    ['nota_rapport','nota_produto','nota_apresentacao','nota_pre_fechamento','nota_fechamento'].map((k,i) =>
-                        '<div class="text-center"><p class="text-[6px] text-slate-400">'+['R','Pr','A','PF','F'][i]+'</p><p class="text-[9px] font-black '+sc(r[k])+'">'+( r[k]||'—')+'</p></div>'
-                    ).join('') +
-                    '</div>' +
-                    '<i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 mt-1"></i>' +
-                '</div>' +
-            '</div>'
-        ).join('');
-        lucide.createIcons();
-    } catch(err) {
-        document.getElementById('mal-body').innerHTML = '<p class="text-center text-red-400 font-bold py-8">' + err.message + '</p>';
-    }
-}
-
-
-// ── Análises por vendedor (modal lista) ───────────────────────────────────────
-async function abrirAnalysesVendedor(nome) {
-    const old = document.getElementById('modal-analyses-list');
-    if (old) old.remove();
-
-    const modal = document.createElement('div');
-    modal.id = 'modal-analyses-list';
-    modal.className = 'fixed inset-0 z-[400] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4';
-    modal.innerHTML =
-        '<div class="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col">' +
-            '<div class="p-6 border-b border-slate-100 flex justify-between items-center flex-shrink-0">' +
-                '<div>' +
-                    '<p class="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Análises do vendedor</p>' +
-                    '<h3 class="font-black text-slate-800 text-lg">' + nome + '</h3>' +
-                '</div>' +
-                '<button id="mal-close" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full"><i data-lucide="x" class="w-4 h-4 text-slate-500"></i></button>' +
-            '</div>' +
-            '<div id="mal-body" class="overflow-y-auto p-6 space-y-3">' +
-                '<div class="flex items-center justify-center py-10 text-slate-300"><div class="loader mr-3"></div><p class="text-xs font-black uppercase tracking-widest animate-pulse">Carregando...</p></div>' +
-            '</div>' +
-        '</div>';
-    document.body.appendChild(modal);
-    lucide.createIcons();
-    document.getElementById('mal-close').addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-
-    try {
-        const res  = await fetch('/api/dashboard?vendedor=' + encodeURIComponent(nome) + '&periodo=todos&coordenador=todos');
-        const data = await res.json();
-        const list = (data.reunioes || []);
-        const sc   = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
-        const scBg = n => n >= 4 ? 'bg-emerald-50 border-emerald-200' : n >= 3 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200';
-
-        if (!list.length) {
-            document.getElementById('mal-body').innerHTML = '<p class="text-center text-slate-300 text-sm py-8">Nenhuma análise encontrada.</p>';
-            return;
-        }
-
-        document.getElementById('mal-body').innerHTML = list.map(r =>
-            '<div class="flex items-center gap-3 p-4 rounded-2xl border cursor-pointer hover:shadow-md transition-all ' + scBg(r.media_final) + '" onclick="abrirAnaliseCompleta(\'' + r.id + '\')">' +
-                '<div class="w-11 h-11 rounded-full bg-white border-2 ' + (r.media_final >= 4 ? 'border-emerald-400' : r.media_final >= 3 ? 'border-blue-400' : 'border-red-400') + ' flex items-center justify-center font-black text-lg ' + sc(r.media_final) + ' flex-shrink-0">' + (r.media_final || '?') + '</div>' +
-                '<div class="flex-1 min-w-0">' +
-                    '<p class="font-black text-sm text-slate-800">' + (r.produto || '—') + '</p>' +
-                    '<p class="text-[10px] text-slate-400 font-bold">' + new Date(r.created_at).toLocaleDateString('pt-BR', {day:'2-digit',month:'short',year:'numeric'}) + ' · ' + (r.coordenador || '') + '</p>' +
-                    '<p class="text-[9px] text-slate-400 mt-0.5">' + (r.qual_veredicto || '') + '</p>' +
-                '</div>' +
-                '<div class="flex flex-col items-end gap-1">' +
-                    '<div class="grid grid-cols-5 gap-0.5">' +
-                    ['nota_rapport','nota_produto','nota_apresentacao','nota_pre_fechamento','nota_fechamento'].map((k,i) =>
-                        '<div class="text-center"><p class="text-[6px] text-slate-400">' + ['R','Pr','A','PF','F'][i] + '</p><p class="text-[9px] font-black ' + sc(r[k]) + '">' + (r[k]||'—') + '</p></div>'
-                    ).join('') +
-                    '</div>' +
-                    '<i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 mt-1"></i>' +
-                '</div>' +
-            '</div>'
-        ).join('');
-        lucide.createIcons();
-    } catch(err) {
-        document.getElementById('mal-body').innerHTML = '<p class="text-center text-red-400 font-bold py-8">' + err.message + '</p>';
-    }
-}
-
-// ── Abrir análise completa a partir de ID ────────────────────────────────────
-async function abrirAnaliseCompleta(reuniaoId) {
-    // Close list modal if open
-    const listModal = document.getElementById('modal-analyses-list');
-
-    const old = document.getElementById('modal-analise-full');
-    if (old) old.remove();
-
-    const modal = document.createElement('div');
-    modal.id = 'modal-analise-full';
-    modal.className = 'fixed inset-0 z-[500] bg-white overflow-y-auto';
-    modal.innerHTML =
-        '<div class="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm">' +
-            '<div class="flex items-center gap-3">' +
-                '<button id="maf-back" class="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-black text-sm transition-colors">' +
-                    '<i data-lucide="arrow-left" class="w-4 h-4"></i> Voltar' +
-                '</button>' +
-                '<div class="w-px h-5 bg-slate-200"></div>' +
-                '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest" id="maf-title">Análise Completa</span>' +
-            '</div>' +
-            '<button id="maf-pdf" class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95">' +
-                '<i data-lucide="file-down" class="w-4 h-4"></i> Exportar PDF' +
-            '</button>' +
-        '</div>' +
-        '<div id="maf-loading" class="flex flex-col items-center py-20 text-slate-300">' +
-            '<div class="loader mb-4"></div>' +
-            '<p class="font-bold text-xs uppercase tracking-widest animate-pulse">Carregando análise...</p>' +
-        '</div>' +
-        '<div id="maf-content" class="hidden max-w-5xl mx-auto px-4 py-8 space-y-8"></div>';
-
-    document.body.appendChild(modal);
-    lucide.createIcons();
-
-    document.getElementById('maf-back').addEventListener('click', () => {
-        modal.remove();
-        if (listModal && document.body.contains(listModal)) { /* keep open */ }
-    });
-
-    try {
-        // Fetch single record via dashboard with ID — use history endpoint
-        // We need the full analise_json, so fetch all and find by ID
-        const res  = await fetch('/api/dashboard?coordenador=todos&periodo=todos&vendedor=todos');
-        const data = await res.json();
-        const r    = (data.reunioes || []).find(x => x.id === reuniaoId);
-        if (!r) throw new Error('Análise não encontrada.');
-
-        const analise = r.analise_json || {};
-        if (!analise.media_final) throw new Error('Dados da análise incompletos.');
-
-        document.getElementById('maf-title').textContent =
-            (r.vendedor_nome || '—') + ' · ' + new Date(r.created_at).toLocaleDateString('pt-BR');
-        document.getElementById('maf-pdf').onclick = () => exportarAnalysePDF(r);
-
-        document.getElementById('maf-loading').classList.add('hidden');
-        document.getElementById('maf-content').classList.remove('hidden');
-        renderAnaliseModal(analise, r);
-        lucide.createIcons();
-    } catch(err) {
-        document.getElementById('maf-loading').innerHTML = '<p class="text-red-400 font-bold py-8">' + err.message + '</p>';
-    }
-}
-
-// ── Render full analysis in modal ────────────────────────────────────────────
-function renderAnaliseModal(data, reuniao) {
-    const box    = document.getElementById('maf-content');
-    const _cfg   = data._config || {};
-    const flds   = _cfg.fields     || [
-        { l:'Rapport',k:'rapport',icon:'heart-handshake'},
-        { l:'Produto',k:'produto',icon:'layers'},
-        { l:'Apresentação',k:'apresentacao',icon:'presentation'},
-        { l:'Pré-Fechamento',k:'pre_fechamento',icon:'funnel'},
-        { l:'Fechamento',k:'fechamento',icon:'handshake'}
-    ];
-    const pCfg   = _cfg.prodConfig  || {};
-    const ckLbl  = _cfg.ckLabels    || {};
-    const sc     = n => n >= 4 ? 'text-emerald-500' : n >= 3 ? 'text-blue-600' : 'text-red-500';
-    const media  = data.media_final || 0;
-
-    // ── Hero ─────────────────────────────────────────────────────────────
-    let heroClass = 'bg-amber-100 text-amber-700';
-    let heroLabel = 'Acompanhamento';
-    if (media >= 4.5) { heroClass = 'bg-emerald-500 text-white'; heroLabel = 'Elite Sales'; }
-    else if (media >= 3.5) { heroClass = 'bg-blue-100 text-blue-700'; heroLabel = 'Alta Performance'; }
-
-    box.innerHTML =
-
-    // Vendor + date info
-    '<div class="flex flex-wrap items-center gap-4 p-5 bg-slate-50 rounded-[2rem] border border-slate-200">' +
-        '<div class="w-12 h-12 rounded-full bg-[#002d72] flex items-center justify-center font-black text-white text-xl flex-shrink-0">' + (reuniao.vendedor_nome||'?').charAt(0) + '</div>' +
-        '<div class="flex-1">' +
-            '<p class="font-black text-slate-800 text-lg">' + (reuniao.vendedor_nome || 'Não identificado') + '</p>' +
-            '<p class="text-[10px] text-slate-400 font-bold">' + (reuniao.coordenador||'') + ' · ' + new Date(reuniao.created_at).toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}) + '</p>' +
-        '</div>' +
-        '<span class="px-4 py-2 rounded-full text-[10px] font-black uppercase ' + heroClass + '">' + heroLabel + '</span>' +
-    '</div>' +
-
-    // Score hero
-    '<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">' +
-        '<div class="glass-card p-10 flex flex-col items-center justify-center text-center border-b-[10px] border-blue-600">' +
-            '<span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Média Global (Máx 5)</span>' +
-            '<div class="text-7xl font-black text-[#002d72] mb-3">' + media.toFixed(1) + '</div>' +
-        '</div>' +
-        '<div class="lg:col-span-3 glass-card p-10 bg-gradient-to-br from-blue-700 to-blue-900 text-white flex flex-col justify-center">' +
-            '<h3 class="font-bold text-blue-200 text-[10px] uppercase tracking-widest mb-4">Diagnóstico Geral</h3>' +
-            '<p class="text-xl md:text-2xl font-bold leading-tight mb-8">' + (data.resumo_executivo||'—') + '</p>' +
-            '<div class="flex gap-4">' +
-                '<div class="p-4 bg-white/10 rounded-2xl border border-white/20 flex-1">' +
-                    '<span class="text-[9px] font-black text-blue-300 uppercase block mb-1 tracking-widest">Probabilidade de Fechamento</span>' +
-                    '<p class="text-base font-bold text-white">' + (data.chance_fechamento||'N/A') + '</p>' +
-                '</div>' +
-                '<div class="p-4 bg-red-500/20 rounded-2xl border border-red-400/30 flex-1">' +
-                    '<span class="text-[9px] font-black text-red-300 uppercase block mb-1 tracking-widest">Alerta de Risco</span>' +
-                    '<p class="text-base font-bold text-white">' + (data.alerta_cancelamento||'Sem alertas críticos.') + '</p>' +
-                '</div>' +
-            '</div>' +
-        '</div>' +
-    '</div>' +
-
-    // Pilares grid
-    '<div id="maf-notas-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5"></div>' +
-
-    // Radar + Talk time + Checklist
-    '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">' +
-        '<div class="glass-card p-8 min-h-[380px] flex items-center justify-center"><canvas id="radarChart-modal" width="350" height="350"></canvas></div>' +
-        '<div class="space-y-6">' +
-            '<div class="glass-card p-8">' +
-                '<h4 class="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest">Tempo de Fala</h4>' +
-                '<div id="maf-talk" class="space-y-4"></div>' +
-            '</div>' +
-            '<div class="glass-card p-8">' +
-                '<h3 class="font-bold text-slate-800 text-sm mb-6 flex items-center gap-3"><i data-lucide="clipboard-check" class="text-blue-600 w-5 h-5"></i> Checklist do Manual Nibo</h3>' +
-                '<div id="maf-ck" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>' +
-            '</div>' +
-        '</div>' +
-    '</div>' +
-
-    // Fortes / Atenção
-    '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">' +
-        '<div class="bg-emerald-50/60 p-8 rounded-[2rem] border border-emerald-100">' +
-            '<h4 class="text-[10px] font-black text-emerald-700 mb-6 uppercase tracking-widest flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4"></i> Pontos Fortes</h4>' +
-            '<ul class="space-y-3 text-[12px] font-bold text-emerald-900">' +
-                (data.pontos_fortes||[]).map(i=>'<li class="flex items-start gap-2"><span>▶</span>'+i+'</li>').join('') +
-            '</ul>' +
-        '</div>' +
-        '<div class="bg-amber-50/60 p-8 rounded-[2rem] border border-amber-100">' +
-            '<h4 class="text-[10px] font-black text-amber-700 mb-6 uppercase tracking-widest flex items-center gap-2"><i data-lucide="target" class="w-4 h-4"></i> Melhoria Imediata</h4>' +
-            '<ul class="space-y-3 text-[12px] font-bold text-amber-900">' +
-                (data.pontos_atencao||[]).map(i=>'<li class="flex items-start gap-2"><span>▶</span>'+i+'</li>').join('') +
-            '</ul>' +
-        '</div>' +
-    '</div>' +
-
-    // Coaching
-    '<div class="glass-card p-12 shadow-2xl border-t-[10px] border-[#002d72]">' +
-        '<h3 class="text-xl font-extrabold text-[#002d72] uppercase tracking-widest mb-2 flex items-center gap-4"><i data-lucide="graduation-cap"></i> Plano de Coaching</h3>' +
-        '<p class="text-[11px] text-slate-400 font-semibold mb-10 ml-10">O que fazer diferente na próxima reunião</p>' +
-        '<div class="markdown-content">' + marked.parse(data.justificativa_detalhada||'') + '</div>' +
-    '</div>' +
-
-    // SDR Section
-    '<!-- SDR -->' +
-    '<div class="border-t-4 border-violet-600 pt-8 space-y-6">' +
-        '<h2 class="text-xl font-black text-violet-800 uppercase tracking-widest flex items-center gap-3"><i data-lucide="user-check" class="w-6 h-6"></i> Qualificação do Lead (SDR)</h2>' +
-        _buildQualModal(data, pCfg) +
-    '</div>';
-
-    // ── Fill pilares grid ────────────────────────────────────────────────
-    const grid = document.getElementById('maf-notas-grid');
+*/
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH 12 — JS: maf-notas-grid no modal de análise completa (renderAnaliseCompleta)
+//
+// Encontre o grid de pilares dentro da função renderAnaliseCompleta (ou similar).
+// O grid usa: flds.map(f => { const score = data['nota_'+f.k] ... })
+// Adicione suporte aos sub-critérios do novo formato.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── SUBSTITUIR o bloco do maf-notas-grid por:
+/*
     if (grid) {
-        grid.innerHTML = flds.map(f => {
+        grid.innerHTML = flds.map((f, idx) => {
             const score = data['nota_'+f.k] || 0;
             const col   = score >= 4 ? 'text-emerald-500' : score >= 3 ? 'text-blue-600' : 'text-red-500';
             const stars = Array.from({length:5},(_,i)=>'<span class="star '+(i<score?'filled':'empty')+'">★</span>').join('');
-            return '<div class="glass-card p-6 flex flex-col items-center text-center">' +
-                '<i data-lucide="'+f.icon+'" class="w-6 h-6 text-slate-300 mb-3 mt-2"></i>' +
-                '<span class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-widest">'+f.l+'</span>' +
-                '<div class="text-5xl font-black '+col+' mb-2 leading-none">'+score+'</div>' +
-                '<div class="stars-row mb-2">'+stars+'</div>' +
-                '<p class="text-[9px] text-slate-400 italic leading-tight font-medium max-w-[95%]">'+(data['porque_'+f.k]||'').substring(0,80)+'...</p>' +
-            '</div>';
+            const colorMap = {
+                blue:   'border-blue-400',
+                violet: 'border-violet-400',
+                emerald:'border-emerald-400'
+            };
+            const borderCls = colorMap[f.color] || 'border-slate-200';
+
+            const critersHTML = (f.criterios||[]).map(c => {
+                const cs = data['nota_'+c.k] || 0;
+                const cc = cs >= 4 ? 'text-emerald-500' : cs >= 3 ? 'text-blue-600' : 'text-red-500';
+                return `<div class="flex items-center justify-between text-[9px] py-1 border-b border-slate-50 last:border-0">
+                    <span class="text-slate-500 font-bold truncate flex-1">${c.l}</span>
+                    <span class="font-black ${cc} ml-2">${cs || '—'}</span>
+                </div>`;
+            }).join('');
+
+            return `<div class="bg-white rounded-2xl p-5 border-t-4 ${borderCls} shadow-sm">
+                <div class="text-[8px] font-black text-slate-400 uppercase mb-1 tracking-widest">Etapa ${idx+1}</div>
+                <p class="text-[10px] font-black text-slate-700 mb-3">${f.l}</p>
+                <div class="text-4xl font-black ${col} mb-1">${score}</div>
+                <div class="stars-row mb-3">${stars}</div>
+                ${critersHTML ? `<div class="mt-3 space-y-0.5">${critersHTML}</div>` : ''}
+            </div>`;
         }).join('');
     }
-
-    // ── Talk time ────────────────────────────────────────────────────────
-    const tc = parseFloat(data.tempo_fala_consultor || 0);
-    const tl = parseFloat(data.tempo_fala_cliente || 0);
-    const talkEl = document.getElementById('maf-talk');
-    if (talkEl) talkEl.innerHTML =
-        '<div><div class="flex justify-between text-[11px] font-bold mb-2"><span>Consultor</span><span class="text-blue-600">'+(data.tempo_fala_consultor||'0%')+'</span></div><div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600" style="width:'+tc+'%"></div></div></div>' +
-        '<div><div class="flex justify-between text-[11px] font-bold mb-2"><span>Cliente</span><span class="text-emerald-500">'+(data.tempo_fala_cliente||'0%')+'</span></div><div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500" style="width:'+tl+'%"></div></div></div>';
-
-    // ── Checklist ─────────────────────────────────────────────────────────
-    const ck = data.checklist_fechamento || {};
-    const ckEl = document.getElementById('maf-ck');
-    if (ckEl) ckEl.innerHTML = Object.entries(ckLbl).map(([k,l]) =>
-        '<div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">' +
-            '<span class="text-[9px] font-bold text-slate-600 uppercase tracking-tight">'+l+'</span>' +
-            '<div class="w-5 h-5 rounded-full flex items-center justify-center '+(ck[k]?'bg-emerald-500':'bg-slate-300')+'">' +
-                '<i data-lucide="'+(ck[k]?'check':'minus')+'" class="text-white w-3 h-3"></i>' +
-            '</div>' +
-        '</div>'
-    ).join('');
-
-    // ── Radar chart ───────────────────────────────────────────────────────
-    const radarCtx = document.getElementById('radarChart-modal');
-    if (radarCtx && window.Chart) {
-        if (window._modalRadarChart) window._modalRadarChart.destroy();
-        window._modalRadarChart = new Chart(radarCtx.getContext('2d'), {
-            type: 'radar',
-            data: {
-                labels: flds.map(f => f.l),
-                datasets: [{ label: 'Desempenho', data: flds.map(f => data['nota_'+f.k] || 0),
-                    backgroundColor: 'rgba(37,99,235,0.15)', borderColor: '#2563eb', borderWidth: 2,
-                    pointRadius: 4, pointBackgroundColor: '#1e3a8a' }]
-            },
-            options: { scales: { r: { min:0, max:5, ticks:{stepSize:1,display:false}, grid:{color:'#e2e8f0'}, angleLines:{color:'#e2e8f0'}, pointLabels:{font:{size:10,weight:'700'},color:'#475569'} } }, plugins: { legend: { display: false } }, maintainAspectRatio: true }
-        });
-    }
-}
-
-function _buildQualModal(data, pCfg) {
-    const sc = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
-    const foraPortfolio = !data.qual_produto_no_portfolio;
-    const verd = data.qual_veredicto || '';
-    let vc = 'bg-slate-100 text-slate-600 border-slate-200';
-    if (verd.includes('FORA'))       vc = 'bg-purple-100 text-purple-800 border-purple-300';
-    else if (verd.includes('MAL'))   vc = 'bg-red-100 text-red-800 border-red-300';
-    else if (verd.includes('PARC'))  vc = 'bg-yellow-100 text-yellow-800 border-yellow-300';
-    else if (verd.includes('QUAL'))  vc = 'bg-emerald-100 text-emerald-800 border-emerald-300';
-
-    const slaGrid = [
-        [data.qual_sla_1_label, data.qual_sla_1_ok, data.qual_sla_1_ev],
-        [data.qual_sla_2_label, data.qual_sla_2_ok, data.qual_sla_2_ev],
-        [data.qual_sla_3_label, data.qual_sla_3_ok, data.qual_sla_3_ev]
-    ].map(([l,ok,ev]) =>
-        '<div class="rounded-2xl p-5 border flex flex-col gap-3 '+(ok?'bg-emerald-50 border-emerald-100':'bg-red-50 border-red-100')+'">' +
-            '<div class="flex items-center justify-between">' +
-                '<span class="text-[9px] font-black uppercase tracking-widest '+(ok?'text-emerald-700':'text-red-700')+'">'+(l||'—')+'</span>' +
-                '<div class="w-6 h-6 rounded-full flex items-center justify-center '+(ok?'bg-emerald-500':'bg-red-400')+'">' +
-                    '<i data-lucide="'+(ok?'check':'x')+'" class="text-white w-3 h-3"></i>' +
-                '</div>' +
-            '</div>' +
-            '<p class="text-[11px] italic leading-relaxed '+(ok?'text-emerald-700':'text-red-600')+'">'+(ev||'Sem evidência.')+'</p>' +
-        '</div>'
-    ).join('');
-
-    return (foraPortfolio ? '<div class="bg-red-600 text-white p-6 rounded-[2rem] flex items-start gap-4"><i data-lucide="alert-triangle" class="w-8 h-8 flex-shrink-0"></i><div><p class="font-black text-lg uppercase mb-1">⚠️ Produto fora do portfólio Nibo!</p><p class="text-sm font-medium text-red-100">'+(data.qual_produto_alerta||'')+'</p></div></div>' : '') +
-    '<div class="grid grid-cols-1 md:grid-cols-3 gap-6">' +
-        '<div class="glass-card p-6 flex flex-col gap-3">' +
-            '<h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Produto</h4>' +
-            '<span class="px-4 py-2 rounded-full text-sm font-black border inline-flex items-center gap-2 '+(foraPortfolio?'bg-red-100 text-red-800 border-red-300':'bg-blue-100 text-blue-800 border-blue-300')+'">'+(data.qual_produto_identificado||'—')+'</span>' +
-            '<p class="text-[11px] text-slate-500 italic">'+(data.qual_produto_alerta||'')+'</p>' +
-        '</div>' +
-        '<div class="glass-card p-6 flex flex-col gap-3">' +
-            '<h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Veredicto</h4>' +
-            '<div class="px-4 py-3 rounded-2xl border-2 text-sm font-black text-center '+vc+'">'+(verd||'—')+'</div>' +
-        '</div>' +
-        '<div class="glass-card p-6 flex flex-col items-center justify-center text-center border-b-[8px] border-violet-500">' +
-            '<span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Nota SDR</span>' +
-            '<div class="text-6xl font-black text-violet-600 mb-1">'+(data.qual_nota_sdr||'—')+'</div>' +
-            '<span class="text-[9px] text-slate-400 font-bold">/ 10</span>' +
-            '<p class="text-[10px] text-slate-500 mt-3 leading-relaxed font-medium">'+(data.qual_nota_sdr_justificativa||'')+'</p>' +
-        '</div>' +
-    '</div>' +
-    '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">' + slaGrid + '</div>' +
-    '<div class="glass-card p-12 border-t-[10px] border-violet-600">' +
-        '<h3 class="text-xl font-extrabold text-violet-800 uppercase tracking-widest mb-10 border-b pb-6">Análise Completa da Qualificação (SDR)</h3>' +
-        '<div class="markdown-content">' + marked.parse(data.qual_analise_completa||'') + '</div>' +
-    '</div>';
-}
-
-// ── PDF Export ────────────────────────────────────────────────────────────────
-async function exportarAnalysePDF(reuniao) {
-    const btn = document.getElementById('maf-pdf');
-    btn.textContent = 'Gerando PDF...';
-    btn.disabled = true;
-    try {
-        const content = document.getElementById('maf-content');
-        const nomeArq = ('Analise_' + (reuniao.vendedor_nome||'vendedor').replace(/\s+/g,'_') + '_' + new Date(reuniao.created_at).toISOString().split('T')[0]).replace(/[^a-z0-9_-]/gi,'');
-        const opt = {
-            margin:       [10, 10, 10, 10],
-            filename:     nomeArq + '.pdf',
-            image:        { type: 'jpeg', quality: 0.95 },
-            html2canvas:  { scale: 2, useCORS: true, logging: false },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-        };
-        await html2pdf().set(opt).from(content).save();
-    } catch(err) {
-        alert('Erro ao gerar PDF: ' + err.message);
-    } finally {
-        btn.innerHTML = '<i data-lucide="file-down" class="w-4 h-4"></i> Exportar PDF';
-        btn.disabled = false;
-        lucide.createIcons();
-    }
-}
-
-// ── Save analysis after render ─────────────────────────────────────────────────
-async function saveAnalysis(coordenador, analise) {
-    try {
-        const res = await fetch('/api/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ coordenador, analise })
-        });
-        const data = await res.json();
-        if (data.ok) {
-            console.log('Análise salva:', data.id);
-            return data.id;
-        } else {
-            console.warn('Erro ao salvar:', data.error);
-            return null;
-        }
-    } catch(err) {
-        console.warn('Falha ao salvar análise:', err.message);
-        return null;
-    }
-}
-
-analyzeBtn.addEventListener('click', handleAnalysis);
-</script>
-
-
-<!-- ════════════════════════════════════════════════════════════ -->
-<!-- DASHBOARD MODAL                                             -->
-<!-- ════════════════════════════════════════════════════════════ -->
-<div id="dashboard-modal" class="hidden fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm overflow-y-auto p-4">
-    <div class="max-w-7xl mx-auto mt-8 mb-16">
-        <div class="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden">
-            <!-- Header -->
-            <div class="bg-[#002d72] p-8 flex items-center justify-between">
-                <div>
-                    <h2 class="font-black text-white text-2xl uppercase tracking-tight flex items-center gap-3">
-                        <i data-lucide="layout-dashboard" class="w-7 h-7"></i> Dashboard Comercial
-                    </h2>
-                    <p class="text-blue-300 text-xs font-bold mt-1 uppercase tracking-widest">Análise consolidada dos times</p>
-                </div>
-                <button onclick="closeDashboard()" class="bg-white/10 hover:bg-white/20 text-white p-3 rounded-2xl transition-all">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-
-            <!-- Filters -->
-            <div class="p-4 border-b border-slate-100 bg-slate-50">
-                <!-- Mode Toggle -->
-                <div class="flex gap-2 mb-4">
-                    <button onclick="setDashMode('gestor')" id="dash-mode-gestor"
-                        class="flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all bg-[#002d72] text-white shadow-md">
-                        <i data-lucide="layout-dashboard" class="w-3 h-3 inline mr-1"></i> Visão Gestor
-                    </button>
-                    <button onclick="setDashMode('vendedor')" id="dash-mode-vendedor"
-                        class="flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all bg-slate-200 text-slate-500">
-                        <i data-lucide="user" class="w-3 h-3 inline mr-1"></i> Meu Desempenho
-                    </button>
-                    <button onclick="setDashMode('gestao')" id="dash-mode-gestao"
-                        class="flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all bg-slate-200 text-slate-500">
-                        <i data-lucide="settings" class="w-3 h-3 inline mr-1"></i> Gestão
-                    </button>
-                    <button onclick="setDashMode('historico')" id="dash-mode-historico"
-                        class="flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all bg-slate-200 text-slate-500">
-                        <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i> Histórico
-                    </button>
-
-                </div>
-
-                <!-- Gestor filters -->
-                <div id="dash-filters-gestor" class="flex flex-wrap gap-3 items-center">
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Time:</span>
-                        <select id="dash-filter-coord" onchange="onCoordChange()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300">
-                            <option value="todos">Todos os times</option>
-                            <option value="Simone Rangel">Simone Rangel</option>
-                            <option value="Jonathan Dornelas">Jonathan Dornelas</option>
-                        </select>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendedor:</span>
-                        <select id="dash-filter-vendedor" onchange="loadDashboard()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300">
-                            <option value="todos">Todos</option>
-                        </select>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Período:</span>
-                        <select id="dash-filter-periodo" onchange="onPeriodoChange()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300">
-                            <option value="30">Últimos 30 dias</option>
-                            <option value="7">Últimos 7 dias</option>
-                            <option value="90">Últimos 90 dias</option>
-                            <option value="todos">Todo o período</option>
-                            <option value="custom">Intervalo personalizado</option>
-                        </select>
-                    </div>
-                    <div id="dash-custom-range" class="hidden flex items-center gap-2">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">De:</span>
-                        <input type="date" id="dash-filter-inicio" onchange="loadDashboard()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300" />
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Até:</span>
-                        <input type="date" id="dash-filter-fim" onchange="loadDashboard()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300" />
-                    </div>
-                    <button onclick="toggleCalendarioInline()" id="btn-cal-toggle"
-                        class="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:border-sky-400 text-slate-500 hover:text-sky-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
-                        <i data-lucide="calendar" class="w-3 h-3"></i> Calendário
-                    </button>
-                    <div id="dash-loading" class="hidden flex items-center gap-2 text-blue-600 text-xs font-bold">
-                        <div class="loader" style="width:16px;height:16px;border-width:2px"></div> Carregando...
-                    </div>
-                </div>
-
-                <!-- Vendedor filters -->
-                <div id="dash-filters-vendedor" class="hidden flex flex-wrap gap-3 items-center">
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Eu sou:</span>
-                        <select id="dash-filter-eu" onchange="loadVendedorDash()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300">
-                            <option value="">— carregando... —</option>
-                        </select>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Período:</span>
-                        <select id="dash-filter-periodo-vend" onchange="loadVendedorDash()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300">
-                            <option value="todos">Todo o período</option>
-                            <option value="30">Últimos 30 dias</option>
-                            <option value="7">Últimos 7 dias</option>
-                            <option value="90">Últimos 90 dias</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <div id="dash-content" class="p-8 space-y-8">
-                <div class="flex flex-col items-center py-20 text-slate-300">
-                    <i data-lucide="bar-chart-2" class="w-12 h-12 mb-3"></i>
-                    <p class="font-bold text-sm">Carregando dados...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-</div><!-- /#app-screen -->
-</body>
-</html>
+*/
