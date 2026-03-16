@@ -361,7 +361,19 @@
 </div><!-- /#app-screen -->
 <script>
 lucide.createIcons();
-
+// ── Helper para parse seguro de campos JSON do banco ──────────────────────────
+function parseJSON(value, fallback = {}) {
+    if (!value) return fallback;
+    if (typeof value === 'object') return value;
+    if (typeof value === 'string') {
+        try {
+            return JSON.parse(value);
+        } catch {
+            return fallback;
+        }
+    }
+    return fallback;
+}
 // ── Auth ──────────────────────────────────────────────────────────────────────
 async function initAuth() {
     const params = new URLSearchParams(window.location.search);
