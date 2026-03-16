@@ -1,10 +1,9 @@
 // api/dashboard.js
 // ─────────────────────────────────────────────────────────────────────────────
-// REGRA MAL QUALIFICADO:
-//   Reuniões onde mal_qualificado = true (lead Mal Qualificado ou Fora de
-//   Portfólio) NÃO contabilizam na média do vendedor nem no ranking.
-//   Elas aparecem apenas em stats.reunioes_mal_qualificadas para relatório
-//   separado.
+// NOVA ESTRUTURA: 12 critérios em 3 etapas + auditoria de objeções
+//
+// Extrai critérios do analise_json para cálculos detalhados.
+// Mantém backward compat com formato legado (5 pilares).
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -41,9 +40,9 @@ export default async function handler(req, res) {
     if (periodo && periodo !== 'todos') {
         const now   = new Date();
         let   desde = null;
-        if (periodo === '7d')  { desde = new Date(now); desde.setDate(now.getDate() - 7); }
-        if (periodo === '30d') { desde = new Date(now); desde.setDate(now.getDate() - 30); }
-        if (periodo === '90d') { desde = new Date(now); desde.setDate(now.getDate() - 90); }
+        if (periodo === '7d' || periodo === '7')   { desde = new Date(now); desde.setDate(now.getDate() - 7); }
+        if (periodo === '30d' || periodo === '30') { desde = new Date(now); desde.setDate(now.getDate() - 30); }
+        if (periodo === '90d' || periodo === '90') { desde = new Date(now); desde.setDate(now.getDate() - 90); }
         if (periodo === 'mes') { desde = new Date(now.getFullYear(), now.getMonth(), 1); }
         if (periodo === 'custom' && inicio && fim) {
             filter += `&created_at=gte.${new Date(inicio).toISOString()}&created_at=lte.${new Date(fim + 'T23:59:59').toISOString()}`;
@@ -78,11 +77,47 @@ export default async function handler(req, res) {
     }
 }
 
-// ── Helper: detecta mal qualificado (campo novo ou derivado do veredicto) ─────
+// ── Helper: detecta mal qualificado ───────────────────────────────────────────
 function isMalQualificado(r) {
     if (r.mal_qualificado === true) return true;
     const v = (r.qual_veredicto || '').toUpperCase();
     return v.includes('MAL') || v.includes('FORA');
+}
+
+// ── Helper: detecta formato novo (12 critérios) ───────────────────────────────
+function isNovoFormato(r) {
+    // Formato novo: nota_pre_fechamento e nota_fechamento são null
+    return r.nota_pre_fechamento === null && r.nota_fechamento === null;
+}
+
+// ── Helper: extrai os 12 critérios do analise_json ────────────────────────────
+function extrairCriterios(r) {
+    const j = r.analise_json || {};
+    return {
+        // Etapa 1
+        rapport:     j.nota_rapport || 0,
+        spin:        j.nota_spin || 0,
+        comunicacao: j.nota_comunicacao || 0,
+        etapa1:      j.nota_etapa1 || 0,
+        // Etapa 2
+        produto:     j.nota_produto || 0,
+        objecoes:    j.nota_objecoes || 0,
+        solucao_dor: j.nota_solucao_dor || 0,
+        encantamento: j.nota_encantamento || 0,
+        etapa2:      j.nota_etapa2 || 0,
+        // Etapa 3
+        pre_fechamento:    j.nota_pre_fechamento || 0,
+        escuta_ativa:      j.nota_escuta_ativa || 0,
+        resiliencia:       j.nota_resiliencia || 0,
+        gestao_tempo:      j.nota_gestao_tempo || 0,
+        regras_fechamento: j.nota_regras_fechamento || 0,
+        etapa3:            j.nota_etapa3 || 0,
+        // Objeções
+        total_objecoes:           j.total_objecoes || 0,
+        objecoes_contornadas:     j.objecoes_contornadas || 0,
+        objecoes_nao_contornadas: j.objecoes_nao_contornadas || 0,
+        taxa_contorno:            j.taxa_contorno_objecoes || 0
+    };
 }
 
 function calcStats(reunioes) {
@@ -96,6 +131,16 @@ function calcStats(reunioes) {
     // Média geral só conta reuniões bem qualificadas
     const medias = reunioesBoas.map(r => r.media_final).filter(Boolean);
 
+    // ── Stats globais de objeções ─────────────────────────────────────────────
+    let totalObjecoes = 0, totalContornadas = 0, totalNaoContornadas = 0;
+    reunioes.forEach(r => {
+        const c = extrairCriterios(r);
+        totalObjecoes        += c.total_objecoes;
+        totalContornadas     += c.objecoes_contornadas;
+        totalNaoContornadas  += c.objecoes_nao_contornadas;
+    });
+    const taxaContornoGlobal = totalObjecoes > 0 ? Math.round((totalContornadas / totalObjecoes) * 100) : 0;
+
     // ── Por coordenador ──────────────────────────────────────────────────────
     const porCoordenador = {};
     for (const r of reunioes) {
@@ -106,7 +151,6 @@ function calcStats(reunioes) {
         c.total++;
         if (isMalQualificado(r)) {
             c.mal_qualificados++;
-            // NÃO inclui na média de vendas do coordenador
         } else {
             if (r.media_final) c.medias.push(r.media_final);
         }
@@ -118,24 +162,28 @@ function calcStats(reunioes) {
         c.media_sdr    = +avg(c.sdr_notas).toFixed(1);
     }
 
-    // ── Ranking vendedores (EXCLUI reuniões mal qualificadas da média) ────────
+    // ── Ranking vendedores (com 12 critérios) ─────────────────────────────────
     const porVendedor = {};
     for (const r of reunioes) {
         if (!porVendedor[r.vendedor_nome]) {
             porVendedor[r.vendedor_nome] = {
                 nome:              r.vendedor_nome,
                 coordenador:       r.coordenador,
-                total:             0,   // todas as RDs (incluindo mal qualif.)
-                total_validas:     0,   // RDs que contam na média
-                total_mal_qualif:  0,   // RDs que NÃO contam na média
+                total:             0,
+                total_validas:     0,
+                total_mal_qualif:  0,
                 medias: [],
-                // ── NOVO: 3 etapas (colunas: rapport=etapa1, produto=etapa2, apresentacao=etapa3)
-                etapa1: [],
-                etapa2: [],
-                etapa3: [],
-                // ── LEGADO: 5 pilares (para registros antigos sem novo formato)
-                rapport: [], produto: [], apresentacao: [],
-                pre_fechamento: [], fechamento: []
+                // ── 3 etapas (novo formato)
+                etapa1: [], etapa2: [], etapa3: [],
+                // ── 12 critérios individuais
+                rapport: [], spin: [], comunicacao: [],
+                produto: [], objecoes: [], solucao_dor: [], encantamento: [],
+                pre_fechamento: [], escuta_ativa: [], resiliencia: [], gestao_tempo: [], regras_fechamento: [],
+                // ── Objeções stats
+                objecoes_total: 0, objecoes_contornadas: 0, objecoes_nao_contornadas: 0,
+                // ── LEGADO: 5 pilares (para registros antigos)
+                leg_rapport: [], leg_produto: [], leg_apresentacao: [],
+                leg_pre_fechamento: [], leg_fechamento: []
             };
         }
         const v = porVendedor[r.vendedor_nome];
@@ -143,43 +191,78 @@ function calcStats(reunioes) {
 
         if (isMalQualificado(r)) {
             v.total_mal_qualif++;
-            // ❌ NÃO adiciona nas médias — conforme regra de negócio
         } else {
             v.total_validas++;
-            if (r.media_final)         v.medias.push(r.media_final);
+            if (r.media_final) v.medias.push(r.media_final);
 
-            // Detectar formato e usar colunas corretas
-            const temEtapas = r.nota_pre_fechamento === null && r.nota_fechamento === null;
-            if (temEtapas) {
-                // Novo formato: rapport=etapa1, produto=etapa2, apresentacao=etapa3
-                if (r.nota_rapport)      v.etapa1.push(r.nota_rapport);
-                if (r.nota_produto)      v.etapa2.push(r.nota_produto);
-                if (r.nota_apresentacao) v.etapa3.push(r.nota_apresentacao);
+            if (isNovoFormato(r)) {
+                // ── Novo formato: extrair 12 critérios do analise_json
+                const cr = extrairCriterios(r);
+                if (cr.etapa1) v.etapa1.push(cr.etapa1);
+                if (cr.etapa2) v.etapa2.push(cr.etapa2);
+                if (cr.etapa3) v.etapa3.push(cr.etapa3);
+                // Critérios individuais
+                if (cr.rapport)     v.rapport.push(cr.rapport);
+                if (cr.spin)        v.spin.push(cr.spin);
+                if (cr.comunicacao) v.comunicacao.push(cr.comunicacao);
+                if (cr.produto)     v.produto.push(cr.produto);
+                if (cr.objecoes)    v.objecoes.push(cr.objecoes);
+                if (cr.solucao_dor) v.solucao_dor.push(cr.solucao_dor);
+                if (cr.encantamento) v.encantamento.push(cr.encantamento);
+                if (cr.pre_fechamento)    v.pre_fechamento.push(cr.pre_fechamento);
+                if (cr.escuta_ativa)      v.escuta_ativa.push(cr.escuta_ativa);
+                if (cr.resiliencia)       v.resiliencia.push(cr.resiliencia);
+                if (cr.gestao_tempo)      v.gestao_tempo.push(cr.gestao_tempo);
+                if (cr.regras_fechamento) v.regras_fechamento.push(cr.regras_fechamento);
+                // Objeções
+                v.objecoes_total         += cr.total_objecoes;
+                v.objecoes_contornadas   += cr.objecoes_contornadas;
+                v.objecoes_nao_contornadas += cr.objecoes_nao_contornadas;
             } else {
-                // Legado: 5 pilares
-                if (r.nota_rapport)        v.rapport.push(r.nota_rapport);
-                if (r.nota_produto)        v.produto.push(r.nota_produto);
-                if (r.nota_apresentacao)   v.apresentacao.push(r.nota_apresentacao);
-                if (r.nota_pre_fechamento) v.pre_fechamento.push(r.nota_pre_fechamento);
-                if (r.nota_fechamento)     v.fechamento.push(r.nota_fechamento);
+                // ── Legado: 5 pilares das colunas diretas
+                if (r.nota_rapport)        v.leg_rapport.push(r.nota_rapport);
+                if (r.nota_produto)        v.leg_produto.push(r.nota_produto);
+                if (r.nota_apresentacao)   v.leg_apresentacao.push(r.nota_apresentacao);
+                if (r.nota_pre_fechamento) v.leg_pre_fechamento.push(r.nota_pre_fechamento);
+                if (r.nota_fechamento)     v.leg_fechamento.push(r.nota_fechamento);
             }
         }
     }
 
-    const ranking = Object.values(porVendedor).map(v => ({
-        ...v,
-        media:             +avg(v.medias).toFixed(1),
-        // Novo formato
-        avg_etapa1:        +avg(v.etapa1).toFixed(1),
-        avg_etapa2:        +avg(v.etapa2).toFixed(1),
-        avg_etapa3:        +avg(v.etapa3).toFixed(1),
-        // Legado (para backward compat)
-        avg_rapport:       +avg(v.rapport).toFixed(1),
-        avg_produto:       +avg(v.produto).toFixed(1),
-        avg_apresentacao:  +avg(v.apresentacao).toFixed(1),
-        avg_pre_fechamento:+avg(v.pre_fechamento).toFixed(1),
-        avg_fechamento:    +avg(v.fechamento).toFixed(1),
-    })).sort((a, b) => b.media - a.media);
+    const ranking = Object.values(porVendedor).map(v => {
+        const taxaContornoVend = v.objecoes_total > 0 
+            ? Math.round((v.objecoes_contornadas / v.objecoes_total) * 100) 
+            : 0;
+        return {
+            ...v,
+            media:             +avg(v.medias).toFixed(1),
+            // Novo formato (3 etapas)
+            avg_etapa1:        +avg(v.etapa1).toFixed(1),
+            avg_etapa2:        +avg(v.etapa2).toFixed(1),
+            avg_etapa3:        +avg(v.etapa3).toFixed(1),
+            // 12 critérios individuais
+            avg_rapport:       +avg(v.rapport).toFixed(1),
+            avg_spin:          +avg(v.spin).toFixed(1),
+            avg_comunicacao:   +avg(v.comunicacao).toFixed(1),
+            avg_produto:       +avg(v.produto).toFixed(1),
+            avg_objecoes:      +avg(v.objecoes).toFixed(1),
+            avg_solucao_dor:   +avg(v.solucao_dor).toFixed(1),
+            avg_encantamento:  +avg(v.encantamento).toFixed(1),
+            avg_pre_fechamento:    +avg(v.pre_fechamento).toFixed(1),
+            avg_escuta_ativa:      +avg(v.escuta_ativa).toFixed(1),
+            avg_resiliencia:       +avg(v.resiliencia).toFixed(1),
+            avg_gestao_tempo:      +avg(v.gestao_tempo).toFixed(1),
+            avg_regras_fechamento: +avg(v.regras_fechamento).toFixed(1),
+            // Taxa de contorno de objeções
+            taxa_contorno:     taxaContornoVend,
+            // Legado (backward compat)
+            avg_leg_rapport:       +avg(v.leg_rapport).toFixed(1),
+            avg_leg_produto:       +avg(v.leg_produto).toFixed(1),
+            avg_leg_apresentacao:  +avg(v.leg_apresentacao).toFixed(1),
+            avg_leg_pre_fechamento:+avg(v.leg_pre_fechamento).toFixed(1),
+            avg_leg_fechamento:    +avg(v.leg_fechamento).toFixed(1),
+        };
+    }).sort((a, b) => b.media - a.media);
 
     // ── Evolução temporal (por semana) — só conta RDs válidas ───────────────
     const porSemana = {};
@@ -212,7 +295,15 @@ function calcStats(reunioes) {
         total_validas:   reunioesBoas.length,
         total_mal_qualif: reunioesMalQ.length,
         media_geral:     +avg(medias).toFixed(1),
+        // Stats globais de objeções
+        objecoes: {
+            total:          totalObjecoes,
+            contornadas:    totalContornadas,
+            nao_contornadas: totalNaoContornadas,
+            taxa_contorno:  taxaContornoGlobal
+        },
         porCoordenador,
+        porVendedor,
         ranking,
         evolucao,
         veredictos,
