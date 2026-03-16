@@ -1,3 +1,31 @@
+// api/analyze.js
+// ─────────────────────────────────────────────────────────────────────────────
+// NOVA ESTRUTURA DE AVALIAÇÃO (3 etapas, 8 critérios)
+//
+//  Etapa 1 – Consultividade / Diagnóstico - SPIN
+//    • SPIN          (nota_spin)
+//    • Comunicação   (nota_comunicacao)
+//    • Interação     (nota_interacao)
+//    → nota_etapa1   salva em: nota_rapport (coluna existente)
+//
+//  Etapa 2 – Apresentação da Ferramenta
+//    • Objeções      (nota_objecoes)
+//    • Solução da dor(nota_solucao_dor)
+//    → nota_etapa2   salva em: nota_produto (coluna existente)
+//
+//  Etapa 3 – Negociação
+//    • Escuta ativa  (nota_escuta_ativa)
+//    • Resiliência   (nota_resiliencia)
+//    • Gestão do tempo (nota_gestao_tempo)
+//    → nota_etapa3   salva em: nota_apresentacao (coluna existente)
+//
+//  media_final = média dos 8 critérios
+//
+//  REGRA MAL QUALIFICADO:
+//    Se qual_veredicto contém "MAL" ou "FORA", a reunião não contabiliza
+//    na média do vendedor (tratado em api/dashboard.js e api/save.js).
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { GoogleGenAI, Type } from '@google/genai';
 
 export const maxDuration = 60;
@@ -20,14 +48,10 @@ export default async function handler(req, res) {
     // ────────────────────────────────────────────────────────────────────────
 
     const { prompt } = req.body;
-
-    if (!prompt) {
-        return res.status(400).json({ error: "O texto da transcrição é obrigatório." });
-    }
+    if (!prompt) return res.status(400).json({ error: "O texto da transcrição é obrigatório." });
 
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
         const systemInstruction = process.env.SYSTEM_PROMPT;
         if (!systemInstruction) return res.status(500).json({ error: "Prompt não configurado no servidor." });
 
@@ -42,35 +66,64 @@ export default async function handler(req, res) {
                     type: Type.OBJECT,
                     properties: {
 
-                        // ── PARTE 1: VENDAS ──────────────────────────────────
+                        // ── IDENTIFICAÇÃO ────────────────────────────────────
+                        vendedor_nome:           { type: Type.STRING },
                         media_final:             { type: Type.NUMBER },
                         resumo_executivo:        { type: Type.STRING },
                         chance_fechamento:       { type: Type.STRING },
                         alerta_cancelamento:     { type: Type.STRING },
                         concorrentes_detectados: { type: Type.ARRAY, items: { type: Type.STRING } },
 
-                        nota_rapport:            { type: Type.NUMBER },
-                        porque_rapport:          { type: Type.STRING },
-                        melhoria_rapport:        { type: Type.STRING },
+                        // ── ETAPA 1 — Consultividade / Diagnóstico - SPIN ────
+                        nota_spin:              { type: Type.NUMBER },
+                        porque_spin:            { type: Type.STRING },
+                        melhoria_spin:          { type: Type.STRING },
 
-                        nota_produto:            { type: Type.NUMBER },
-                        porque_produto:          { type: Type.STRING },
-                        melhoria_produto:        { type: Type.STRING },
+                        nota_comunicacao:       { type: Type.NUMBER },
+                        porque_comunicacao:     { type: Type.STRING },
+                        melhoria_comunicacao:   { type: Type.STRING },
 
-                        nota_apresentacao:       { type: Type.NUMBER },
-                        porque_apresentacao:     { type: Type.STRING },
-                        melhoria_apresentacao:   { type: Type.STRING },
+                        nota_interacao:         { type: Type.NUMBER },
+                        porque_interacao:       { type: Type.STRING },
+                        melhoria_interacao:     { type: Type.STRING },
 
-                        nota_pre_fechamento:     { type: Type.NUMBER },
-                        porque_pre_fechamento:   { type: Type.STRING },
-                        melhoria_pre_fechamento: { type: Type.STRING },
+                        nota_etapa1:            { type: Type.NUMBER },
+                        porque_etapa1:          { type: Type.STRING },
+                        melhoria_etapa1:        { type: Type.STRING },
 
-                        nota_fechamento:         { type: Type.NUMBER },
-                        porque_fechamento:       { type: Type.STRING },
-                        melhoria_fechamento:     { type: Type.STRING },
+                        // ── ETAPA 2 — Apresentação da Ferramenta ─────────────
+                        nota_objecoes:          { type: Type.NUMBER },
+                        porque_objecoes:        { type: Type.STRING },
+                        melhoria_objecoes:      { type: Type.STRING },
 
-                        tempo_fala_consultor:    { type: Type.STRING },
-                        tempo_fala_cliente:      { type: Type.STRING },
+                        nota_solucao_dor:       { type: Type.NUMBER },
+                        porque_solucao_dor:     { type: Type.STRING },
+                        melhoria_solucao_dor:   { type: Type.STRING },
+
+                        nota_etapa2:            { type: Type.NUMBER },
+                        porque_etapa2:          { type: Type.STRING },
+                        melhoria_etapa2:        { type: Type.STRING },
+
+                        // ── ETAPA 3 — Negociação ─────────────────────────────
+                        nota_escuta_ativa:      { type: Type.NUMBER },
+                        porque_escuta_ativa:    { type: Type.STRING },
+                        melhoria_escuta_ativa:  { type: Type.STRING },
+
+                        nota_resiliencia:       { type: Type.NUMBER },
+                        porque_resiliencia:     { type: Type.STRING },
+                        melhoria_resiliencia:   { type: Type.STRING },
+
+                        nota_gestao_tempo:      { type: Type.NUMBER },
+                        porque_gestao_tempo:    { type: Type.STRING },
+                        melhoria_gestao_tempo:  { type: Type.STRING },
+
+                        nota_etapa3:            { type: Type.NUMBER },
+                        porque_etapa3:          { type: Type.STRING },
+                        melhoria_etapa3:        { type: Type.STRING },
+
+                        // ── EXTRAS ───────────────────────────────────────────
+                        tempo_fala_consultor:   { type: Type.NUMBER },
+                        tempo_fala_cliente:     { type: Type.NUMBER },
 
                         checklist_fechamento: {
                             type: Type.OBJECT,
@@ -84,31 +137,33 @@ export default async function handler(req, res) {
                             }
                         },
 
-                        pontos_fortes:           { type: Type.ARRAY, items: { type: Type.STRING } },
-                        pontos_atencao:          { type: Type.ARRAY, items: { type: Type.STRING } },
+                        pontos_fortes:          { type: Type.ARRAY, items: { type: Type.STRING } },
+                        pontos_atencao:         { type: Type.ARRAY, items: { type: Type.STRING } },
                         justificativa_detalhada: { type: Type.STRING },
 
-                        // ── VENDEDOR ─────────────────────────────────────────
-                        vendedor_nome: { type: Type.STRING },
-
-                        // ── PARTE 2: QUALIFICAÇÃO ────────────────────────────
+                        // ── QUALIFICAÇÃO SDR ─────────────────────────────────
                         qual_produto_identificado:  { type: Type.STRING },
                         qual_produto_no_portfolio:  { type: Type.BOOLEAN },
                         qual_produto_alerta:        { type: Type.STRING },
 
+                        // ── qual_contexto como ARRAY de {label, valor} ────────
+                        // O index.html faz .map(c => c.label / c.valor)
+                        // NÃO usar Type.OBJECT aqui — quebra o frontend
                         qual_contexto: {
-                            type: Type.OBJECT,
-                            properties: {
-                                produto_apresentado:   { type: Type.STRING },
-                                qtd_clientes_cnpjs:    { type: Type.STRING },
-                                sistema_contabil:      { type: Type.STRING },
-                                interesse_demonstrado: { type: Type.STRING },
-                                cenario_problema:      { type: Type.STRING },
-                                participantes:         { type: Type.STRING },
-                                sabia_o_que_veria:     { type: Type.STRING }
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    label: { type: Type.STRING },
+                                    valor: { type: Type.STRING }
+                                }
                             }
                         },
 
+                        // ── Campos de qualificação como STRING ────────────────
+                        // Gemini é inconsistente com BOOLEAN em schema estruturado;
+                        // o index.html trata esses campos com truthy/falsy, então
+                        // STRING funciona igual e não quebra o parse
                         qual_sabia_o_que_veria:      { type: Type.STRING },
                         qual_sabia_evidencia:        { type: Type.STRING },
                         qual_produto_correto:        { type: Type.STRING },
@@ -121,11 +176,9 @@ export default async function handler(req, res) {
                         qual_sla_1_label: { type: Type.STRING },
                         qual_sla_1_ok:    { type: Type.BOOLEAN },
                         qual_sla_1_ev:    { type: Type.STRING },
-
                         qual_sla_2_label: { type: Type.STRING },
                         qual_sla_2_ok:    { type: Type.BOOLEAN },
                         qual_sla_2_ev:    { type: Type.STRING },
-
                         qual_sla_3_label: { type: Type.STRING },
                         qual_sla_3_ok:    { type: Type.BOOLEAN },
                         qual_sla_3_ev:    { type: Type.STRING },
@@ -138,14 +191,28 @@ export default async function handler(req, res) {
                     required: [
                         "vendedor_nome", "media_final", "resumo_executivo", "chance_fechamento", "alerta_cancelamento",
                         "concorrentes_detectados",
-                        "nota_rapport", "porque_rapport", "melhoria_rapport",
-                        "nota_produto", "porque_produto", "melhoria_produto",
-                        "nota_apresentacao", "porque_apresentacao", "melhoria_apresentacao",
-                        "nota_pre_fechamento", "porque_pre_fechamento", "melhoria_pre_fechamento",
-                        "nota_fechamento", "porque_fechamento", "melhoria_fechamento",
+
+                        // Etapa 1
+                        "nota_spin", "porque_spin", "melhoria_spin",
+                        "nota_comunicacao", "porque_comunicacao", "melhoria_comunicacao",
+                        "nota_interacao", "porque_interacao", "melhoria_interacao",
+                        "nota_etapa1", "porque_etapa1", "melhoria_etapa1",
+
+                        // Etapa 2
+                        "nota_objecoes", "porque_objecoes", "melhoria_objecoes",
+                        "nota_solucao_dor", "porque_solucao_dor", "melhoria_solucao_dor",
+                        "nota_etapa2", "porque_etapa2", "melhoria_etapa2",
+
+                        // Etapa 3
+                        "nota_escuta_ativa", "porque_escuta_ativa", "melhoria_escuta_ativa",
+                        "nota_resiliencia", "porque_resiliencia", "melhoria_resiliencia",
+                        "nota_gestao_tempo", "porque_gestao_tempo", "melhoria_gestao_tempo",
+                        "nota_etapa3", "porque_etapa3", "melhoria_etapa3",
+
                         "tempo_fala_consultor", "tempo_fala_cliente",
                         "checklist_fechamento", "pontos_fortes", "pontos_atencao",
                         "justificativa_detalhada",
+
                         "qual_produto_identificado", "qual_produto_no_portfolio", "qual_produto_alerta",
                         "qual_contexto",
                         "qual_sabia_o_que_veria", "qual_sabia_evidencia",
@@ -173,14 +240,41 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: "Erro ao processar resposta da IA: " + parseError.message });
         }
 
-        // ── Inject UI config into response (hides from frontend source) ────────
+        // ── Inject UI config (hidden from frontend source) ─────────────────
         analysisData._config = {
             fields: [
-                { l: 'Rapport',        k: 'rapport',       icon: 'heart-handshake' },
-                { l: 'Produto',        k: 'produto',        icon: 'layers' },
-                { l: 'Apresentação',   k: 'apresentacao',   icon: 'presentation' },
-                { l: 'Pré-Fechamento', k: 'pre_fechamento', icon: 'funnel' },
-                { l: 'Fechamento',     k: 'fechamento',     icon: 'handshake' }
+                {
+                    l: 'Consultividade / SPIN',
+                    k: 'etapa1',
+                    icon: 'search',
+                    color: 'blue',
+                    criterios: [
+                        { l: 'SPIN',              k: 'spin',        desc: 'Realizou perguntas de Situação, Problema, Implicação e Necessidade?' },
+                        { l: 'Comunicação Eficaz', k: 'comunicacao', desc: 'Demonstrou capacidade de ouvir as dores e o cenário do cliente?' },
+                        { l: 'Interação',          k: 'interacao',   desc: 'Utilizou vocabulário adequado garantindo comunicação saudável?' }
+                    ]
+                },
+                {
+                    l: 'Apresentação da Ferramenta',
+                    k: 'etapa2',
+                    icon: 'presentation',
+                    color: 'violet',
+                    criterios: [
+                        { l: 'Objeções',       k: 'objecoes',    desc: 'Conseguiu contornar objeções de maneira amistosa e convincente?' },
+                        { l: 'Solução da Dor', k: 'solucao_dor', desc: 'Utilizou a dor identificada no diagnóstico para mostrar a solução?' }
+                    ]
+                },
+                {
+                    l: 'Negociação',
+                    k: 'etapa3',
+                    icon: 'handshake',
+                    color: 'emerald',
+                    criterios: [
+                        { l: 'Escuta Ativa',    k: 'escuta_ativa', desc: 'Exerceu escuta ativa com pausas necessárias para feedback do lead?' },
+                        { l: 'Resiliência',     k: 'resiliencia',  desc: 'Demonstrou firmeza com bons argumentos para fechamento ou próximo contato?' },
+                        { l: 'Gestão do Tempo', k: 'gestao_tempo', desc: 'Conseguiu boa gestão do tempo garantindo call de qualidade em 60 min?' }
+                    ]
+                }
             ],
             prodConfig: {
                 'RADAR-ECAC':       { color: 'bg-sky-100 text-sky-800 border-sky-300',             icon: 'radar' },
@@ -199,6 +293,10 @@ export default async function handler(req, res) {
                 mencionou_gestao_financeira_gratuita: 'Cereja do Bolo'
             }
         };
+
+        // ── Flag de mal qualificado para uso no save ──────────────────────
+        const veredicto = (analysisData.qual_veredicto || '').toUpperCase();
+        analysisData._mal_qualificado = veredicto.includes('MAL') || veredicto.includes('FORA');
 
         return res.status(200).json(analysisData);
 
