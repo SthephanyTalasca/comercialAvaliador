@@ -45,11 +45,16 @@
         .verd-m { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
         .verd-f { background: #fdf2f8; color: #7c3aed; border-color: #c4b5fd; }
         .verd-s { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+        .qb-sim { background: #d1fae5; color: #065f46; }
+        .qb-parcial { background: #fef3c7; color: #92400e; }
+        .qb-nao { background: #fee2e2; color: #991b1b; }
+        .qb-alto { background: #d1fae5; color: #065f46; }
+        .qb-moder { background: #dbeafe; color: #1e40af; }
+        .qb-fraco { background: #fef3c7; color: #92400e; }
+        .qb-sem { background: #fee2e2; color: #991b1b; }
         /* Objeções styles */
-        .obj-contornada { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border: 2px solid #10b981; }
-        .obj-nao-contornada { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 2px solid #ef4444; }
-        .obj-badge-ok { background: #10b981; color: white; }
-        .obj-badge-fail { background: #ef4444; color: white; }
+        .obj-contornada { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-left: 4px solid #10b981; }
+        .obj-nao-contornada { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-left: 4px solid #ef4444; }
     </style>
 </head>
 <body class="pb-20 antialiased">
@@ -137,7 +142,7 @@
     <div id="results-section" class="hidden space-y-8">
         <div id="loading-spinner" class="flex flex-col items-center py-20">
             <div class="loader mb-4"></div>
-            <p class="text-slate-400 font-bold text-xs uppercase tracking-widest animate-pulse">Auditando 12 critérios + objeções + qualificação...</p>
+            <p class="text-slate-400 font-bold text-xs uppercase tracking-widest animate-pulse">Auditando reunião e qualificação do lead...</p>
         </div>
         <div id="analysis-content" class="hidden space-y-8">
             <!-- Vendedor banner -->
@@ -160,7 +165,7 @@
             <!-- Score hero -->
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 <div class="lg:col-span-1 glass-card p-10 flex flex-col items-center justify-center text-center border-b-[10px] border-blue-600">
-                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Média Global (12 critérios)</span>
+                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Média Global (Máx 5)</span>
                     <div id="media-final" class="text-7xl font-black text-[#002d72] mb-3">0.0</div>
                     <div id="status-tag" class="px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">---</div>
                 </div>
@@ -183,8 +188,8 @@
             <!-- TABS -->
             <div class="flex items-end border-b border-slate-200 px-2 gap-0">
                 <button onclick="showSection('vendas')" id="tab-vendas" class="section-tab active"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> Auditoria de Vendas</button>
-                <button onclick="showSection('objecoes')" id="tab-objecoes" class="section-tab"><i data-lucide="shield" class="w-4 h-4"></i> Auditoria de Objeções</button>
-                <button onclick="showSection('qualif')" id="tab-qualif" class="section-tab"><i data-lucide="user-check" class="w-4 h-4"></i> Qualificação SDR</button>
+                <button onclick="showSection('objecoes')" id="tab-objecoes" class="section-tab"><i data-lucide="shield-alert" class="w-4 h-4"></i> Auditoria de Objeções</button>
+                <button onclick="showSection('qualif')" id="tab-qualif" class="section-tab"><i data-lucide="user-check" class="w-4 h-4"></i> Qualificação do Lead (SDR)</button>
                 <div class="ml-auto pb-1.5">
                     <button id="btn-pdf-sdr" onclick="exportarPDFSdr()" class="hidden items-center gap-1.5 bg-violet-600 hover:bg-violet-700 text-white px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm">
                         <i data-lucide="file-down" class="w-3 h-3"></i> PDF Qualificação
@@ -194,7 +199,7 @@
             <!-- SEÇÃO VENDAS -->
             <div id="section-vendas" class="space-y-8">
                 <p class="text-[11px] text-slate-400 font-semibold flex items-center gap-2 px-1">
-                    <i data-lucide="mouse-pointer-click" class="w-4 h-4 text-blue-400"></i> Clique em qualquer etapa para ver a justificativa e os 12 critérios completos
+                    <i data-lucide="mouse-pointer-click" class="w-4 h-4 text-blue-400"></i> Clique em qualquer etapa para ver a justificativa e sub-critérios completos
                 </p>
                 <div id="notas-grid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -271,7 +276,7 @@
             <div class="bg-[#002d72] p-8 flex items-center justify-between">
                 <div>
                     <h2 class="font-black text-white text-2xl uppercase tracking-tight flex items-center gap-3"><i data-lucide="layout-dashboard" class="w-7 h-7"></i> Dashboard Comercial</h2>
-                    <p class="text-blue-300 text-xs font-bold mt-1 uppercase tracking-widest">12 Critérios + Auditoria de Objeções</p>
+                    <p class="text-blue-300 text-xs font-bold mt-1 uppercase tracking-widest">Análise consolidada dos times</p>
                 </div>
                 <button onclick="closeDashboard()" class="bg-white/10 hover:bg-white/20 text-white p-3 rounded-2xl transition-all"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
@@ -325,6 +330,9 @@
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Até:</span>
                         <input type="date" id="dash-filter-fim" onchange="loadDashboard()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300" />
                     </div>
+                    <button onclick="toggleCalendarioInline()" id="btn-cal-toggle" class="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:border-sky-400 text-slate-500 hover:text-sky-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                        <i data-lucide="calendar" class="w-3 h-3"></i> Calendário
+                    </button>
                     <div id="dash-loading" class="hidden flex items-center gap-2 text-blue-600 text-xs font-bold">
                         <div class="loader" style="width:16px;height:16px;border-width:2px"></div> Carregando...
                     </div>
@@ -362,7 +370,69 @@
 <script>
 lucide.createIcons();
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// CONFIGURAÇÃO DOS 12 CRITÉRIOS (NOVA ESTRUTURA)
+// ══════════════════════════════════════════════════════════════════
+const FIELDS_CONFIG = [
+    {
+        l: 'Consultividade / SPIN',
+        k: 'etapa1',
+        icon: 'search',
+        color: 'blue',
+        criterios: [
+            { l: 'Rapport', k: 'rapport', desc: 'Criou conexão inicial e ambiente confortável?' },
+            { l: 'SPIN', k: 'spin', desc: 'Perguntas de Situação, Problema, Implicação e Necessidade?' },
+            { l: 'Comunicação Eficaz', k: 'comunicacao', desc: 'Vocabulário adequado e escuta das dores?' }
+        ]
+    },
+    {
+        l: 'Apresentação da Ferramenta',
+        k: 'etapa2',
+        icon: 'presentation',
+        color: 'violet',
+        criterios: [
+            { l: 'Produto', k: 'produto', desc: 'Demonstrou domínio técnico da ferramenta?' },
+            { l: 'Objeções', k: 'objecoes', desc: 'Contornou objeções de forma convincente?' },
+            { l: 'Solução da Dor', k: 'solucao_dor', desc: 'Conectou a dor do cliente à solução?' },
+            { l: 'Encantamento', k: 'encantamento', desc: 'Gerou emoção comercial e entusiasmo?' }
+        ]
+    },
+    {
+        l: 'Negociação',
+        k: 'etapa3',
+        icon: 'handshake',
+        color: 'emerald',
+        criterios: [
+            { l: 'Pré-Fechamento', k: 'pre_fechamento', desc: 'Preparou o terreno para o fechamento?' },
+            { l: 'Escuta Ativa', k: 'escuta_ativa', desc: 'Pausas para feedback e validação?' },
+            { l: 'Resiliência', k: 'resiliencia', desc: 'Persistiu com bons argumentos?' },
+            { l: 'Gestão do Tempo', k: 'gestao_tempo', desc: 'Call de qualidade em até 60 min?' },
+            { l: 'Regras de Fechamento', k: 'regras_fechamento', desc: 'Seguiu o checklist de fechamento?' }
+        ]
+    }
+];
+
+const PROD_CONFIG = {
+    'RADAR-ECAC':       { color: 'bg-sky-100 text-sky-800 border-sky-300',             icon: 'radar' },
+    'NIBO OBRIGAÇÕES':  { color: 'bg-violet-100 text-violet-800 border-violet-300',    icon: 'file-text' },
+    'CONCILIADOR':      { color: 'bg-blue-100 text-blue-800 border-blue-300',          icon: 'git-merge' },
+    'WHATSAPP WEB':     { color: 'bg-emerald-100 text-emerald-800 border-emerald-300', icon: 'message-circle' },
+    'EMISSOR DE NOTAS': { color: 'bg-orange-100 text-orange-800 border-orange-300',    icon: 'file-plus' },
+    'FORA':             { color: 'bg-red-100 text-red-800 border-red-300',             icon: 'alert-triangle' }
+};
+
+const CK_LABELS = {
+    resolveu_pontos_iniciais:             'Retomou problemas',
+    pediu_feedback_ferramenta:            'Pediu Feedback',
+    pediu_voto_confianca:                 'Voto de Confiança',
+    tratou_objecao_socio:                 'Alinhou Sócios',
+    validou_mensalidade_vs_setup:         'Isolou Objeção',
+    mencionou_gestao_financeira_gratuita: 'Cereja do Bolo'
+};
+
+// ══════════════════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════════════════
 async function initAuth() {
     const params = new URLSearchParams(window.location.search);
     const authError = params.get('auth_error');
@@ -406,7 +476,9 @@ async function handleLogout() {
     window.location.href = '/';
 }
 
-// ── App state ─────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// APP STATE
+// ══════════════════════════════════════════════════════════════════
 const analyzeBtn = document.getElementById('analyze-btn');
 const transcriptInput = document.getElementById('transcript-input');
 const resultsSection = document.getElementById('results-section');
@@ -415,10 +487,6 @@ const analysisContent = document.getElementById('analysis-content');
 const btnText = document.getElementById('btn-text');
 let radarChartInstance = null;
 let pilarData = [];
-let fields = [];
-let prodConfig = {};
-let ckLabels = {};
-let objecaoTipos = {};
 let _currentAnalysis = null;
 
 function getScoreColor(n) {
@@ -442,46 +510,9 @@ function showSection(name) {
     lucide.createIcons();
 }
 
-async function exportarPDFSdr() {
-    const btn = document.getElementById('btn-pdf-sdr');
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Gerando...';
-    btn.disabled = true;
-    lucide.createIcons();
-    try {
-        const qualContent = document.getElementById('qual-content');
-        if (!qualContent || !qualContent.innerHTML.trim()) { alert('Nenhuma qualificacao para exportar.'); return; }
-        const wrapper = document.createElement('div');
-        wrapper.style.cssText = 'width:794px;font-family:Inter,sans-serif;background:white;padding:0;';
-        const vendNome  = document.getElementById('vendedor-nome-display')?.textContent?.trim() || 'lead';
-        const coordSel  = document.querySelector('input[name="coordenador"]:checked');
-        const coordNome = coordSel ? coordSel.closest('label')?.querySelector('p')?.textContent?.trim() || 'Coordenador' : 'Coordenador';
-        const dataHoje  = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'});
-        const rawText   = qualContent.innerText || '';
-        const isFora = /FORA/i.test(rawText);
-        const isMal  = /MAL QUALIF/i.test(rawText);
-        const isParc = /PARC/i.test(rawText);
-        const isQual = /QUALIFICADO/i.test(rawText) && !isMal && !isParc && !isFora;
-        const badgeColor = isFora ? '#7c3aed' : isMal ? '#dc2626' : isParc ? '#d97706' : isQual ? '#059669' : '#64748b';
-        const badgeLabel = isFora ? 'Fora do Portfolio' : isMal ? 'Mal Qualificado' : isParc ? 'Parcialmente Qualificado' : isQual ? 'Qualificado' : 'Sem veredicto';
-        wrapper.innerHTML = `<div style="background:#4c1d95;padding:28px 36px 24px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;"><div><p style="color:#c4b5fd;font-size:10px;font-weight:800;letter-spacing:3px;text-transform:uppercase;margin:0 0 4px;">Nibo &middot; Relatorio de Qualificacao SDR</p><h1 style="color:white;font-size:24px;font-weight:900;margin:0;">Qualificacao do Lead</h1></div><div style="background:${badgeColor};color:white;padding:8px 18px;border-radius:40px;font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;">${badgeLabel}</div></div><div style="display:flex;gap:24px;border-top:1px solid rgba(255,255,255,0.15);padding-top:14px;"><div><p style="color:#a78bfa;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:2px;margin:0 0 3px;">Vendedor</p><p style="color:white;font-size:13px;font-weight:900;margin:0;">${vendNome}</p></div><div><p style="color:#a78bfa;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:2px;margin:0 0 3px;">Coordenador</p><p style="color:white;font-size:13px;font-weight:900;margin:0;">${coordNome}</p></div><div><p style="color:#a78bfa;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:2px;margin:0 0 3px;">Data</p><p style="color:white;font-size:13px;font-weight:900;margin:0;">${dataHoje}</p></div></div></div><div style="padding:28px 36px;" id="pdf-qual-body"></div>`;
-        const clone = qualContent.cloneNode(true);
-        clone.querySelectorAll('button, select, input').forEach(el => el.remove());
-        clone.querySelectorAll('.hidden').forEach(el => el.classList.remove('hidden'));
-        wrapper.querySelector('#pdf-qual-body').appendChild(clone);
-        document.body.appendChild(wrapper);
-        wrapper.style.position = 'fixed'; wrapper.style.top = '0'; wrapper.style.left = '-9999px';
-        const safeName = vendNome.replace(/[^a-zA-Z0-9À-ſ]/g, '-');
-        await html2pdf().set({ margin:0, filename:'qualificacao-sdr-'+safeName+'.pdf', image:{type:'jpeg',quality:0.97}, html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'}, jsPDF:{unit:'mm',format:'a4',orientation:'portrait'} }).from(wrapper).save();
-        document.body.removeChild(wrapper);
-    } catch(err) {
-        alert('Erro ao gerar PDF SDR: ' + err.message);
-    } finally {
-        btn.innerHTML = originalHTML; btn.disabled = false; lucide.createIcons();
-    }
-}
-
-// ── Analysis ──────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// ANALYSIS
+// ══════════════════════════════════════════════════════════════════
 async function handleAnalysis() {
     const prompt = transcriptInput.value.trim();
     if (!prompt) return;
@@ -516,28 +547,26 @@ async function handleAnalysis() {
 function renderDashboard(data) {
     loadingSpinner.classList.add('hidden');
     analysisContent.classList.remove('hidden');
-    if (data._config) {
-        fields = data._config.fields || [];
-        prodConfig = data._config.prodConfig || {};
-        ckLabels = data._config.ckLabels || {};
-        objecaoTipos = data._config.objecaoTipos || {};
-    }
+    
     const media = data.media_final || 0;
     document.getElementById('media-final').textContent = media.toFixed(1);
     document.getElementById('resumo-text').textContent = data.resumo_executivo || "—";
     document.getElementById('chance-text').textContent = data.chance_fechamento || "N/A";
     document.getElementById('alerta-text').textContent = data.alerta_cancelamento || "Sem alertas críticos.";
     renderVendedorBanner(data);
+    
     document.getElementById('concorrentes-tags').innerHTML = (data.concorrentes_detectados||[]).map(c =>
         `<span class="px-3 py-1 bg-red-600 text-white text-[9px] font-black rounded-lg shadow uppercase tracking-widest flex items-center gap-1.5 tag-concorrente"><i data-lucide="alert-circle" class="w-3 h-3"></i> ${c}</span>`
     ).join('');
+    
     const status = document.getElementById('status-tag');
     if (media >= 4.5) { status.textContent = "Elite Sales"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg"; }
     else if (media >= 3.5) { status.textContent = "Alta Performance"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700"; }
     else { status.textContent = "Acompanhamento"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; }
 
-    pilarData = fields.map(f => ({
-        label: f.l, icon: f.icon, color: f.color || 'blue',
+    // Build pilarData from config + data
+    pilarData = FIELDS_CONFIG.map(f => ({
+        label: f.l, icon: f.icon, color: f.color,
         score: data[`nota_${f.k}`] || 0,
         porque: data[`porque_${f.k}`] || "Sem justificativa disponível.",
         melhoria: data[`melhoria_${f.k}`] || "Critério de excelência atingido.",
@@ -598,7 +627,7 @@ function renderDashboard(data) {
         <div><div class="flex justify-between text-[11px] font-bold mb-2"><span>Cliente</span><span class="text-emerald-500">${data.tempo_fala_cliente||'0%'}</span></div><div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500" style="width:${tl}%"></div></div></div>`;
 
     const ck = data.checklist_fechamento||{};
-    document.getElementById('checklist-container').innerHTML = Object.entries(ckLabels).map(([k,l]) => `
+    document.getElementById('checklist-container').innerHTML = Object.entries(CK_LABELS).map(([k,l]) => `
         <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
             <span class="text-[9px] font-bold text-slate-600 uppercase tracking-tight">${l}</span>
             <div class="w-5 h-5 rounded-full flex items-center justify-center ${ck[k]?'bg-emerald-500':'bg-slate-300'}">
@@ -609,205 +638,104 @@ function renderDashboard(data) {
     document.getElementById('pontos-fortes-list').innerHTML = (data.pontos_fortes||[]).map(i=>`<li class="flex items-start gap-2"><span>▶</span>${i}</li>`).join('');
     document.getElementById('pontos-atencao-list').innerHTML = (data.pontos_atencao||[]).map(i=>`<li class="flex items-start gap-2"><span>▶</span>${i}</li>`).join('');
     document.getElementById('coaching-body').innerHTML = marked.parse(data.justificativa_detalhada||'');
+    
+    // Render objeções section
     document.getElementById('objecoes-content').innerHTML = _buildObjecoesSection(data);
-    document.getElementById('qual-content').innerHTML = _buildQualSection(data, prodConfig);
+    
+    // Render qual section
+    document.getElementById('qual-content').innerHTML = _buildQualSection(data);
+    
     renderRadar(data);
     lucide.createIcons();
 }
 
-function renderRadar(data) {
-    const ctx = document.getElementById('radarChart').getContext('2d');
-    if (radarChartInstance) radarChartInstance.destroy();
-    // Radar com os 12 critérios individuais
-    const labels = [];
-    const values = [];
-    fields.forEach(f => {
-        (f.criterios||[]).forEach(c => {
-            labels.push(c.l);
-            values.push(data[`nota_${c.k}`] || 0);
-        });
-    });
-    radarChartInstance = new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels: labels,
-            datasets: [{ label: 'Desempenho', data: values,
-                backgroundColor: 'rgba(37,99,235,0.15)', borderColor: '#2563eb', borderWidth: 2,
-                pointRadius: 4, pointBackgroundColor: '#1e3a8a' }]
-        },
-        options: {
-            scales: { r: { min:0, max:5, ticks:{stepSize:1,display:false}, grid:{color:'#e2e8f0'}, angleLines:{color:'#e2e8f0'}, pointLabels:{font:{size:9,weight:'700'},color:'#475569'} } },
-            plugins: { legend: { display: false } }, maintainAspectRatio: true
-        }
-    });
-}
-
-// ── Build Objeções Section ────────────────────────────────────────────────────
 function _buildObjecoesSection(data) {
     const objs = data.auditoria_objecoes || [];
-    const total = data.total_objecoes || 0;
-    const contornadas = data.objecoes_contornadas || 0;
-    const naoContornadas = data.objecoes_nao_contornadas || 0;
-    const taxa = data.taxa_contorno_objecoes || 0;
-    const resumo = data.analise_objecoes_resumo || '';
-
-    if (total === 0) {
+    if (!objs.length) {
         return `<div class="glass-card p-12 text-center">
             <i data-lucide="check-circle" class="w-16 h-16 text-emerald-400 mx-auto mb-4"></i>
-            <h3 class="text-xl font-black text-slate-700 mb-2">Nenhuma Objeção Identificada</h3>
-            <p class="text-slate-400 font-medium">O cliente não apresentou objeções durante a reunião.</p>
+            <h3 class="font-black text-xl text-slate-700 mb-2">Nenhuma objeção identificada</h3>
+            <p class="text-slate-400 font-medium">O cliente não levantou objeções significativas durante a reunião.</p>
         </div>`;
     }
-
-    // KPI cards
-    const kpiHTML = `
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div class="glass-card p-6 border-t-4 border-slate-400">
-            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total de Objeções</p>
-            <p class="text-4xl font-black text-slate-700">${total}</p>
+    
+    const total = objs.length;
+    const contornadas = objs.filter(o => o.contornada).length;
+    const naoContornadas = total - contornadas;
+    const taxa = Math.round((contornadas/total)*100);
+    
+    const kpis = `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="glass-card p-5 border-t-4 border-blue-500">
+            <p class="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Total de Objeções</p>
+            <p class="text-4xl font-black text-blue-600">${total}</p>
         </div>
-        <div class="glass-card p-6 border-t-4 border-emerald-500">
-            <p class="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Contornadas ✓</p>
+        <div class="glass-card p-5 border-t-4 border-emerald-500">
+            <p class="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Contornadas</p>
             <p class="text-4xl font-black text-emerald-600">${contornadas}</p>
         </div>
-        <div class="glass-card p-6 border-t-4 border-red-500">
-            <p class="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1">Não Contornadas ✗</p>
+        <div class="glass-card p-5 border-t-4 border-red-500">
+            <p class="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1">Não Contornadas</p>
             <p class="text-4xl font-black text-red-600">${naoContornadas}</p>
         </div>
-        <div class="glass-card p-6 border-t-4 border-blue-500">
-            <p class="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Taxa de Contorno</p>
-            <p class="text-4xl font-black text-blue-600">${taxa}%</p>
-            <div class="h-2 w-full bg-slate-100 rounded-full mt-2 overflow-hidden">
-                <div class="h-full ${taxa >= 70 ? 'bg-emerald-500' : taxa >= 50 ? 'bg-amber-400' : 'bg-red-500'} rounded-full" style="width:${taxa}%"></div>
-            </div>
+        <div class="glass-card p-5 border-t-4 border-violet-500">
+            <p class="text-[9px] font-black text-violet-500 uppercase tracking-widest mb-1">Taxa de Contorno</p>
+            <p class="text-4xl font-black text-violet-600">${taxa}%</p>
         </div>
     </div>`;
-
-    // Resumo
-    const resumoHTML = resumo ? `
-    <div class="glass-card p-8 mb-8 bg-gradient-to-r from-slate-50 to-blue-50 border-l-4 border-blue-500">
-        <h4 class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3 flex items-center gap-2">
-            <i data-lucide="file-text" class="w-4 h-4"></i> Resumo da Auditoria de Objeções
-        </h4>
-        <p class="text-sm text-slate-700 font-medium leading-relaxed">${resumo}</p>
-    </div>` : '';
-
-    // Cards de objeções
-    const objCards = objs.map((obj, idx) => {
-        const tipoConfig = objecaoTipos[obj.tipo] || { color: 'bg-slate-100 text-slate-700 border-slate-300', icon: 'help-circle' };
-        const statusClass = obj.contornada ? 'obj-contornada' : 'obj-nao-contornada';
-        const badgeClass = obj.contornada ? 'obj-badge-ok' : 'obj-badge-fail';
-        const badgeText = obj.contornada ? '✓ Contornada' : '✗ Não Contornada';
+    
+    const tipoColors = {
+        'duvida':     'bg-sky-100 text-sky-700 border-sky-300',
+        'resistencia':'bg-amber-100 text-amber-700 border-amber-300',
+        'preco':      'bg-red-100 text-red-700 border-red-300',
+        'concorrente':'bg-purple-100 text-purple-700 border-purple-300',
+        'urgencia':   'bg-orange-100 text-orange-700 border-orange-300',
+        'interesse':  'bg-pink-100 text-pink-700 border-pink-300',
+        'tecnica':    'bg-slate-100 text-slate-700 border-slate-300'
+    };
+    
+    const objCards = objs.map((o, i) => {
+        const isOk = o.contornada;
+        const bgClass = isOk ? 'obj-contornada' : 'obj-nao-contornada';
+        const badge = isOk ? '<span class="px-3 py-1 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase">✓ Contornada</span>'
+                          : '<span class="px-3 py-1 rounded-full bg-red-500 text-white text-[9px] font-black uppercase">✗ Não Contornada</span>';
+        const tipoClass = tipoColors[o.tipo?.toLowerCase()] || 'bg-slate-100 text-slate-700 border-slate-300';
         
-        return `<div class="${statusClass} rounded-[2rem] p-6 transition-all hover:shadow-lg">
-            <div class="flex items-start gap-4">
-                <div class="w-10 h-10 rounded-xl ${tipoConfig.color} border flex items-center justify-center flex-shrink-0">
-                    <i data-lucide="${tipoConfig.icon}" class="w-5 h-5"></i>
+        return `<div class="${bgClass} rounded-2xl p-6 shadow-sm">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <span class="w-8 h-8 rounded-full bg-white flex items-center justify-center font-black text-slate-700">${i+1}</span>
+                    <span class="px-3 py-1 rounded-lg border text-[9px] font-black uppercase ${tipoClass}">${o.tipo||'—'}</span>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-3 mb-2">
-                        <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Objeção #${obj.numero || idx+1}</span>
-                        <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${tipoConfig.color} border">${obj.tipo || 'geral'}</span>
-                        <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${badgeClass}">${badgeText}</span>
-                    </div>
-                    <p class="text-sm font-bold text-slate-800 leading-relaxed mb-3">"${obj.descricao || '—'}"</p>
-                    ${!obj.contornada && obj.sugestao ? `
-                    <div class="bg-white/80 rounded-xl p-4 border border-amber-200">
-                        <div class="flex items-center gap-2 mb-2">
-                            <i data-lucide="lightbulb" class="w-4 h-4 text-amber-500"></i>
-                            <span class="text-[9px] font-black text-amber-600 uppercase tracking-widest">Sugestão Estratégica</span>
-                        </div>
-                        <p class="text-[12px] text-amber-800 font-medium leading-relaxed">${obj.sugestao}</p>
-                    </div>` : ''}
-                </div>
+                ${badge}
             </div>
+            <div class="mb-4">
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Objeção do Cliente</p>
+                <p class="text-sm font-bold text-slate-800 italic">"${o.texto||'—'}"</p>
+            </div>
+            ${isOk ? `
+                <div class="bg-white/60 rounded-xl p-4">
+                    <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">Como foi contornada</p>
+                    <p class="text-sm text-slate-700">${o.como_contornou||'—'}</p>
+                </div>
+            ` : `
+                <div class="bg-white/60 rounded-xl p-4">
+                    <p class="text-[10px] font-black text-red-600 uppercase tracking-widest mb-2">Sugestão de Abordagem</p>
+                    <p class="text-sm text-slate-700">${o.sugestao||'—'}</p>
+                </div>
+            `}
         </div>`;
     }).join('');
-
-    // Legenda de tipos
-    const legendaHTML = `
-    <div class="glass-card p-6 mt-8">
-        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-            <i data-lucide="info" class="w-4 h-4 text-slate-400"></i> Tipos de Objeção
-        </h4>
-        <div class="flex flex-wrap gap-3">
-            ${Object.entries(objecaoTipos).map(([tipo, cfg]) => `
-                <span class="px-3 py-2 rounded-xl border text-[10px] font-bold ${cfg.color} flex items-center gap-2">
-                    <i data-lucide="${cfg.icon}" class="w-3 h-3"></i> ${tipo}
-                </span>
-            `).join('')}
-        </div>
-    </div>`;
-
-    return kpiHTML + resumoHTML + `
-    <div class="space-y-4">${objCards}</div>
-    ${legendaHTML}`;
+    
+    return `${kpis}
+        <div class="glass-card p-8">
+            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                <i data-lucide="shield-alert" class="w-4 h-4 text-amber-400"></i> Detalhamento das Objeções
+            </h4>
+            <div class="space-y-4">${objCards}</div>
+        </div>`;
 }
 
-function openModal(idx) {
-    const p = pilarData[idx];
-    const col = getScoreColor(p.score);
-    document.getElementById('modal-title').textContent = `Etapa ${idx+1} — ${p.label}`;
-    document.getElementById('modal-score').textContent = p.score;
-    const ring = document.getElementById('modal-score-ring');
-    ring.style.borderColor = col.border; ring.style.background = col.bg; ring.style.color = col.border;
-    document.getElementById('modal-stars').innerHTML = buildStars(p.score);
-    document.getElementById('modal-text').textContent = p.porque;
-    const isMax = p.score >= 5;
-    const ic = document.getElementById('modal-improvement-container');
-    const ii = document.getElementById('modal-improvement-icon');
-    const il = document.getElementById('modal-improvement-label');
-    const it = document.getElementById('modal-improvement-text');
-    if (isMax) {
-        ic.className = "rounded-2xl p-4 border bg-emerald-50 border-emerald-100";
-        ii.setAttribute('data-lucide','award'); ii.className = "w-4 h-4 text-emerald-600";
-        il.className = "text-[9px] font-bold uppercase tracking-widest block text-emerald-700"; il.textContent = "Excelência atingida!";
-        it.className = "text-[13px] leading-relaxed font-medium text-emerald-900";
-    } else {
-        ic.className = "rounded-2xl p-4 border bg-amber-50 border-amber-100";
-        ii.setAttribute('data-lucide','target'); ii.className = "w-4 h-4 text-amber-600";
-        il.className = "text-[9px] font-bold uppercase tracking-widest block text-amber-700"; il.textContent = "O que faltou para o 5?";
-        it.className = "text-[13px] leading-relaxed font-medium text-amber-900";
-    }
-    it.textContent = p.melhoria;
-    const subEl = document.getElementById('modal-subcriterios');
-    if (p.criterios && p.criterios.length > 0) {
-        subEl.innerHTML = `<div class="mt-2">
-            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="list-checks" class="w-4 h-4 text-blue-400"></i> Critérios desta etapa</h4>
-            <div class="space-y-4">${p.criterios.map(c => {
-                const cc = getScoreColor(c.score);
-                const bg = c.score >= 4 ? 'border-emerald-100 bg-emerald-50' : c.score >= 3 ? 'border-blue-100 bg-blue-50' : 'border-red-100 bg-red-50';
-                return `<div class="p-4 rounded-2xl border ${bg}">
-                    <div class="flex items-center justify-between mb-1">
-                        <p class="text-[11px] font-black ${cc.text} uppercase tracking-wide">${c.label}</p>
-                        <div class="flex items-center gap-1"><span class="text-2xl font-black ${cc.text}">${c.score}</span><span class="text-[10px] text-slate-400 font-bold">/5</span></div>
-                    </div>
-                    <p class="text-[9px] text-slate-500 italic mb-2">${c.desc}</p>
-                    <p class="text-[11px] text-slate-700 font-medium leading-relaxed mb-2">${c.porque||''}</p>
-                    ${c.melhoria && c.score < 5 ? `<p class="text-[10px] text-amber-700 font-bold flex items-start gap-1"><i data-lucide="lightbulb" class="w-3 h-3 mt-0.5 flex-shrink-0"></i>${c.melhoria}</p>` : ''}
-                </div>`;
-            }).join('')}</div></div>`;
-    } else { subEl.innerHTML = ''; }
-    const modal = document.getElementById('justification-modal');
-    modal.classList.remove('hidden'); modal.classList.add('flex');
-    setTimeout(() => {
-        modal.classList.remove('opacity-0');
-        document.getElementById('modal-content-box').classList.remove('scale-95');
-        document.getElementById('modal-content-box').classList.add('scale-100');
-        lucide.createIcons();
-    }, 10);
-}
-
-function closeModal() {
-    const modal = document.getElementById('justification-modal');
-    const box = document.getElementById('modal-content-box');
-    modal.classList.add('opacity-0'); box.classList.remove('scale-100'); box.classList.add('scale-95');
-    setTimeout(() => { modal.classList.remove('flex'); modal.classList.add('hidden'); }, 300);
-}
-document.getElementById('justification-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-
-function _buildQualSection(data, pCfg) {
+function _buildQualSection(data) {
     const foraPortfolio = !data.qual_produto_no_portfolio;
     const verd = data.qual_veredicto || '';
     let vc = 'bg-slate-100 text-slate-600 border-slate-200';
@@ -815,7 +743,7 @@ function _buildQualSection(data, pCfg) {
     else if (verd.includes('MAL'))  vc = 'bg-red-100 text-red-800 border-red-300';
     else if (verd.includes('PARC')) vc = 'bg-yellow-100 text-yellow-800 border-yellow-300';
     else if (verd.includes('QUAL')) vc = 'bg-emerald-100 text-emerald-800 border-emerald-300';
-    const prodCfg = pCfg[data.qual_produto_identificado] || pCfg['FORA'] || { color:'bg-slate-100 text-slate-700 border-slate-200', icon:'box' };
+    const prodCfg = PROD_CONFIG[data.qual_produto_identificado] || PROD_CONFIG['FORA'] || { color:'bg-slate-100 text-slate-700 border-slate-200', icon:'box' };
     const slaGrid = [
         [data.qual_sla_1_label, data.qual_sla_1_ok, data.qual_sla_1_ev],
         [data.qual_sla_2_label, data.qual_sla_2_ok, data.qual_sla_2_ev],
@@ -888,6 +816,98 @@ function _buildQualSection(data, pCfg) {
         </div>`;
 }
 
+function renderRadar(data) {
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    if (radarChartInstance) radarChartInstance.destroy();
+    
+    // Collect all 12 criteria for radar
+    const labels = [];
+    const values = [];
+    FIELDS_CONFIG.forEach(f => {
+        f.criterios.forEach(c => {
+            labels.push(c.l);
+            values.push(data[`nota_${c.k}`] || 0);
+        });
+    });
+    
+    radarChartInstance = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: labels,
+            datasets: [{ label: 'Desempenho', data: values,
+                backgroundColor: 'rgba(37,99,235,0.15)', borderColor: '#2563eb', borderWidth: 2,
+                pointRadius: 4, pointBackgroundColor: '#1e3a8a' }]
+        },
+        options: {
+            scales: { r: { min:0, max:5, ticks:{stepSize:1,display:false}, grid:{color:'#e2e8f0'}, angleLines:{color:'#e2e8f0'}, pointLabels:{font:{size:9,weight:'700'},color:'#475569'} } },
+            plugins: { legend: { display: false } }, maintainAspectRatio: true
+        }
+    });
+}
+
+function openModal(idx) {
+    const p = pilarData[idx];
+    const col = getScoreColor(p.score);
+    document.getElementById('modal-title').textContent = `Etapa ${idx+1} — ${p.label}`;
+    document.getElementById('modal-score').textContent = p.score;
+    const ring = document.getElementById('modal-score-ring');
+    ring.style.borderColor = col.border; ring.style.background = col.bg; ring.style.color = col.border;
+    document.getElementById('modal-stars').innerHTML = buildStars(p.score);
+    document.getElementById('modal-text').textContent = p.porque;
+    const isMax = p.score >= 5;
+    const ic = document.getElementById('modal-improvement-container');
+    const ii = document.getElementById('modal-improvement-icon');
+    const il = document.getElementById('modal-improvement-label');
+    const it = document.getElementById('modal-improvement-text');
+    if (isMax) {
+        ic.className = "rounded-2xl p-4 border bg-emerald-50 border-emerald-100";
+        ii.setAttribute('data-lucide','award'); ii.className = "w-4 h-4 text-emerald-600";
+        il.className = "text-[9px] font-bold uppercase tracking-widest block text-emerald-700"; il.textContent = "Excelência atingida!";
+        it.className = "text-[13px] leading-relaxed font-medium text-emerald-900";
+    } else {
+        ic.className = "rounded-2xl p-4 border bg-amber-50 border-amber-100";
+        ii.setAttribute('data-lucide','target'); ii.className = "w-4 h-4 text-amber-600";
+        il.className = "text-[9px] font-bold uppercase tracking-widest block text-amber-700"; il.textContent = "O que faltou para o 5?";
+        it.className = "text-[13px] leading-relaxed font-medium text-amber-900";
+    }
+    it.textContent = p.melhoria;
+    const subEl = document.getElementById('modal-subcriterios');
+    if (p.criterios && p.criterios.length > 0) {
+        subEl.innerHTML = `<div class="mt-2">
+            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="list-checks" class="w-4 h-4 text-blue-400"></i> Critérios desta etapa</h4>
+            <div class="space-y-4">${p.criterios.map(c => {
+                const cc = getScoreColor(c.score);
+                const bg = c.score >= 4 ? 'border-emerald-100 bg-emerald-50' : c.score >= 3 ? 'border-blue-100 bg-blue-50' : 'border-red-100 bg-red-50';
+                return `<div class="p-4 rounded-2xl border ${bg}">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-[11px] font-black ${cc.text} uppercase tracking-wide">${c.label}</p>
+                        <div class="flex items-center gap-1"><span class="text-2xl font-black ${cc.text}">${c.score}</span><span class="text-[10px] text-slate-400 font-bold">/5</span></div>
+                    </div>
+                    <p class="text-[9px] text-slate-500 italic mb-2">${c.desc}</p>
+                    <p class="text-[11px] text-slate-700 font-medium leading-relaxed mb-2">${c.porque||''}</p>
+                    ${c.melhoria && c.score < 5 ? `<p class="text-[10px] text-amber-700 font-bold flex items-start gap-1"><i data-lucide="lightbulb" class="w-3 h-3 mt-0.5 flex-shrink-0"></i>${c.melhoria}</p>` : ''}
+                </div>`;
+            }).join('')}</div></div>`;
+    } else { subEl.innerHTML = ''; }
+    const modal = document.getElementById('justification-modal');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        document.getElementById('modal-content-box').classList.remove('scale-95');
+        document.getElementById('modal-content-box').classList.add('scale-100');
+        lucide.createIcons();
+    }, 10);
+}
+
+function closeModal() {
+    const modal = document.getElementById('justification-modal');
+    const box = document.getElementById('modal-content-box');
+    modal.classList.add('opacity-0'); box.classList.remove('scale-100'); box.classList.add('scale-95');
+    setTimeout(() => { modal.classList.remove('flex'); modal.classList.add('hidden'); }, 300);
+}
+document.getElementById('justification-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
 async function saveAnalysis(coordenador, analise) {
     try {
         const res = await fetch('/api/save', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({coordenador, analise}) });
@@ -922,7 +942,7 @@ async function renderVendedorBanner(data) {
     btn.onclick = async () => {
         const novoNome = sel.value;
         if (!novoNome) return;
-        if (!window._currentReuniaoId) { alert('Análise ainda sendo salva. Aguarde.'); return; }
+        if (!window._currentReuniaoId) { alert('Análise ainda sendo salva. Tente pelo painel de Gestão.'); return; }
         btn.disabled = true; btn.innerHTML = '<div class="loader" style="width:12px;height:12px;border-width:2px"></div>';
         try {
             const res = await fetch('/api/reassign', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({reuniao_id:window._currentReuniaoId, vendedor_nome:novoNome}) });
@@ -938,8 +958,33 @@ async function renderVendedorBanner(data) {
     banner.classList.remove('hidden'); lucide.createIcons();
 }
 
+async function exportarPDFSdr() {
+    const btn = document.getElementById('btn-pdf-sdr');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Gerando...';
+    btn.disabled = true;
+    lucide.createIcons();
+    try {
+        const qualContent = document.getElementById('qual-content');
+        if (!qualContent || !qualContent.innerHTML.trim()) { alert('Nenhuma qualificacao para exportar.'); return; }
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'width:794px;font-family:Inter,sans-serif;background:white;padding:0;';
+        const vendNome  = document.getElementById('vendedor-nome-display')?.textContent?.trim() || 'lead';
+        const dataHoje  = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'});
+        wrapper.innerHTML = `<div style="background:#4c1d95;padding:28px 36px 24px;"><h1 style="color:white;font-size:24px;font-weight:900;margin:0;">Qualificação do Lead - ${vendNome}</h1><p style="color:#a78bfa;font-size:12px;margin:8px 0 0;">${dataHoje}</p></div><div style="padding:28px 36px;" id="pdf-qual-body"></div>`;
+        const clone = qualContent.cloneNode(true);
+        wrapper.querySelector('#pdf-qual-body').appendChild(clone);
+        document.body.appendChild(wrapper);
+        wrapper.style.position = 'fixed'; wrapper.style.top = '0'; wrapper.style.left = '-9999px';
+        const safeName = vendNome.replace(/[^a-zA-Z0-9À-ſ]/g, '-');
+        await html2pdf().set({ margin:0, filename:'qualificacao-sdr-'+safeName+'.pdf', image:{type:'jpeg',quality:0.97}, html2canvas:{scale:2,useCORS:true}, jsPDF:{unit:'mm',format:'a4',orientation:'portrait'} }).from(wrapper).save();
+        document.body.removeChild(wrapper);
+    } catch(err) { alert('Erro ao gerar PDF: ' + err.message); }
+    finally { btn.innerHTML = originalHTML; btn.disabled = false; lucide.createIcons(); }
+}
+
 // ══════════════════════════════════════════════════════════════════
-// DASHBOARD (simplified for space - includes all modes)
+// DASHBOARD (preservado do original)
 // ══════════════════════════════════════════════════════════════════
 let VENDORS_CACHE = [];
 async function loadVendorsCache() {
@@ -962,8 +1007,8 @@ async function loadDashboard() {
         const inicio = document.getElementById('dash-filter-inicio')?.value || '';
         const fim = document.getElementById('dash-filter-fim')?.value || '';
         let qs = 'coordenador=' + encodeURIComponent(coord) + '&periodo=' + periodo + '&vendedor=' + encodeURIComponent(vendedor);
-        if (inicio) qs += '&inicio=' + encodeURIComponent(inicio);
-        if (fim) qs += '&fim=' + encodeURIComponent(fim);
+        if (inicio) qs += '&data_inicio=' + encodeURIComponent(inicio);
+        if (fim) qs += '&data_fim=' + encodeURIComponent(fim);
         const res = await fetch('/api/dashboard?' + qs);
         const data = await res.json();
         if (data.error) throw new Error(data.error);
@@ -975,35 +1020,30 @@ async function loadDashboard() {
 function renderDashboardData({ reunioes, stats }) {
     const content = document.getElementById('dash-content');
     if (!stats || reunioes.length === 0) {
-        content.innerHTML = '<div class="flex flex-col items-center py-20 text-slate-300"><i data-lucide="inbox" class="w-12 h-12 mb-3"></i><p class="font-bold text-sm">Nenhuma análise encontrada.</p></div>';
+        content.innerHTML = '<div class="flex flex-col items-center py-20 text-slate-300"><i data-lucide="inbox" class="w-12 h-12 mb-3"></i><p class="font-bold text-sm">Nenhuma análise encontrada para este período.</p></div>';
         lucide.createIcons(); return;
     }
-    const sc = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
-    const objs = stats.objecoes || { total:0, contornadas:0, taxa_contorno:0 };
+    const sc   = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
+    const scBg = n => n >= 4 ? 'bg-emerald-50 border-emerald-200' : n >= 3 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200';
 
-    const kpis = `<div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div class="glass-card p-6 border-t-4 border-blue-600"><p class="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Reuniões Válidas</p><p class="text-4xl font-black text-blue-600">${stats.total_validas||stats.total}</p></div>
-        <div class="glass-card p-6 border-t-4 border-emerald-500"><p class="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Média Geral</p><p class="text-4xl font-black ${sc(stats.media_geral)}">${stats.media_geral}</p></div>
-        <div class="glass-card p-6 border-t-4 border-orange-400"><p class="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-1">Mal Qualificados</p><p class="text-4xl font-black text-orange-500">${stats.total_mal_qualif||0}</p></div>
-        <div class="glass-card p-6 border-t-4 border-violet-500"><p class="text-[9px] font-black text-violet-500 uppercase tracking-widest mb-1">Total Objeções</p><p class="text-4xl font-black text-violet-600">${objs.total}</p></div>
-        <div class="glass-card p-6 border-t-4 border-teal-500"><p class="text-[9px] font-black text-teal-500 uppercase tracking-widest mb-1">Taxa Contorno</p><p class="text-4xl font-black text-teal-600">${objs.taxa_contorno}%</p></div>
+    const kpis = `<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="glass-card p-6 border-t-4 border-blue-600"><p class="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Total Reuniões</p><p class="text-4xl font-black text-blue-600">${stats.total||0}</p></div>
+        <div class="glass-card p-6 border-t-4 border-emerald-500"><p class="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Média Geral</p><p class="text-4xl font-black ${sc(stats.media_geral)}">${stats.media_geral||0}</p></div>
+        <div class="glass-card p-6 border-t-4 border-orange-400"><p class="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-1">Mal Qualif.</p><p class="text-4xl font-black text-orange-500">${stats.total_mal_qualif||0}</p></div>
+        <div class="glass-card p-6 border-t-4 border-violet-500"><p class="text-[9px] font-black text-violet-500 uppercase tracking-widest mb-1">Válidas</p><p class="text-4xl font-black text-slate-700">${stats.total_validas||stats.total}</p></div>
     </div>`;
 
-    const ranking = (stats.ranking||[]).slice(0,10).map((v,i) => {
-        const temEtapas = v.avg_etapa1 > 0 || v.avg_etapa2 > 0 || v.avg_etapa3 > 0;
-        const pilarCols = temEtapas 
-            ? ['E1:'+v.avg_etapa1, 'E2:'+v.avg_etapa2, 'E3:'+v.avg_etapa3]
-            : ['R:'+v.avg_leg_rapport, 'P:'+v.avg_leg_produto, 'A:'+v.avg_leg_apresentacao];
-        return `<div class="flex items-center gap-4 p-4 rounded-2xl border ${v.media >= 4 ? 'bg-emerald-50 border-emerald-200' : v.media >= 3 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'}">
-            <span class="w-8 h-8 rounded-full bg-white border-2 ${v.media >= 4 ? 'border-emerald-300' : 'border-slate-200'} flex items-center justify-center font-black text-sm text-slate-600">${i+1}</span>
-            <div class="flex-1"><p class="font-black text-sm text-slate-800">${v.nome}</p><p class="text-[10px] text-slate-400">${v.coordenador} · ${v.total_validas||v.total} RDs · Taxa contorno: ${v.taxa_contorno||0}%</p></div>
-            <div class="hidden md:flex gap-2 text-[9px] font-bold text-slate-500">${pilarCols.map(c=>`<span>${c}</span>`).join(' | ')}</div>
-            <span class="text-3xl font-black ${sc(v.media)}">${v.media}</span>
+    const ranking = (stats.ranking||[]).slice(0,10).map((v, i) => {
+        const medalColor  = v.media >= 4 ? 'border-emerald-300' : v.media >= 3 ? 'border-blue-300' : 'border-red-300';
+        return `<div class="flex items-center gap-4 p-4 rounded-2xl border ${scBg(v.media)} hover:shadow-sm transition-all">
+            <div class="w-8 h-8 rounded-full bg-white border-2 ${medalColor} flex items-center justify-center font-black text-sm text-slate-600">${i+1}</div>
+            <div class="flex-1"><p class="font-black text-sm text-slate-800">${v.nome}</p><p class="text-[10px] text-slate-400 font-bold">${v.coordenador} · ${v.total_validas||v.total} válidas</p></div>
+            <div class="text-3xl font-black ${sc(v.media)} min-w-[50px] text-right">${v.media}</div>
         </div>`;
     }).join('');
 
     content.innerHTML = kpis + 
-        `<div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i> Ranking de Vendedores (12 Critérios)</h4><div class="space-y-3">${ranking}</div></div>`;
+        `<div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i> Ranking de Vendedores</h4><div class="space-y-3">${ranking || '<p class="text-slate-300 text-center py-8">Sem dados.</p>'}</div></div>`;
     lucide.createIcons();
 }
 
@@ -1012,6 +1052,24 @@ function onPeriodoChange() {
     const cr = document.getElementById('dash-custom-range');
     if (val === 'custom') { cr.classList.remove('hidden'); }
     else { cr.classList.add('hidden'); loadDashboard(); }
+}
+
+async function onCoordChange() {
+    const coord = document.getElementById('dash-filter-coord').value;
+    const sel = document.getElementById('dash-filter-vendedor');
+    sel.innerHTML = '<option value="todos">Todos</option>';
+    if (!VENDORS_CACHE.length) await loadVendorsCache();
+    const filtrados = coord === 'todos' ? VENDORS_CACHE : VENDORS_CACHE.filter(v => v.coordenador === coord);
+    filtrados.forEach(v => { const o = document.createElement('option'); o.value = v.nome; o.textContent = v.nome; sel.appendChild(o); });
+    loadDashboard();
+}
+
+let calendarVisible = false;
+function toggleCalendarioInline() {
+    calendarVisible = !calendarVisible;
+    const btn = document.getElementById('btn-cal-toggle');
+    if (calendarVisible) { btn.classList.add('bg-sky-600','text-white'); loadCalendario(); }
+    else { btn.classList.remove('bg-sky-600','text-white'); loadDashboard(); }
 }
 
 let dashMode = 'gestor';
@@ -1027,23 +1085,11 @@ function setDashMode(mode) {
     Object.entries(btns).forEach(([k,b]) => { const el = document.getElementById(b.id); if (el) el.className = 'flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ' + (k===mode?b.active:b.inactive); });
     document.getElementById('dash-filters-gestor').classList.toggle('hidden', mode !== 'gestor');
     document.getElementById('dash-filters-vendedor').classList.toggle('hidden', mode !== 'vendedor');
-    document.getElementById('dash-content').innerHTML = '<div class="flex flex-col items-center py-20 text-slate-300"><div class="loader"></div></div>';
-    lucide.createIcons();
-    if (mode === 'gestor') loadDashboard();
-    if (mode === 'gestao') loadGestaoPanel();
-    if (mode === 'vendedor') populateEuSelect();
-    if (mode === 'sdr') loadSdrDash();
+    if (mode === 'gestor')    loadDashboard();
+    if (mode === 'gestao')    loadGestaoPanel();
+    if (mode === 'vendedor')  populateEuSelect();
+    if (mode === 'sdr')       loadSdrDash();
     if (mode === 'historico') loadHistorico();
-}
-
-async function onCoordChange() {
-    const coord = document.getElementById('dash-filter-coord').value;
-    const sel = document.getElementById('dash-filter-vendedor');
-    sel.innerHTML = '<option value="todos">Todos</option>';
-    if (!VENDORS_CACHE.length) await loadVendorsCache();
-    const filtrados = coord === 'todos' ? VENDORS_CACHE : VENDORS_CACHE.filter(v => v.coordenador === coord);
-    filtrados.forEach(v => { const o = document.createElement('option'); o.value = v.nome; o.textContent = v.nome; sel.appendChild(o); });
-    loadDashboard();
 }
 
 async function populateEuSelect() {
@@ -1056,92 +1102,112 @@ async function populateEuSelect() {
 
 async function loadVendedorDash() {
     const nome = document.getElementById('dash-filter-eu').value;
-    if (!nome) return;
-    document.getElementById('dash-content').innerHTML = '<div class="flex items-center justify-center py-20"><div class="loader"></div></div>';
+    const periodo = document.getElementById('dash-filter-periodo-vend').value;
+    const content = document.getElementById('dash-content');
+    if (!nome) { content.innerHTML = '<p class="text-center py-20 text-slate-300">Selecione seu nome acima.</p>'; return; }
+    content.innerHTML = '<div class="flex items-center justify-center py-20"><div class="loader"></div></div>';
     try {
-        const res = await fetch('/api/dashboard?vendedor='+encodeURIComponent(nome)+'&coordenador=todos&periodo=todos');
+        const res = await fetch(`/api/dashboard?vendedor=${encodeURIComponent(nome)}&periodo=${periodo}&coordenador=todos`);
         const d = await res.json();
-        const v = (d.stats?.ranking||[]).find(r => r.nome === nome);
-        if (!v) throw new Error('Vendedor não encontrado');
-        const sc = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
-        document.getElementById('dash-content').innerHTML = `
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="glass-card p-8 text-center border-b-8 border-blue-600"><p class="text-[9px] font-black text-slate-400 uppercase mb-2">Média Global</p><p class="text-6xl font-black ${sc(v.media)}">${v.media}</p></div>
-            <div class="glass-card p-8 text-center"><p class="text-[9px] font-black text-slate-400 uppercase mb-2">RDs Válidas</p><p class="text-6xl font-black text-slate-700">${v.total_validas||v.total}</p></div>
-            <div class="glass-card p-8 text-center"><p class="text-[9px] font-black text-slate-400 uppercase mb-2">Taxa Contorno</p><p class="text-6xl font-black text-teal-600">${v.taxa_contorno||0}%</p></div>
-            <div class="glass-card p-8 text-center"><p class="text-[9px] font-black text-slate-400 uppercase mb-2">Excluídas</p><p class="text-6xl font-black text-orange-500">${v.total_mal_qualif||0}</p></div>
-        </div>
-        <div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase mb-4">Médias por Etapa</h4>
-            <div class="grid grid-cols-3 gap-4">
-                <div class="text-center p-4 bg-blue-50 rounded-2xl"><p class="text-[9px] font-black text-blue-500 mb-1">Etapa 1</p><p class="text-3xl font-black ${sc(v.avg_etapa1)}">${v.avg_etapa1||'—'}</p></div>
-                <div class="text-center p-4 bg-violet-50 rounded-2xl"><p class="text-[9px] font-black text-violet-500 mb-1">Etapa 2</p><p class="text-3xl font-black ${sc(v.avg_etapa2)}">${v.avg_etapa2||'—'}</p></div>
-                <div class="text-center p-4 bg-emerald-50 rounded-2xl"><p class="text-[9px] font-black text-emerald-500 mb-1">Etapa 3</p><p class="text-3xl font-black ${sc(v.avg_etapa3)}">${v.avg_etapa3||'—'}</p></div>
-            </div>
-        </div>`;
+        const v = d.stats?.ranking?.find(r => r.nome === nome);
+        if (!v) { content.innerHTML = '<p class="text-center py-20 text-slate-300">Sem dados para '+nome+'.</p>'; return; }
+        const sc = n => n>=4?'text-emerald-600':n>=3?'text-blue-600':'text-red-500';
+        content.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div class="glass-card p-8 flex flex-col items-center text-center border-b-[8px] border-blue-600">
+                    <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Média Global</p>
+                    <div class="text-6xl font-black ${sc(v.media)}">${v.media}</div>
+                </div>
+                <div class="glass-card p-8 flex flex-col items-center text-center">
+                    <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Reuniões Válidas</p>
+                    <div class="text-6xl font-black text-slate-700">${v.total_validas||v.total}</div>
+                </div>
+                <div class="glass-card p-8 flex flex-col items-center text-center">
+                    <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Coordenador</p>
+                    <div class="text-2xl font-black text-slate-600">${v.coordenador}</div>
+                </div>
+            </div>`;
         lucide.createIcons();
-    } catch(err) {
-        document.getElementById('dash-content').innerHTML = '<p class="text-center py-20 text-red-400 font-bold">'+err.message+'</p>';
-    }
+    } catch(err) { content.innerHTML = '<p class="text-center py-20 text-red-400">'+err.message+'</p>'; }
 }
 
 async function loadGestaoPanel() {
-    document.getElementById('dash-content').innerHTML = '<div class="text-center py-20 text-slate-300"><div class="loader mx-auto"></div></div>';
+    const content = document.getElementById('dash-content');
+    content.innerHTML = '<div class="flex items-center justify-center py-20"><div class="loader"></div></div>';
     try {
         const vRes = await fetch('/api/vendors');
         const vendors = await vRes.json();
-        const byCoord = {};
-        vendors.forEach(v => { if (!byCoord[v.coordenador]) byCoord[v.coordenador] = []; byCoord[v.coordenador].push(v); });
-        const cards = Object.entries(byCoord).map(([coord, vends]) => `
-            <div class="glass-card p-6 border-t-4 ${coord.includes('Simone')?'border-blue-500':'border-violet-500'}">
-                <h4 class="font-black text-slate-700 text-sm mb-4">${coord}</h4>
-                <div class="space-y-2">${vends.map(v => `<div class="p-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-700">${v.nome}</div>`).join('')}</div>
-            </div>`).join('');
-        document.getElementById('dash-content').innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">${cards}</div>`;
+        const vendByCoord = {};
+        vendors.forEach(v => { if (!vendByCoord[v.coordenador]) vendByCoord[v.coordenador] = []; vendByCoord[v.coordenador].push(v); });
+        const coordCards = ['Simone Rangel','Jonathan Dornelas'].map(coord => {
+            const vends = vendByCoord[coord] || [];
+            const vendRows = vends.map(v => `<div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100"><div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black text-sm flex items-center justify-center">${v.nome.charAt(0)}</div><p class="font-bold text-sm text-slate-700">${v.nome}</p></div>`).join('');
+            return `<div class="glass-card p-6"><h4 class="font-black text-slate-700 text-sm mb-4">${coord}</h4><div class="space-y-2">${vendRows||'<p class="text-slate-300 text-sm">Nenhum vendedor.</p>'}</div></div>`;
+        }).join('');
+        content.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">'+coordCards+'</div>';
         lucide.createIcons();
-    } catch(err) {
-        document.getElementById('dash-content').innerHTML = '<p class="text-center py-20 text-red-400 font-bold">'+err.message+'</p>';
-    }
+    } catch(err) { content.innerHTML = '<p class="text-center py-20 text-red-400">'+err.message+'</p>'; }
 }
 
 async function loadSdrDash() {
-    document.getElementById('dash-content').innerHTML = '<div class="text-center py-20"><div class="loader mx-auto"></div></div>';
+    const content = document.getElementById('dash-content');
+    content.innerHTML = '<div class="flex items-center justify-center py-20"><div class="loader"></div></div>';
     try {
         const res = await fetch('/api/dashboard?coordenador=todos&periodo=todos');
         const d = await res.json();
         const vds = d.stats?.veredictos || {};
         const total = Object.values(vds).reduce((a,b)=>a+b,0) || 1;
+        const colors = {QUALIFICADO:'bg-emerald-500',PARCIALMENTE:'bg-amber-400',MAL:'bg-red-500',FORA:'bg-purple-500',SEM:'bg-slate-300'};
         const bars = Object.entries(vds).map(([k,v]) => {
             const pct = Math.round(v/total*100);
-            const colors = {QUALIFICADO:'bg-emerald-500',PARCIALMENTE:'bg-amber-400',MAL:'bg-red-500',FORA:'bg-purple-500',SEM:'bg-slate-300'};
-            return `<div class="flex items-center gap-3"><span class="text-[9px] font-black text-slate-500 uppercase w-24">${k}</span><div class="flex-1 h-4 bg-slate-100 rounded-full overflow-hidden"><div class="${colors[k]||'bg-slate-300'} h-full rounded-full" style="width:${pct}%"></div></div><span class="text-xs font-black text-slate-600 w-12 text-right">${v} (${pct}%)</span></div>`;
+            return `<div class="flex items-center gap-3"><span class="text-[9px] font-black text-slate-500 uppercase w-24">${k}</span><div class="flex-1 h-4 bg-slate-100 rounded-full overflow-hidden"><div class="${colors[k]||'bg-slate-300'} h-full rounded-full" style="width:${pct}%"></div></div><span class="text-xs font-black text-slate-600 w-16 text-right">${v} (${pct}%)</span></div>`;
         }).join('');
-        document.getElementById('dash-content').innerHTML = `
-        <div class="glass-card p-8">
-            <h4 class="text-[10px] font-black text-slate-400 uppercase mb-6">Distribuição de Veredictos SDR</h4>
-            <div class="space-y-4">${bars}</div>
-        </div>`;
+        content.innerHTML = `<div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase mb-6">Distribuição de Veredictos SDR</h4><div class="space-y-4">${bars}</div></div>`;
         lucide.createIcons();
-    } catch(err) {
-        document.getElementById('dash-content').innerHTML = '<p class="text-center py-20 text-red-400 font-bold">'+err.message+'</p>';
-    }
+    } catch(err) { content.innerHTML = '<p class="text-center py-20 text-red-400">'+err.message+'</p>'; }
 }
 
 async function loadHistorico() {
-    document.getElementById('dash-content').innerHTML = '<div class="text-center py-20"><div class="loader mx-auto"></div></div>';
+    const content = document.getElementById('dash-content');
+    content.innerHTML = '<div class="flex items-center justify-center py-20"><div class="loader"></div></div>';
     try {
         const res = await fetch('/api/records?limit=30&offset=0');
         const d = await res.json();
-        const sc = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
-        const rows = (d.records||[]).map(r => `
-            <div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:bg-blue-50/30 transition-colors">
-                <div class="flex-1"><p class="font-black text-sm text-slate-700">${r.vendedor_nome||'—'}</p><p class="text-[10px] text-slate-400">${r.coordenador} · ${r.produto||'—'} · ${new Date(r.created_at).toLocaleDateString('pt-BR')}</p></div>
-                <span class="text-2xl font-black ${sc(r.media_final)}">${(r.media_final||0).toFixed(1)}</span>
-            </div>`).join('');
-        document.getElementById('dash-content').innerHTML = `<div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase mb-6">Últimas 30 Análises</h4><div class="space-y-3">${rows||'<p class="text-slate-300 text-center py-8">Nenhum registro.</p>'}</div></div>`;
+        const sc = n => n>=4?'text-emerald-600':n>=3?'text-blue-600':'text-red-500';
+        const rows = (d.records||[]).map(r => `<div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white"><div class="flex-1"><p class="font-black text-sm text-slate-700">${r.vendedor_nome||'—'}</p><p class="text-[10px] text-slate-400">${r.coordenador} · ${r.produto||'—'} · ${new Date(r.created_at).toLocaleDateString('pt-BR')}</p></div><span class="text-2xl font-black ${sc(r.media_final)}">${(r.media_final||0).toFixed(1)}</span></div>`).join('');
+        content.innerHTML = `<div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase mb-6">Últimas 30 Análises</h4><div class="space-y-3">${rows||'<p class="text-slate-300 text-center py-8">Nenhum registro.</p>'}</div></div>`;
         lucide.createIcons();
-    } catch(err) {
-        document.getElementById('dash-content').innerHTML = '<p class="text-center py-20 text-red-400 font-bold">'+err.message+'</p>';
-    }
+    } catch(err) { content.innerHTML = '<p class="text-center py-20 text-red-400">'+err.message+'</p>'; }
+}
+
+async function loadCalendario() {
+    const content = document.getElementById('dash-content');
+    content.innerHTML = '<div class="flex items-center justify-center py-20"><div class="loader"></div></div>';
+    try {
+        const res = await fetch('/api/dashboard?coordenador=todos&periodo=todos');
+        const d = await res.json();
+        const reunioes = d.reunioes || [];
+        const porDia = {};
+        reunioes.forEach(r => { const dia = new Date(r.created_at).toISOString().split('T')[0]; if (!porDia[dia]) porDia[dia] = []; porDia[dia].push(r); });
+        const agora = new Date();
+        const ano = agora.getFullYear(); const mes = agora.getMonth();
+        const primeiroDia = new Date(ano, mes, 1).getDay();
+        const diasNoMes = new Date(ano, mes+1, 0).getDate();
+        const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+        let html = '<div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase mb-6">'+meses[mes]+' '+ano+'</h4><div class="grid grid-cols-7 gap-2">';
+        ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].forEach(d => { html += '<div class="text-center text-[9px] font-black text-slate-400 uppercase py-2">'+d+'</div>'; });
+        for (let i=0; i<primeiroDia; i++) html += '<div></div>';
+        for (let d=1; d<=diasNoMes; d++) {
+            const isoStr = `${ano}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const rDs = porDia[isoStr] || [];
+            const hasData = rDs.length > 0;
+            const bgCls = hasData ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-slate-50 border-slate-100 text-slate-400';
+            html += '<div class="rounded-2xl border text-center py-2 px-1 '+bgCls+'"><p class="text-[11px] font-black">'+d+'</p>'+(hasData?'<p class="text-[8px] font-black mt-0.5">'+rDs.length+'</p>':'')+'</div>';
+        }
+        html += '</div></div>';
+        content.innerHTML = html;
+        lucide.createIcons();
+    } catch(err) { content.innerHTML = '<p class="text-center py-20 text-red-400">'+err.message+'</p>'; }
 }
 
 document.addEventListener('DOMContentLoaded', () => { lucide.createIcons(); });
