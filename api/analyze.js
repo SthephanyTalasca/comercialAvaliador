@@ -31,7 +31,7 @@
 
 import { GoogleGenAI, Type } from '@google/genai';
 
-export const maxDuration = 60;
+export const maxDuration = 120; // Aumentado para acomodar retries
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -53,13 +53,45 @@ export default async function handler(req, res) {
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: "O texto da transcrição é obrigatório." });
 
+    // ── Helper: Retry com exponential backoff ───────────────────────────────
+    async function callGeminiWithRetry(ai, config, maxRetries = 3) {
+        const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+        let lastError;
+        
+        for (const model of models) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    console.log(`Tentativa ${attempt}/${maxRetries} com modelo ${model}...`);
+                    const response = await ai.models.generateContent({ model, ...config });
+                    console.log(`✓ Sucesso com ${model}`);
+                    return response;
+                } catch (err) {
+                    lastError = err;
+                    const isRetryable = err.message?.includes('503') || 
+                                       err.message?.includes('UNAVAILABLE') ||
+                                       err.message?.includes('overloaded') ||
+                                       err.message?.includes('high demand');
+                    
+                    if (!isRetryable) throw err; // Erro não recuperável
+                    
+                    if (attempt < maxRetries) {
+                        const delay = Math.min(1000 * Math.pow(2, attempt), 8000); // 2s, 4s, 8s
+                        console.log(`⏳ Aguardando ${delay}ms antes de retry...`);
+                        await new Promise(r => setTimeout(r, delay));
+                    }
+                }
+            }
+            console.log(`⚠️ Modelo ${model} esgotou retries, tentando próximo...`);
+        }
+        throw lastError; // Todos os modelos falharam
+    }
+
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
         const systemInstruction = process.env.SYSTEM_PROMPT;
         if (!systemInstruction) return res.status(500).json({ error: "Prompt não configurado no servidor." });
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+        const response = await callGeminiWithRetry(ai, {
             contents: prompt,
             config: {
                 systemInstruction,
