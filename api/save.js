@@ -18,18 +18,15 @@ function getSession(req) {
 }
 
 export default async function handler(req, res) {
-    // ── Apenas POST ───────────────────────────────────────────────────────
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Método não permitido. Use POST.' });
     }
 
-    // ── Verificar sessão ──────────────────────────────────────────────────
     const session = getSession(req);
     if (!session) {
         return res.status(401).json({ error: 'Não autorizado' });
     }
 
-    // ── Validar body ──────────────────────────────────────────────────────
     const { coordenador, analise } = req.body;
 
     if (!coordenador || !analise) {
@@ -40,34 +37,31 @@ export default async function handler(req, res) {
     const verd = (analise.qual_veredicto || '').toUpperCase();
     const malQualificado = verd.includes('MAL') || verd.includes('FORA');
 
-    // ── Montar registro para o Supabase ───────────────────────────────────
+    // ── Detectar formato (novo 3 etapas vs legado 5 pilares) ─────────────
+    const isNovoFormato = analise.nota_etapa1 !== undefined;
+
     const registro = {
-        // Identificação
         coordenador,
         vendedor_nome:        analise.vendedor_nome || 'Não identificado',
         produto:              analise.qual_produto_identificado || null,
-
-        // Notas de vendas
         media_final:          analise.media_final || 0,
-        nota_rapport:         analise.nota_rapport || null,
-        nota_produto:         analise.nota_produto || null,
-        nota_apresentacao:    analise.nota_apresentacao || null,
-        nota_pre_fechamento:  analise.nota_pre_fechamento || null,
-        nota_fechamento:      analise.nota_fechamento || null,
 
-        // Qualificação SDR
+        nota_rapport:         isNovoFormato ? (analise.nota_etapa1 || null) : (analise.nota_rapport || null),
+        nota_produto:         isNovoFormato ? (analise.nota_etapa2 || null) : (analise.nota_produto || null),
+        nota_apresentacao:    isNovoFormato ? (analise.nota_etapa3 || null) : (analise.nota_apresentacao || null),
+        nota_pre_fechamento:  isNovoFormato ? null : (analise.nota_pre_fechamento || null),
+        nota_fechamento:      isNovoFormato ? null : (analise.nota_fechamento || null),
+
         qual_veredicto:       analise.qual_veredicto || null,
         qual_nota_sdr:        analise.qual_nota_sdr || null,
         chance_fechamento:    analise.chance_fechamento || null,
+        alerta_cancelamento:  analise.alerta_cancelamento || null,
 
-        // Flag derivada
         mal_qualificado:      malQualificado,
 
-        // JSON completo para histórico e detalhes
         analise_json:         analise
     };
 
-    // ── Inserir no Supabase ───────────────────────────────────────────────
     try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/reunioes`, {
             method: 'POST',
