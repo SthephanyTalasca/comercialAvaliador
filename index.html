@@ -533,7 +533,7 @@ async function handleAnalysis() {
         try { data = JSON.parse(text); } catch(e) { throw new Error("Erro de comunicação com o servidor."); }
         if (data.error) throw new Error(data.error);
         _currentAnalysis = data;
-        renderDashboard(data);
+        renderAnalysis(data);
         window._currentCoordenador = coordenador;
         saveAnalysis(coordenador, data).then(id => { window._currentReuniaoId = id; });
     } catch(err) {
@@ -544,7 +544,7 @@ async function handleAnalysis() {
     }
 }
 
-function renderDashboard(data) {
+function renderAnalysis(data) {
     loadingSpinner.classList.add('hidden');
     analysisContent.classList.remove('hidden');
     
@@ -564,7 +564,6 @@ function renderDashboard(data) {
     else if (media >= 3.5) { status.textContent = "Alta Performance"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700"; }
     else { status.textContent = "Acompanhamento"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; }
 
-    // Build pilarData from config + data
     pilarData = FIELDS_CONFIG.map(f => ({
         label: f.l, icon: f.icon, color: f.color,
         score: data[`nota_${f.k}`] || 0,
@@ -588,7 +587,6 @@ function renderDashboard(data) {
         const col = getScoreColor(p.score);
         const cm = colorMap[p.color] || colorMap.blue;
         const criteriosHTML = (p.criterios||[]).map(c => {
-            const cc = getScoreColor(c.score);
             return `<div class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-100 hover:border-slate-200 transition-all">
                 <div class="flex-shrink-0 w-8 h-8 rounded-lg ${cm.light} flex items-center justify-center">
                     <span class="text-xs font-black ${cm.text}">${c.score||'—'}</span>
@@ -639,10 +637,7 @@ function renderDashboard(data) {
     document.getElementById('pontos-atencao-list').innerHTML = (data.pontos_atencao||[]).map(i=>`<li class="flex items-start gap-2"><span>▶</span>${i}</li>`).join('');
     document.getElementById('coaching-body').innerHTML = marked.parse(data.justificativa_detalhada||'');
     
-    // Render objeções section
     document.getElementById('objecoes-content').innerHTML = _buildObjecoesSection(data);
-    
-    // Render qual section
     document.getElementById('qual-content').innerHTML = _buildQualSection(data);
     
     renderRadar(data);
@@ -658,48 +653,28 @@ function _buildObjecoesSection(data) {
             <p class="text-slate-400 font-medium">O cliente não levantou objeções significativas durante a reunião.</p>
         </div>`;
     }
-    
     const total = objs.length;
     const contornadas = objs.filter(o => o.contornada).length;
     const naoContornadas = total - contornadas;
     const taxa = Math.round((contornadas/total)*100);
-    
     const kpis = `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div class="glass-card p-5 border-t-4 border-blue-500">
-            <p class="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Total de Objeções</p>
-            <p class="text-4xl font-black text-blue-600">${total}</p>
-        </div>
-        <div class="glass-card p-5 border-t-4 border-emerald-500">
-            <p class="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Contornadas</p>
-            <p class="text-4xl font-black text-emerald-600">${contornadas}</p>
-        </div>
-        <div class="glass-card p-5 border-t-4 border-red-500">
-            <p class="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1">Não Contornadas</p>
-            <p class="text-4xl font-black text-red-600">${naoContornadas}</p>
-        </div>
-        <div class="glass-card p-5 border-t-4 border-violet-500">
-            <p class="text-[9px] font-black text-violet-500 uppercase tracking-widest mb-1">Taxa de Contorno</p>
-            <p class="text-4xl font-black text-violet-600">${taxa}%</p>
-        </div>
+        <div class="glass-card p-5 border-t-4 border-blue-500"><p class="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Total de Objeções</p><p class="text-4xl font-black text-blue-600">${total}</p></div>
+        <div class="glass-card p-5 border-t-4 border-emerald-500"><p class="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Contornadas</p><p class="text-4xl font-black text-emerald-600">${contornadas}</p></div>
+        <div class="glass-card p-5 border-t-4 border-red-500"><p class="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1">Não Contornadas</p><p class="text-4xl font-black text-red-600">${naoContornadas}</p></div>
+        <div class="glass-card p-5 border-t-4 border-violet-500"><p class="text-[9px] font-black text-violet-500 uppercase tracking-widest mb-1">Taxa de Contorno</p><p class="text-4xl font-black text-violet-600">${taxa}%</p></div>
     </div>`;
-    
     const tipoColors = {
-        'duvida':     'bg-sky-100 text-sky-700 border-sky-300',
-        'resistencia':'bg-amber-100 text-amber-700 border-amber-300',
-        'preco':      'bg-red-100 text-red-700 border-red-300',
-        'concorrente':'bg-purple-100 text-purple-700 border-purple-300',
-        'urgencia':   'bg-orange-100 text-orange-700 border-orange-300',
-        'interesse':  'bg-pink-100 text-pink-700 border-pink-300',
-        'tecnica':    'bg-slate-100 text-slate-700 border-slate-300'
+        'duvida':'bg-sky-100 text-sky-700 border-sky-300','resistencia':'bg-amber-100 text-amber-700 border-amber-300',
+        'preco':'bg-red-100 text-red-700 border-red-300','concorrente':'bg-purple-100 text-purple-700 border-purple-300',
+        'urgencia':'bg-orange-100 text-orange-700 border-orange-300','interesse':'bg-pink-100 text-pink-700 border-pink-300',
+        'tecnica':'bg-slate-100 text-slate-700 border-slate-300'
     };
-    
     const objCards = objs.map((o, i) => {
         const isOk = o.contornada;
         const bgClass = isOk ? 'obj-contornada' : 'obj-nao-contornada';
         const badge = isOk ? '<span class="px-3 py-1 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase">✓ Contornada</span>'
                           : '<span class="px-3 py-1 rounded-full bg-red-500 text-white text-[9px] font-black uppercase">✗ Não Contornada</span>';
         const tipoClass = tipoColors[o.tipo?.toLowerCase()] || 'bg-slate-100 text-slate-700 border-slate-300';
-        
         return `<div class="${bgClass} rounded-2xl p-6 shadow-sm">
             <div class="flex items-start justify-between mb-4">
                 <div class="flex items-center gap-3">
@@ -710,27 +685,15 @@ function _buildObjecoesSection(data) {
             </div>
             <div class="mb-4">
                 <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Objeção do Cliente</p>
-                <p class="text-sm font-bold text-slate-800 italic">"${o.texto||'—'}"</p>
+                <p class="text-sm font-bold text-slate-800 italic">"${o.descricao||'—'}"</p>
             </div>
-            ${isOk ? `
-                <div class="bg-white/60 rounded-xl p-4">
-                    <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">Como foi contornada</p>
-                    <p class="text-sm text-slate-700">${o.como_contornou||'—'}</p>
-                </div>
-            ` : `
-                <div class="bg-white/60 rounded-xl p-4">
-                    <p class="text-[10px] font-black text-red-600 uppercase tracking-widest mb-2">Sugestão de Abordagem</p>
-                    <p class="text-sm text-slate-700">${o.sugestao||'—'}</p>
-                </div>
-            `}
+            ${!isOk && o.sugestao ? `<div class="bg-white/60 rounded-xl p-4"><p class="text-[10px] font-black text-red-600 uppercase tracking-widest mb-2">Sugestão de Abordagem</p><p class="text-sm text-slate-700">${o.sugestao}</p></div>` : ''}
         </div>`;
     }).join('');
-    
     return `${kpis}
+        ${data.analise_objecoes_resumo ? `<div class="glass-card p-8 mb-6"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Resumo da Auditoria de Objeções</h4><p class="text-sm text-slate-600 leading-relaxed">${data.analise_objecoes_resumo}</p></div>` : ''}
         <div class="glass-card p-8">
-            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                <i data-lucide="shield-alert" class="w-4 h-4 text-amber-400"></i> Detalhamento das Objeções
-            </h4>
+            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2"><i data-lucide="shield-alert" class="w-4 h-4 text-amber-400"></i> Detalhamento das Objeções</h4>
             <div class="space-y-4">${objCards}</div>
         </div>`;
 }
@@ -780,47 +743,26 @@ function _buildQualSection(data) {
     return `
         ${foraPortfolio ? `<div class="bg-red-600 text-white p-6 rounded-[2rem] flex items-start gap-4"><i data-lucide="alert-triangle" class="w-8 h-8 flex-shrink-0"></i><div><p class="font-black text-lg uppercase mb-1">⚠️ Produto fora do portfólio Nibo!</p><p class="text-sm font-medium text-red-100">${data.qual_produto_alerta||''}</p></div></div>` : ''}
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="glass-card p-6 flex flex-col gap-3">
-                <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Produto</h4>
-                <span class="px-4 py-2 rounded-full text-sm font-black border inline-flex items-center gap-2 ${foraPortfolio?'bg-red-100 text-red-800 border-red-300':prodCfg.color}">
-                    <i data-lucide="${prodCfg.icon||'box'}" class="w-4 h-4"></i> ${data.qual_produto_identificado||'—'}
-                </span>
-                <p class="text-[11px] text-slate-500 italic leading-relaxed">${data.qual_produto_alerta||''}</p>
-            </div>
-            <div class="glass-card p-6 flex flex-col gap-4">
-                <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Veredicto</h4>
-                <div class="px-5 py-3 rounded-2xl border-2 text-sm font-black text-center tracking-wide ${vc}">${verd||'—'}</div>
-            </div>
+            <div class="glass-card p-6 flex flex-col gap-3"><h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Produto</h4>
+                <span class="px-4 py-2 rounded-full text-sm font-black border inline-flex items-center gap-2 ${foraPortfolio?'bg-red-100 text-red-800 border-red-300':prodCfg.color}"><i data-lucide="${prodCfg.icon||'box'}" class="w-4 h-4"></i> ${data.qual_produto_identificado||'—'}</span>
+                <p class="text-[11px] text-slate-500 italic leading-relaxed">${data.qual_produto_alerta||''}</p></div>
+            <div class="glass-card p-6 flex flex-col gap-4"><h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Veredicto</h4>
+                <div class="px-5 py-3 rounded-2xl border-2 text-sm font-black text-center tracking-wide ${vc}">${verd||'—'}</div></div>
             <div class="glass-card p-6 flex flex-col items-center justify-center text-center border-b-[8px] border-violet-500">
                 <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Nota do SDR</span>
                 <div class="text-6xl font-black text-violet-600 mb-1">${data.qual_nota_sdr||'—'}</div>
                 <span class="text-[9px] text-slate-400 font-bold">/ 10</span>
-                <p class="text-[10px] text-slate-500 mt-3 leading-relaxed font-medium text-center">${data.qual_nota_sdr_justificativa||''}</p>
-            </div>
+                <p class="text-[10px] text-slate-500 mt-3 leading-relaxed font-medium text-center">${data.qual_nota_sdr_justificativa||''}</p></div>
         </div>
-        <div class="glass-card p-8">
-            <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2"><i data-lucide="info" class="w-4 h-4 text-blue-400"></i> Contexto Extraído</h4>
-            <div>${ctxRows}</div>
-        </div>
-        <div class="glass-card p-8">
-            <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2"><i data-lucide="search" class="w-4 h-4 text-blue-400"></i> Critérios de Qualificação</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">${criteriosRows}</div>
-        </div>
-        <div class="glass-card p-8">
-            <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-2"><i data-lucide="check-square" class="w-4 h-4 text-blue-400"></i> SLA de Qualificação</h4>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">${slaGrid}</div>
-        </div>
-        <div class="glass-card p-12 border-t-[10px] border-violet-600">
-            <h3 class="text-xl font-extrabold text-violet-800 uppercase tracking-widest mb-10 border-b pb-6 flex items-center gap-4"><i data-lucide="file-search"></i> Análise Completa da Qualificação (SDR)</h3>
-            <div class="markdown-content">${marked.parse(data.qual_analise_completa||'')}</div>
-        </div>`;
+        <div class="glass-card p-8"><h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2"><i data-lucide="info" class="w-4 h-4 text-blue-400"></i> Contexto Extraído</h4><div>${ctxRows}</div></div>
+        <div class="glass-card p-8"><h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2"><i data-lucide="search" class="w-4 h-4 text-blue-400"></i> Critérios de Qualificação</h4><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${criteriosRows}</div></div>
+        <div class="glass-card p-8"><h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-2"><i data-lucide="check-square" class="w-4 h-4 text-blue-400"></i> SLA de Qualificação</h4><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">${slaGrid}</div></div>
+        <div class="glass-card p-12 border-t-[10px] border-violet-600"><h3 class="text-xl font-extrabold text-violet-800 uppercase tracking-widest mb-10 border-b pb-6 flex items-center gap-4"><i data-lucide="file-search"></i> Análise Completa da Qualificação (SDR)</h3><div class="markdown-content">${marked.parse(data.qual_analise_completa||'')}</div></div>`;
 }
 
 function renderRadar(data) {
     const ctx = document.getElementById('radarChart').getContext('2d');
     if (radarChartInstance) radarChartInstance.destroy();
-    
-    // Collect all 12 criteria for radar
     const labels = [];
     const values = [];
     FIELDS_CONFIG.forEach(f => {
@@ -829,7 +771,6 @@ function renderRadar(data) {
             values.push(data[`nota_${c.k}`] || 0);
         });
     });
-    
     radarChartInstance = new Chart(ctx, {
         type: 'radar',
         data: {
@@ -873,21 +814,11 @@ function openModal(idx) {
     it.textContent = p.melhoria;
     const subEl = document.getElementById('modal-subcriterios');
     if (p.criterios && p.criterios.length > 0) {
-        subEl.innerHTML = `<div class="mt-2">
-            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="list-checks" class="w-4 h-4 text-blue-400"></i> Critérios desta etapa</h4>
-            <div class="space-y-4">${p.criterios.map(c => {
-                const cc = getScoreColor(c.score);
-                const bg = c.score >= 4 ? 'border-emerald-100 bg-emerald-50' : c.score >= 3 ? 'border-blue-100 bg-blue-50' : 'border-red-100 bg-red-50';
-                return `<div class="p-4 rounded-2xl border ${bg}">
-                    <div class="flex items-center justify-between mb-1">
-                        <p class="text-[11px] font-black ${cc.text} uppercase tracking-wide">${c.label}</p>
-                        <div class="flex items-center gap-1"><span class="text-2xl font-black ${cc.text}">${c.score}</span><span class="text-[10px] text-slate-400 font-bold">/5</span></div>
-                    </div>
-                    <p class="text-[9px] text-slate-500 italic mb-2">${c.desc}</p>
-                    <p class="text-[11px] text-slate-700 font-medium leading-relaxed mb-2">${c.porque||''}</p>
-                    ${c.melhoria && c.score < 5 ? `<p class="text-[10px] text-amber-700 font-bold flex items-start gap-1"><i data-lucide="lightbulb" class="w-3 h-3 mt-0.5 flex-shrink-0"></i>${c.melhoria}</p>` : ''}
-                </div>`;
-            }).join('')}</div></div>`;
+        subEl.innerHTML = `<div class="mt-2"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="list-checks" class="w-4 h-4 text-blue-400"></i> Critérios desta etapa</h4><div class="space-y-4">${p.criterios.map(c => {
+            const cc = getScoreColor(c.score);
+            const bg = c.score >= 4 ? 'border-emerald-100 bg-emerald-50' : c.score >= 3 ? 'border-blue-100 bg-blue-50' : 'border-red-100 bg-red-50';
+            return `<div class="p-4 rounded-2xl border ${bg}"><div class="flex items-center justify-between mb-1"><p class="text-[11px] font-black ${cc.text} uppercase tracking-wide">${c.label}</p><div class="flex items-center gap-1"><span class="text-2xl font-black ${cc.text}">${c.score}</span><span class="text-[10px] text-slate-400 font-bold">/5</span></div></div><p class="text-[9px] text-slate-500 italic mb-2">${c.desc}</p><p class="text-[11px] text-slate-700 font-medium leading-relaxed mb-2">${c.porque||''}</p>${c.melhoria && c.score < 5 ? `<p class="text-[10px] text-amber-700 font-bold flex items-start gap-1"><i data-lucide="lightbulb" class="w-3 h-3 mt-0.5 flex-shrink-0"></i>${c.melhoria}</p>` : ''}</div>`;
+        }).join('')}</div></div>`;
     } else { subEl.innerHTML = ''; }
     const modal = document.getElementById('justification-modal');
     modal.classList.remove('hidden'); modal.classList.add('flex');
@@ -962,15 +893,14 @@ async function exportarPDFSdr() {
     const btn = document.getElementById('btn-pdf-sdr');
     const originalHTML = btn.innerHTML;
     btn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Gerando...';
-    btn.disabled = true;
-    lucide.createIcons();
+    btn.disabled = true; lucide.createIcons();
     try {
         const qualContent = document.getElementById('qual-content');
         if (!qualContent || !qualContent.innerHTML.trim()) { alert('Nenhuma qualificacao para exportar.'); return; }
         const wrapper = document.createElement('div');
         wrapper.style.cssText = 'width:794px;font-family:Inter,sans-serif;background:white;padding:0;';
-        const vendNome  = document.getElementById('vendedor-nome-display')?.textContent?.trim() || 'lead';
-        const dataHoje  = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'});
+        const vendNome = document.getElementById('vendedor-nome-display')?.textContent?.trim() || 'lead';
+        const dataHoje = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'});
         wrapper.innerHTML = `<div style="background:#4c1d95;padding:28px 36px 24px;"><h1 style="color:white;font-size:24px;font-weight:900;margin:0;">Qualificação do Lead - ${vendNome}</h1><p style="color:#a78bfa;font-size:12px;margin:8px 0 0;">${dataHoje}</p></div><div style="padding:28px 36px;" id="pdf-qual-body"></div>`;
         const clone = qualContent.cloneNode(true);
         wrapper.querySelector('#pdf-qual-body').appendChild(clone);
@@ -984,7 +914,7 @@ async function exportarPDFSdr() {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// DASHBOARD (preservado do original)
+// DASHBOARD
 // ══════════════════════════════════════════════════════════════════
 let VENDORS_CACHE = [];
 async function loadVendorsCache() {
@@ -1007,8 +937,8 @@ async function loadDashboard() {
         const inicio = document.getElementById('dash-filter-inicio')?.value || '';
         const fim = document.getElementById('dash-filter-fim')?.value || '';
         let qs = 'coordenador=' + encodeURIComponent(coord) + '&periodo=' + periodo + '&vendedor=' + encodeURIComponent(vendedor);
-        if (inicio) qs += '&data_inicio=' + encodeURIComponent(inicio);
-        if (fim) qs += '&data_fim=' + encodeURIComponent(fim);
+        if (inicio) qs += '&inicio=' + encodeURIComponent(inicio);
+        if (fim) qs += '&fim=' + encodeURIComponent(fim);
         const res = await fetch('/api/dashboard?' + qs);
         const data = await res.json();
         if (data.error) throw new Error(data.error);
