@@ -616,83 +616,56 @@ function renderDashboard(data) {
 function renderRadar(data) {
     const ctx = document.getElementById('radarChart').getContext('2d');
     if (radarChartInstance) radarChartInstance.destroy();
+ 
+    // Montar labels e valores de todos os sub-critérios disponíveis
+    const allCriterios = [];
+    fields.forEach(f => {
+        (f.criterios || []).forEach(c => {
+            allCriterios.push({ label: c.l, key: c.k });
+        });
+    });
+ 
+    // Fallback: se ainda não há sub-critérios (formato legado), usa etapas
+    const labels = allCriterios.length > 0
+        ? allCriterios.map(c => c.label)
+        : fields.map(f => f.l);
+ 
+    const values = allCriterios.length > 0
+        ? allCriterios.map(c => data[`nota_${c.key}`] || 0)
+        : fields.map(f => data[`nota_${f.k}`] || 0);
+ 
     radarChartInstance = new Chart(ctx, {
         type: 'radar',
         data: {
-            labels: fields.map(f => f.l),
-            datasets: [{ label: 'Desempenho', data: fields.map(f => data[`nota_${f.k}`]||0),
-                backgroundColor: 'rgba(37,99,235,0.15)', borderColor: '#2563eb', borderWidth: 2,
-                pointRadius: 5, pointBackgroundColor: '#1e3a8a' }]
+            labels,
+            datasets: [{
+                label: 'Desempenho',
+                data: values,
+                backgroundColor: 'rgba(37,99,235,0.12)',
+                borderColor: '#2563eb',
+                borderWidth: 2,
+                pointRadius: 4,
+                pointBackgroundColor: '#1e3a8a',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 1.5
+            }]
         },
         options: {
-            scales: { r: { min:0, max:5, ticks:{stepSize:1,display:false}, grid:{color:'#e2e8f0'}, angleLines:{color:'#e2e8f0'}, pointLabels:{font:{size:11,weight:'700'},color:'#475569'} } },
-            plugins: { legend: { display: false } }, maintainAspectRatio: true
+            scales: {
+                r: {
+                    min: 0, max: 5,
+                    ticks: { stepSize: 1, display: false },
+                    grid: { color: '#e2e8f0' },
+                    angleLines: { color: '#e2e8f0' },
+                    pointLabels: { font: { size: 9, weight: '800' }, color: '#475569' }
+                }
+            },
+            plugins: { legend: { display: false } },
+            maintainAspectRatio: true
         }
     });
 }
-
-function openModal(idx) {
-    const p = pilarData[idx];
-    const col = getScoreColor(p.score);
-    document.getElementById('modal-title').textContent = `Etapa ${idx+1} — ${p.label}`;
-    document.getElementById('modal-score').textContent = p.score;
-    const ring = document.getElementById('modal-score-ring');
-    ring.style.borderColor = col.border; ring.style.background = col.bg; ring.style.color = col.border;
-    document.getElementById('modal-stars').innerHTML = buildStars(p.score);
-    document.getElementById('modal-text').textContent = p.porque;
-    const isMax = p.score >= 5;
-    const ic = document.getElementById('modal-improvement-container');
-    const ii = document.getElementById('modal-improvement-icon');
-    const il = document.getElementById('modal-improvement-label');
-    const it = document.getElementById('modal-improvement-text');
-    if (isMax) {
-        ic.className = "rounded-2xl p-4 border bg-emerald-50 border-emerald-100";
-        ii.setAttribute('data-lucide','award'); ii.className = "w-4 h-4 text-emerald-600";
-        il.className = "text-[9px] font-bold uppercase tracking-widest block text-emerald-700"; il.textContent = "Excelência atingida!";
-        it.className = "text-[13px] leading-relaxed font-medium text-emerald-900";
-    } else {
-        ic.className = "rounded-2xl p-4 border bg-amber-50 border-amber-100";
-        ii.setAttribute('data-lucide','target'); ii.className = "w-4 h-4 text-amber-600";
-        il.className = "text-[9px] font-bold uppercase tracking-widest block text-amber-700"; il.textContent = "O que faltou para o 5?";
-        it.className = "text-[13px] leading-relaxed font-medium text-amber-900";
-    }
-    it.textContent = p.melhoria;
-    const subEl = document.getElementById('modal-subcriterios');
-    if (p.criterios && p.criterios.length > 0) {
-        subEl.innerHTML = `<div class="mt-2">
-            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="list-checks" class="w-4 h-4 text-blue-400"></i> Critérios desta etapa</h4>
-            <div class="space-y-4">${p.criterios.map(c => {
-                const cc = getScoreColor(c.score);
-                const bg = c.score >= 4 ? 'border-emerald-100 bg-emerald-50' : c.score >= 3 ? 'border-blue-100 bg-blue-50' : 'border-red-100 bg-red-50';
-                return `<div class="p-4 rounded-2xl border ${bg}">
-                    <div class="flex items-center justify-between mb-1">
-                        <p class="text-[11px] font-black ${cc.text} uppercase tracking-wide">${c.label}</p>
-                        <div class="flex items-center gap-1"><span class="text-2xl font-black ${cc.text}">${c.score}</span><span class="text-[10px] text-slate-400 font-bold">/5</span></div>
-                    </div>
-                    <p class="text-[9px] text-slate-500 italic mb-2">${c.desc}</p>
-                    <p class="text-[11px] text-slate-700 font-medium leading-relaxed mb-2">${c.porque||''}</p>
-                    ${c.melhoria && c.score < 5 ? `<p class="text-[10px] text-amber-700 font-bold flex items-start gap-1"><i data-lucide="lightbulb" class="w-3 h-3 mt-0.5 flex-shrink-0"></i>${c.melhoria}</p>` : ''}
-                </div>`;
-            }).join('')}</div></div>`;
-    } else { subEl.innerHTML = ''; }
-    const modal = document.getElementById('justification-modal');
-    modal.classList.remove('hidden');
-    setTimeout(() => {
-        modal.classList.remove('opacity-0');
-        document.getElementById('modal-content-box').classList.remove('scale-95');
-        document.getElementById('modal-content-box').classList.add('scale-100');
-        lucide.createIcons();
-    }, 10);
-}
-
-function closeModal() {
-    const modal = document.getElementById('justification-modal');
-    const box = document.getElementById('modal-content-box');
-    modal.classList.add('opacity-0'); box.classList.remove('scale-100'); box.classList.add('scale-95');
-    setTimeout(() => { modal.classList.add('hidden'); }, 300);
-}
-document.getElementById('justification-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+ 
 
 function _buildQualSection(data, pCfg) {
     const foraPortfolio = !data.qual_produto_no_portfolio;
@@ -1133,82 +1106,215 @@ function renderVendedorDash(nome, obj) {
     }
     const v = stats.ranking.find(r => r.nome === nome) || stats.ranking[0];
     if (!v) return;
+ 
     const sc    = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
-    const scBar = n => n >= 4 ? 'bg-emerald-500' : n >= 3 ? 'bg-blue-500' : 'bg-red-400';
     const fmt   = n => (typeof n === 'number' && !isNaN(n) && n > 0) ? n.toFixed(1) : '—';
-    const bar   = (label, val, color) => {
+ 
+    const bar = (label, val, color) => {
         const pct = Math.round((val||0)/5*100);
-        return '<div class="flex items-center gap-3"><span class="text-[9px] font-black text-slate-500 uppercase w-40 flex-shrink-0">' + label + '</span>' +
-            '<div class="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden"><div class="h-full ' + color + ' rounded-full" style="width:' + pct + '%"></div></div>' +
-            '<span class="text-xs font-black ' + sc(val) + ' w-8 text-right">' + fmt(val) + '</span></div>';
+        return `<div class="flex items-center gap-3">
+            <span class="text-[9px] font-black text-slate-500 uppercase w-44 flex-shrink-0">${label}</span>
+            <div class="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full ${color} rounded-full" style="width:${pct}%"></div>
+            </div>
+            <span class="text-xs font-black ${sc(val)} w-8 text-right">${fmt(val)}</span>
+        </div>`;
     };
-
+ 
+    // Todos os sub-critérios com suas médias calculadas a partir das reuniões válidas
+    const reunioesValidas = reunioes.filter(r => !r.mal_qualificado && r.analise_json);
+ 
+    const subMap = {
+        // Etapa 1
+        rapport:           { l: 'Rapport',              color: 'bg-blue-400',    etapa: 1 },
+        spin:              { l: 'SPIN',                  color: 'bg-blue-500',    etapa: 1 },
+        comunicacao:       { l: 'Comunicação Eficaz',   color: 'bg-blue-600',    etapa: 1 },
+        // Etapa 2
+        produto:           { l: 'Produto',               color: 'bg-violet-400',  etapa: 2 },
+        objecoes:          { l: 'Objeções',              color: 'bg-violet-500',  etapa: 2 },
+        solucao_dor:       { l: 'Solução da Dor',        color: 'bg-violet-600',  etapa: 2 },
+        encantamento:      { l: 'Encantamento',          color: 'bg-violet-700',  etapa: 2 },
+        // Etapa 3
+        pre_fechamento_sub:{ l: 'Pré-Fechamento',        color: 'bg-emerald-400', etapa: 3 },
+        escuta_ativa:      { l: 'Escuta Ativa',          color: 'bg-emerald-500', etapa: 3 },
+        resiliencia:       { l: 'Resiliência',           color: 'bg-emerald-600', etapa: 3 },
+        gestao_tempo:      { l: 'Gestão do Tempo',       color: 'bg-emerald-700', etapa: 3 },
+        regras_fechamento: { l: 'Regras de Fechamento',  color: 'bg-teal-600',    etapa: 3 },
+    };
+ 
+    // Calcular média de cada sub-critério
+    const subMedias = {};
+    Object.keys(subMap).forEach(k => {
+        const vals = reunioesValidas
+            .map(r => r.analise_json[`nota_${k}`])
+            .filter(v => v !== undefined && v !== null && v > 0);
+        subMedias[k] = vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : 0;
+    });
+ 
     const temEtapas = v.avg_etapa1 > 0 || v.avg_etapa2 > 0 || v.avg_etapa3 > 0;
-    const pilarNomes = temEtapas ? ['Consultividade/SPIN','Apresentação da Ferramenta','Negociação'] : ['Rapport','Produto','Apresentação','Pré-Fechamento','Fechamento'];
-    const pilarVals  = temEtapas ? [v.avg_etapa1,v.avg_etapa2,v.avg_etapa3] : [v.avg_rapport,v.avg_produto,v.avg_apresentacao,v.avg_pre_fechamento,v.avg_fechamento];
-    const validVals  = pilarVals.filter(Boolean);
-    const maxIdx = pilarVals.indexOf(Math.max(...validVals));
-    const minIdx = pilarVals.indexOf(Math.min(...validVals));
-
-    const barEtapas = temEtapas
-        ? bar('Consultividade/SPIN',v.avg_etapa1,'bg-blue-500') + bar('Apresentação da Ferramenta',v.avg_etapa2,'bg-violet-500') + bar('Negociação',v.avg_etapa3,'bg-emerald-500')
-        : bar('Rapport',v.avg_rapport,'bg-pink-500') + bar('Produto',v.avg_produto,'bg-sky-500') + bar('Apresentação',v.avg_apresentacao,'bg-indigo-500') + bar('Pré-Fechamento',v.avg_pre_fechamento,'bg-amber-500') + bar('Fechamento',v.avg_fechamento,'bg-emerald-500');
-
+ 
+    // Barras agrupadas por etapa
+    const barsPorEtapa = [
+        { label: 'Etapa 1 — Consultividade / SPIN', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-100',
+          keys: ['rapport','spin','comunicacao'] },
+        { label: 'Etapa 2 — Apresentação da Ferramenta', color: 'text-violet-700', bg: 'bg-violet-50 border-violet-100',
+          keys: ['produto','objecoes','solucao_dor','encantamento'] },
+        { label: 'Etapa 3 — Negociação', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-100',
+          keys: ['pre_fechamento_sub','escuta_ativa','resiliencia','gestao_tempo','regras_fechamento'] },
+    ];
+ 
+    const barsHTML = barsPorEtapa.map(etapa => {
+        const etapaKey = etapa.keys[0] === 'rapport' ? 'etapa1' : etapa.keys[0] === 'produto' ? 'etapa2' : 'etapa3';
+        const mediaEtapa = v[`avg_${etapaKey}`] || 0;
+        const subBars = etapa.keys.map(k => bar(subMap[k].l, subMedias[k], subMap[k].color)).join('');
+        return `<div class="p-5 rounded-2xl border ${etapa.bg}">
+            <div class="flex items-center justify-between mb-4">
+                <p class="text-[10px] font-black ${etapa.color} uppercase tracking-widest">${etapa.label}</p>
+                <span class="text-2xl font-black ${sc(mediaEtapa)}">${fmt(mediaEtapa)}</span>
+            </div>
+            <div class="space-y-3">${subBars}</div>
+        </div>`;
+    }).join('');
+ 
+    // Radar com sub-critérios
+    const radarLabels = Object.values(subMap).map(s => s.l);
+    const radarVals   = Object.keys(subMap).map(k => subMedias[k]);
+ 
+    // Ponto forte e fraco
+    const allVals = Object.keys(subMap).map(k => ({ l: subMap[k].l, v: subMedias[k] })).filter(x => x.v > 0);
+    const maxItem = allVals.reduce((a, b) => a.v >= b.v ? a : b, { l: '—', v: 0 });
+    const minItem = allVals.reduce((a, b) => a.v <= b.v ? a : b, { l: '—', v: 99 });
+ 
     const medias = reunioes.filter(r => r.media_final && !r.mal_qualificado).map(r => r.media_final);
     const avgMedia = medias.length ? medias.reduce((a,b)=>a+b,0)/medias.length : 0;
     const stdDev = medias.length > 1 ? Math.sqrt(medias.map(m=>Math.pow(m-avgMedia,2)).reduce((a,b)=>a+b,0)/medias.length) : 0;
     const consLabel = stdDev < 0.5 ? 'Alta' : stdDev < 1.0 ? 'Média' : 'Baixa';
     const consColor = stdDev < 0.5 ? 'text-emerald-600 bg-emerald-50' : stdDev < 1.0 ? 'text-blue-600 bg-blue-50' : 'text-red-500 bg-red-50';
-
+ 
     const sdrVereds = { QUALIFICADO:0,PARCIALMENTE:0,MAL:0,FORA:0,SEM:0 };
-    reunioes.forEach(r => { const vv = (r.qual_veredicto||'').toUpperCase(); if (vv.includes('FORA')) sdrVereds.FORA++; else if (vv.includes('MAL')) sdrVereds.MAL++; else if (vv.includes('PARC')) sdrVereds.PARCIALMENTE++; else if (vv.includes('QUAL')) sdrVereds.QUALIFICADO++; else sdrVereds.SEM++; });
-    const sdrColors = { QUALIFICADO:'bg-emerald-500',PARCIALMENTE:'bg-yellow-400',MAL:'bg-red-500',FORA:'bg-purple-500',SEM:'bg-slate-300' };
-    const sdrLabs = { QUALIFICADO:'Qualificado',PARCIALMENTE:'Parcial',MAL:'Mal Qualif.',FORA:'Fora Portf.',SEM:'Sem dados' };
-    const sdrBars = Object.entries(sdrVereds).map(([k,val]) => {
-        const pct = Math.round(val/reunioes.length*100);
-        return '<div class="flex items-center gap-3"><span class="text-[9px] font-black text-slate-500 uppercase w-20 flex-shrink-0">'+(sdrLabs[k]||k)+'</span><div class="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden"><div class="h-full '+(sdrColors[k]||'bg-slate-300')+' rounded-full" style="width:'+pct+'%"></div></div><span class="text-[10px] font-black text-slate-600 w-8 text-right">'+val+'</span></div>';
-    }).join('');
-
+    reunioes.forEach(r => { const vv=(r.qual_veredicto||'').toUpperCase(); if(vv.includes('FORA'))sdrVereds.FORA++; else if(vv.includes('MAL'))sdrVereds.MAL++; else if(vv.includes('PARC'))sdrVereds.PARCIALMENTE++; else if(vv.includes('QUAL'))sdrVereds.QUALIFICADO++; else sdrVereds.SEM++; });
+    const sdrColors={QUALIFICADO:'bg-emerald-500',PARCIALMENTE:'bg-yellow-400',MAL:'bg-red-500',FORA:'bg-purple-500',SEM:'bg-slate-300'};
+    const sdrLabs={QUALIFICADO:'Qualificado',PARCIALMENTE:'Parcial',MAL:'Mal Qualif.',FORA:'Fora Portf.',SEM:'Sem dados'};
+    const sdrBars=Object.entries(sdrVereds).map(([k,val])=>{const pct=Math.round(val/reunioes.length*100);return`<div class="flex items-center gap-3"><span class="text-[9px] font-black text-slate-500 uppercase w-20 flex-shrink-0">${sdrLabs[k]||k}</span><div class="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden"><div class="h-full ${sdrColors[k]||'bg-slate-300'} rounded-full" style="width:${pct}%"></div></div><span class="text-[10px] font-black text-slate-600 w-8 text-right">${val}</span></div>`;}).join('');
+ 
     const ultimasRows = reunioes.filter(r => !r.mal_qualificado).slice(0,5).map(r =>
-        '<div class="p-3 rounded-xl border border-slate-100 bg-white cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all" onclick="abrirAnaliseCompleta(\''+r.id+'\')">' +
-            '<div class="flex items-center justify-between"><p class="text-[10px] font-black text-slate-700">'+(r.produto||'—')+'</p><span class="text-lg font-black '+sc(r.media_final)+'">'+(r.media_final||'—')+'</span></div>' +
-            '<p class="text-[9px] text-slate-400">'+new Date(r.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+'</p></div>'
+        `<div class="p-3 rounded-xl border border-slate-100 bg-white cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all" onclick="abrirAnaliseCompleta('${r.id}')">
+            <div class="flex items-center justify-between"><p class="text-[10px] font-black text-slate-700">${r.produto||'—'}</p><span class="text-lg font-black ${sc(r.media_final)}">${r.media_final||'—'}</span></div>
+            <p class="text-[9px] text-slate-400">${new Date(r.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</p>
+        </div>`
     ).join('') || '<p class="text-[10px] text-slate-300 text-center py-4">Sem análises válidas.</p>';
-
-    const diagnostico = [];
-    if (temEtapas) {
-        if (v.avg_etapa1 < 3) diagnostico.push({ icon:'alert-circle', color:'text-red-500', msg:'SPIN abaixo da média — pratique perguntas de situação e implicação.' });
-        if (v.avg_etapa2 < 3) diagnostico.push({ icon:'alert-circle', color:'text-red-500', msg:'Apresentação fraca — conecte as dores do cliente à solução Nibo.' });
-        if (v.avg_etapa3 < 3) diagnostico.push({ icon:'alert-circle', color:'text-red-500', msg:'Negociação abaixo — pratique escuta ativa e resiliência.' });
-        if (v.avg_etapa1 >= 4) diagnostico.push({ icon:'star', color:'text-emerald-500', msg:'Excelência em Consultividade/SPIN — continue assim!' });
-    } else {
-        if (v.avg_fechamento < 3) diagnostico.push({ icon:'alert-circle', color:'text-red-500', msg:'Fechamento abaixo — foco em técnicas de contorno de objeções.' });
-        if (v.avg_rapport >= 4)   diagnostico.push({ icon:'star', color:'text-emerald-500', msg:'Excelência em Rapport — ponto forte!' });
-    }
-    if (stdDev >= 1.0) diagnostico.push({ icon:'activity', color:'text-amber-500', msg:'Consistência baixa — resultados muito variáveis entre reuniões.' });
-
-    const diagRows = diagnostico.map(d =>
-        '<div class="flex items-start gap-3 p-3 rounded-xl bg-white border border-slate-100"><i data-lucide="' + d.icon + '" class="w-4 h-4 ' + d.color + ' flex-shrink-0 mt-0.5"></i><p class="text-[11px] text-slate-600 font-medium">' + d.msg + '</p></div>'
-    ).join('') || '<p class="text-[10px] text-slate-300 text-center py-2">Sem alertas no momento.</p>';
-
-    content.innerHTML =
-        '<div class="grid grid-cols-1 md:grid-cols-3 gap-5">' +
-            '<div class="glass-card p-8 flex flex-col items-center  text-center border-b-[8px] border-blue-600"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Média Global</p><div class="text-6xl font-black '+sc(v.media)+' mb-2">'+fmt(v.media)+'</div><div class="flex gap-px">'+buildStars(Math.round(v.media))+'</div></div>' +
-            '<div class="glass-card p-8 flex flex-col items-center  text-center"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">RDs Válidas</p><div class="text-6xl font-black text-slate-700 mb-1">'+(v.total_validas||v.total)+'</div>'+(v.total_mal_qualif>0?'<p class="text-[9px] text-orange-500 font-black">'+v.total_mal_qualif+' excluída(s) da média</p>':'')+'</div>' +
-            '<div class="glass-card p-8 flex flex-col items-center  text-center"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Consistência</p><div class="text-4xl font-black px-4 py-2 rounded-2xl '+consColor+'">'+consLabel+'</div><p class="text-[9px] text-slate-400 mt-2">σ = '+stdDev.toFixed(2)+'</p></div>' +
-        '</div>' +
-        '<div class="glass-card p-7"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="zap" class="w-4 h-4 text-amber-400"></i> Diagnóstico Personalizado</h4><div class="space-y-2">'+diagRows+'</div></div>' +
-        '<div class="glass-card p-7"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-400"></i> Desempenho por '+(temEtapas?'Etapa':'Pilar')+'</h4><div class="space-y-4">'+barEtapas+'</div>' +
-            '<div class="grid grid-cols-2 gap-3 mt-5">' +
-                '<div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-center"><p class="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-1">Ponto Forte</p><p class="font-black text-sm text-emerald-700">'+(pilarNomes[maxIdx]||'—')+'</p><p class="text-xl font-black text-emerald-600">'+fmt(pilarVals[maxIdx])+'</p></div>' +
-                '<div class="p-3 bg-red-50 rounded-2xl border border-red-100 text-center"><p class="text-[8px] font-black text-red-400 uppercase tracking-widest mb-1">Ponto Fraco</p><p class="font-black text-sm text-red-600">'+(pilarNomes[minIdx]||'—')+'</p><p class="text-xl font-black text-red-500">'+fmt(pilarVals[minIdx])+'</p></div>' +
-            '</div></div>' +
-        '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">' +
-            '<div class="glass-card p-7"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="user-check" class="w-4 h-4 text-violet-400"></i> Qualificação (SDR)</h4><div class="space-y-3">'+sdrBars+'</div></div>' +
-            '<div class="glass-card p-7"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4 text-slate-400"></i> Últimas Análises Válidas</h4><div class="space-y-2">'+ultimasRows+'</div></div>' +
-        '</div>';
+ 
+    content.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div class="glass-card p-8 flex flex-col items-center justify-center text-center border-b-[8px] border-blue-600">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Média Global</p>
+                <div class="text-6xl font-black ${sc(v.media)} mb-2">${fmt(v.media)}</div>
+                <div class="flex gap-px">${buildStars(Math.round(v.media))}</div>
+            </div>
+            <div class="glass-card p-8 flex flex-col items-center justify-center text-center">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">RDs Válidas</p>
+                <div class="text-6xl font-black text-slate-700 mb-1">${v.total_validas||v.total}</div>
+                ${v.total_mal_qualif>0?`<p class="text-[9px] text-orange-500 font-black">${v.total_mal_qualif} excluída(s)</p>`:''}
+            </div>
+            <div class="glass-card p-8 flex flex-col items-center justify-center text-center">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Consistência</p>
+                <div class="text-4xl font-black px-4 py-2 rounded-2xl ${consColor}">${consLabel}</div>
+                <p class="text-[9px] text-slate-400 mt-2">σ = ${stdDev.toFixed(2)}</p>
+            </div>
+        </div>
+ 
+        <!-- Radar + Sub-critérios -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-card p-8 flex items-center justify-center min-h-[380px]">
+                <canvas id="radarVendedor"></canvas>
+            </div>
+            <div class="grid grid-cols-2 gap-3 content-start">
+                <div class="col-span-2 flex items-center gap-2 mb-1">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Médias por sub-critério</p>
+                </div>
+                ${Object.keys(subMap).map(k => {
+                    const val = subMedias[k];
+                    const cc = getScoreColor(val);
+                    const pct = Math.round(val/5*100);
+                    return `<div class="p-3 rounded-2xl border bg-slate-50 border-slate-100">
+                        <p class="text-[8px] font-black text-slate-500 uppercase tracking-wide mb-1">${subMap[k].l}</p>
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                <div class="h-full ${subMap[k].color} rounded-full" style="width:${pct}%"></div>
+                            </div>
+                            <span class="text-sm font-black ${cc.text} flex-shrink-0">${fmt(val)}</span>
+                        </div>
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>
+ 
+        <!-- Barras agrupadas por etapa -->
+        <div class="glass-card p-7">
+            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2">
+                <i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-400"></i> Detalhamento por Etapa e Critério
+            </h4>
+            <div class="space-y-4">${barsHTML}</div>
+            <div class="grid grid-cols-2 gap-3 mt-5">
+                <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">
+                    <p class="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-1">Ponto Forte</p>
+                    <p class="font-black text-sm text-emerald-700">${maxItem.l}</p>
+                    <p class="text-xl font-black text-emerald-600">${fmt(maxItem.v)}</p>
+                </div>
+                <div class="p-3 bg-red-50 rounded-2xl border border-red-100 text-center">
+                    <p class="text-[8px] font-black text-red-400 uppercase tracking-widest mb-1">Ponto Fraco</p>
+                    <p class="font-black text-sm text-red-600">${minItem.l}</p>
+                    <p class="text-xl font-black text-red-500">${fmt(minItem.v)}</p>
+                </div>
+            </div>
+        </div>
+ 
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="glass-card p-7">
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <i data-lucide="user-check" class="w-4 h-4 text-violet-400"></i> Qualificação (SDR)
+                </h4>
+                <div class="space-y-3">${sdrBars}</div>
+            </div>
+            <div class="glass-card p-7">
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <i data-lucide="clock" class="w-4 h-4 text-slate-400"></i> Últimas Análises Válidas
+                </h4>
+                <div class="space-y-2">${ultimasRows}</div>
+            </div>
+        </div>`;
+ 
     lucide.createIcons();
+ 
+    // Radar do vendedor com todos os sub-critérios
+    const rCtx = document.getElementById('radarVendedor')?.getContext('2d');
+    if (rCtx) {
+        new Chart(rCtx, {
+            type: 'radar',
+            data: {
+                labels: radarLabels,
+                datasets: [{
+                    label: nome,
+                    data: radarVals,
+                    backgroundColor: 'rgba(37,99,235,0.12)',
+                    borderColor: '#2563eb',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#1e3a8a',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 1.5
+                }]
+            },
+            options: {
+                scales: { r: { min:0, max:5, ticks:{stepSize:1,display:false}, grid:{color:'#e2e8f0'}, angleLines:{color:'#e2e8f0'}, pointLabels:{font:{size:9,weight:'800'},color:'#475569'} } },
+                plugins: { legend: { display: false } },
+                maintainAspectRatio: true
+            }
+        });
+    }
 }
+ 
+ 
 
 // ── Gestão Panel ──────────────────────────────────────────────────────────────
 async function loadGestaoPanel() {
@@ -1380,12 +1486,11 @@ async function deletarNaoIdentificados() {
     } catch(err) { alert('Erro: '+err.message); }
 }
 
-// ── Análise completa (modal) ───────────────────────────────────────────────────
 async function abrirAnaliseCompleta(id) {
     const modal = document.createElement('div');
     modal.id = 'analise-modal-'+id;
     modal.className = 'fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm overflow-y-auto p-4';
-    modal.innerHTML = `<div class="max-w-3xl mx-auto mt-8 mb-16 bg-white rounded-[2.5rem] shadow-2xl overflow-hidden">
+    modal.innerHTML = `<div class="max-w-4xl mx-auto mt-8 mb-16 bg-white rounded-[2.5rem] shadow-2xl overflow-hidden">
         <div class="bg-[#002d72] p-6 flex items-center justify-between">
             <h3 class="font-black text-white text-lg uppercase flex items-center gap-3"><i data-lucide="file-search" class="w-5 h-5"></i> Análise Completa</h3>
             <div class="flex items-center gap-2">
@@ -1393,30 +1498,102 @@ async function abrirAnaliseCompleta(id) {
                 <button onclick="document.getElementById('analise-modal-${id}').remove()" class="bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-2xl transition-all"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
         </div>
-        <div id="analise-modal-body-${id}" class="p-8"><div class="flex items-center  py-20"><div class="loader"></div></div></div>
+        <div id="analise-modal-body-${id}" class="p-8"><div class="flex items-center justify-center py-20"><div class="loader"></div></div></div>
     </div>`;
     document.body.appendChild(modal);
     lucide.createIcons();
+ 
     try {
         const res = await fetch('/api/records?id='+id);
         const d = await res.json();
         if (!d.record) throw new Error('Registro não encontrado');
-        const r = d.record; const j = r.analise_json || {};
+        const r = d.record;
+        const j = r.analise_json || {};
         const body = document.getElementById('analise-modal-body-'+id);
         const sc = n => n>=4?'text-emerald-600':n>=3?'text-blue-600':'text-red-500';
-        const temEtapas = (j.nota_etapa1 !== undefined) || (r.nota_pre_fechamento === null && r.nota_fechamento === null);
-        const pilarCols = temEtapas ? [
-            {l:'Consult./SPIN',k:'etapa1',val:j.nota_etapa1||r.nota_rapport||0},
-            {l:'Apres. Ferramenta',k:'etapa2',val:j.nota_etapa2||r.nota_produto||0},
-            {l:'Negociação',k:'etapa3',val:j.nota_etapa3||r.nota_apresentacao||0}
-        ] : [
-            {l:'Rapport',val:r.nota_rapport||0},{l:'Produto',val:r.nota_produto||0},
-            {l:'Apresentação',val:r.nota_apresentacao||0},{l:'Pré-Fech.',val:r.nota_pre_fechamento||0},{l:'Fechamento',val:r.nota_fechamento||0}
-        ];
-        const colsGrid = temEtapas ? 'grid-cols-3' : 'grid-cols-5';
-        const pilarHTML = pilarCols.map(p => `<div class="text-center p-4 bg-slate-50 rounded-2xl border border-slate-100"><p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">${p.l}</p><p class="text-3xl font-black ${sc(p.val)}">${p.val||'—'}</p></div>`).join('');
+        const fmt = n => (n && n > 0) ? Number(n).toFixed(1) : '—';
+ 
         const verd = r.qual_veredicto||'—';
         const vc = verd.toUpperCase().includes('FORA')?'bg-purple-100 text-purple-700':verd.toUpperCase().includes('MAL')?'bg-red-100 text-red-700':verd.toUpperCase().includes('PARC')?'bg-yellow-100 text-yellow-800':'bg-emerald-100 text-emerald-800';
+ 
+        // Sub-critérios completos
+        const etapas = [
+            {
+                titulo: 'Etapa 1 — Consultividade / SPIN',
+                cor: 'border-blue-500', bg: 'bg-blue-50', text: 'text-blue-700',
+                nota: j.nota_etapa1 || r.nota_rapport,
+                porque: j.porque_etapa1,
+                melhoria: j.melhoria_etapa1,
+                criterios: [
+                    { l:'Rapport',           k:'rapport',           nota: j.nota_rapport,            porque: j.porque_rapport,           melhoria: j.melhoria_rapport },
+                    { l:'SPIN',              k:'spin',              nota: j.nota_spin,               porque: j.porque_spin,              melhoria: j.melhoria_spin },
+                    { l:'Comunicação Eficaz',k:'comunicacao',       nota: j.nota_comunicacao,        porque: j.porque_comunicacao,       melhoria: j.melhoria_comunicacao },
+                ]
+            },
+            {
+                titulo: 'Etapa 2 — Apresentação da Ferramenta',
+                cor: 'border-violet-500', bg: 'bg-violet-50', text: 'text-violet-700',
+                nota: j.nota_etapa2 || r.nota_produto,
+                porque: j.porque_etapa2,
+                melhoria: j.melhoria_etapa2,
+                criterios: [
+                    { l:'Produto',           k:'produto',           nota: j.nota_produto,            porque: j.porque_produto,           melhoria: j.melhoria_produto },
+                    { l:'Objeções',          k:'objecoes',          nota: j.nota_objecoes,           porque: j.porque_objecoes,          melhoria: j.melhoria_objecoes },
+                    { l:'Solução da Dor',    k:'solucao_dor',       nota: j.nota_solucao_dor,        porque: j.porque_solucao_dor,       melhoria: j.melhoria_solucao_dor },
+                    { l:'Encantamento',      k:'encantamento',      nota: j.nota_encantamento,       porque: j.porque_encantamento,      melhoria: j.melhoria_encantamento },
+                ]
+            },
+            {
+                titulo: 'Etapa 3 — Negociação',
+                cor: 'border-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700',
+                nota: j.nota_etapa3 || r.nota_apresentacao,
+                porque: j.porque_etapa3,
+                melhoria: j.melhoria_etapa3,
+                criterios: [
+                    { l:'Pré-Fechamento',         k:'pre_fechamento_sub',  nota: j.nota_pre_fechamento_sub,  porque: j.porque_pre_fechamento_sub,  melhoria: j.melhoria_pre_fechamento_sub },
+                    { l:'Escuta Ativa',            k:'escuta_ativa',        nota: j.nota_escuta_ativa,        porque: j.porque_escuta_ativa,        melhoria: j.melhoria_escuta_ativa },
+                    { l:'Resiliência',             k:'resiliencia',         nota: j.nota_resiliencia,         porque: j.porque_resiliencia,         melhoria: j.melhoria_resiliencia },
+                    { l:'Gestão do Tempo',         k:'gestao_tempo',        nota: j.nota_gestao_tempo,        porque: j.porque_gestao_tempo,        melhoria: j.melhoria_gestao_tempo },
+                    { l:'Regras de Fechamento',    k:'regras_fechamento',   nota: j.nota_regras_fechamento,   porque: j.porque_regras_fechamento,   melhoria: j.melhoria_regras_fechamento },
+                ]
+            }
+        ];
+ 
+        const etapasHTML = etapas.map(e => {
+            const notaEtapa = e.nota || 0;
+            const colEtapa = getScoreColor(notaEtapa);
+            const subCards = e.criterios.map(c => {
+                const nota = c.nota || 0;
+                const col = getScoreColor(nota);
+                const bg2 = nota >= 4 ? 'bg-emerald-50 border-emerald-100' : nota >= 3 ? 'bg-blue-50 border-blue-100' : 'bg-red-50 border-red-100';
+                return `<div class="p-4 rounded-2xl border ${bg2}">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-[11px] font-black ${col.text} uppercase tracking-wide">${c.l}</p>
+                        <div class="flex items-center gap-1">
+                            <span class="text-2xl font-black ${col.text}">${nota}</span>
+                            <span class="text-[9px] text-slate-400">/5</span>
+                        </div>
+                    </div>
+                    ${c.porque ? `<p class="text-[11px] text-slate-600 font-medium leading-relaxed mb-2">${c.porque}</p>` : ''}
+                    ${c.melhoria && nota < 5 ? `<p class="text-[10px] text-amber-700 font-bold flex items-start gap-1 mt-1"><i data-lucide="lightbulb" class="w-3 h-3 mt-0.5 flex-shrink-0"></i>${c.melhoria}</p>` : ''}
+                </div>`;
+            }).join('');
+ 
+            return `<div class="rounded-[2rem] border-t-4 ${e.cor} bg-white shadow-sm overflow-hidden">
+                <div class="p-6 ${e.bg} border-b border-slate-100">
+                    <div class="flex items-center justify-between">
+                        <p class="text-[11px] font-black ${e.text} uppercase tracking-widest">${e.titulo}</p>
+                        <div class="flex items-center gap-2">
+                            <span class="text-3xl font-black ${colEtapa.text}">${fmt(notaEtapa)}</span>
+                            <span class="text-[10px] text-slate-400">/5</span>
+                        </div>
+                    </div>
+                    ${e.porque ? `<p class="text-[11px] text-slate-600 font-medium mt-2 leading-relaxed">${e.porque}</p>` : ''}
+                </div>
+                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-3">${subCards}</div>
+            </div>`;
+        }).join('');
+ 
         body.innerHTML = `
             <div class="flex flex-wrap gap-3 mb-6">
                 <div class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl"><span class="text-[10px] font-black text-slate-500">Vendedor:</span><span class="font-black text-slate-700">${r.vendedor_nome||'—'}</span></div>
@@ -1425,53 +1602,62 @@ async function abrirAnaliseCompleta(id) {
                 <div class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl"><span class="text-[10px] font-black text-slate-500">Data:</span><span class="font-black text-slate-700">${new Date(r.created_at).toLocaleDateString('pt-BR')}</span></div>
                 <div class="flex items-center gap-2 px-4 py-2 rounded-xl ${vc}"><span class="text-[10px] font-black">SDR: ${verd}</span></div>
             </div>
+ 
             <div class="flex items-center gap-4 p-6 bg-gradient-to-r from-blue-700 to-blue-900 rounded-[2rem] mb-6">
                 <div class="text-6xl font-black text-white">${(r.media_final||0).toFixed(1)}</div>
                 <p class="text-white font-bold text-sm leading-relaxed flex-1">${j.resumo_executivo||'—'}</p>
             </div>
-            <div class="grid ${colsGrid} gap-3 mb-6">${pilarHTML}</div>
-            ${j.justificativa_detalhada ? `<div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="graduation-cap" class="w-4 h-4 text-blue-400"></i> Plano de Coaching</h4><div class="markdown-content">${marked.parse(j.justificativa_detalhada)}</div></div>` : ''}
-            ${j.qual_analise_completa ? `<div class="glass-card p-8 mt-6 border-t-4 border-violet-500"><h4 class="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="user-check" class="w-4 h-4"></i> Análise SDR Completa</h4><div class="markdown-content">${marked.parse(j.qual_analise_completa)}</div></div>` : ''}`;
+ 
+            <!-- Resumo de etapas -->
+            <div class="grid grid-cols-3 gap-3 mb-6">
+                ${[{l:'Consultividade',v:j.nota_etapa1||r.nota_rapport,c:'border-blue-500'},{l:'Apres. Ferramenta',v:j.nota_etapa2||r.nota_produto,c:'border-violet-500'},{l:'Negociação',v:j.nota_etapa3||r.nota_apresentacao,c:'border-emerald-500'}].map(p=>`
+                <div class="text-center p-4 bg-slate-50 rounded-2xl border-t-4 ${p.c} border border-slate-100">
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">${p.l}</p>
+                    <p class="text-3xl font-black ${sc(p.v||0)}">${(p.v||0)}</p>
+                </div>`).join('')}
+            </div>
+ 
+            <!-- Etapas + sub-critérios completos -->
+            <div class="space-y-5 mb-6">${etapasHTML}</div>
+ 
+            <!-- Pontos fortes e atenção -->
+            ${(j.pontos_fortes||[]).length || (j.pontos_atencao||[]).length ? `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="bg-emerald-50 p-6 rounded-[2rem] border border-emerald-100">
+                    <h4 class="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-4">Pontos Fortes</h4>
+                    <ul class="space-y-2">${(j.pontos_fortes||[]).map(i=>`<li class="text-[12px] font-bold text-emerald-900 flex gap-2"><span>▶</span>${i}</li>`).join('')}</ul>
+                </div>
+                <div class="bg-amber-50 p-6 rounded-[2rem] border border-amber-100">
+                    <h4 class="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-4">Melhorias Imediatas</h4>
+                    <ul class="space-y-2">${(j.pontos_atencao||[]).map(i=>`<li class="text-[12px] font-bold text-amber-900 flex gap-2"><span>▶</span>${i}</li>`).join('')}</ul>
+                </div>
+            </div>` : ''}
+ 
+            <!-- Plano de coaching -->
+            ${j.justificativa_detalhada ? `
+            <div class="glass-card p-8 mb-6">
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <i data-lucide="graduation-cap" class="w-4 h-4 text-blue-400"></i> Plano de Coaching
+                </h4>
+                <div class="markdown-content">${marked.parse(j.justificativa_detalhada)}</div>
+            </div>` : ''}
+ 
+            <!-- SDR completo -->
+            ${j.qual_analise_completa ? `
+            <div class="glass-card p-8 border-t-4 border-violet-500">
+                <h4 class="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <i data-lucide="user-check" class="w-4 h-4"></i> Análise SDR Completa
+                </h4>
+                <div class="markdown-content">${marked.parse(j.qual_analise_completa)}</div>
+            </div>` : ''}`;
+ 
         lucide.createIcons();
     } catch(err) {
-        document.getElementById('analise-modal-body-'+id).innerHTML = '<p class="text-center py-20 text-red-400 font-bold">Erro ao carregar: '+err.message+'</p>';
+        document.getElementById('analise-modal-body-'+id).innerHTML = `<p class="text-center py-20 text-red-400 font-bold">Erro ao carregar: ${err.message}</p>`;
     }
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
-
-async function exportarPDFModal(id) {
-    const body = document.getElementById('analise-modal-body-'+id);
-    if (!body) return;
-    await html2pdf().set({ margin:[10,10,10,10], filename:'auditoria-'+id+'.pdf', image:{type:'jpeg',quality:0.95}, html2canvas:{scale:1.5,useCORS:true}, jsPDF:{unit:'mm',format:'a4',orientation:'portrait'} }).from(body).save();
-}
-
-async function abrirAnalysesCoord(coord) {
-    const content = document.getElementById('dash-content');
-    content.innerHTML = '<div class="flex flex-col items-center py-16 text-slate-300"><div class="loader mb-4"></div><p class="font-bold text-xs uppercase tracking-widest animate-pulse">Carregando histórico de '+coord+'...</p></div>';
-    try {
-        const res = await fetch('/api/records?coordenador='+encodeURIComponent(coord)+'&limit=50&offset=0');
-        const d = await res.json();
-        if (!d.records) throw new Error('Erro ao carregar');
-        const sc = n => n>=4?'text-emerald-600':n>=3?'text-blue-600':'text-red-500';
-        const rows = d.records.map(r => {
-            const dt = new Date(r.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
-            const temEtapas = r.nota_pre_fechamento === null && r.nota_fechamento === null;
-            const colMap = temEtapas ? [
-                {l:'E1',val:r.nota_rapport||0},{l:'E2',val:r.nota_produto||0},{l:'E3',val:r.nota_apresentacao||0}
-            ] : [
-                {l:'R',val:r.nota_rapport||0},{l:'Pr',val:r.nota_produto||0},{l:'A',val:r.nota_apresentacao||0},{l:'PF',val:r.nota_pre_fechamento||0},{l:'F',val:r.nota_fechamento||0}
-            ];
-            const cols = colMap.map(c => '<div class="text-center"><p class="text-[7px] font-black text-slate-400">'+c.l+'</p><p class="text-xs font-black '+sc(c.val)+'">'+c.val+'</p></div>').join('');
-            return '<div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:bg-blue-50/30 transition-colors cursor-pointer" onclick="abrirAnaliseCompleta(\''+r.id+'\')">' +
-                '<div class="flex-1 min-w-0"><p class="font-black text-sm text-slate-700">'+(r.vendedor_nome||'—')+'</p><p class="text-[10px] text-slate-400">'+(r.produto||'—')+' · '+dt+'</p></div>' +
-                '<div class="grid gap-2 hidden md:grid" style="grid-template-columns:repeat('+colMap.length+',minmax(0,1fr))">'+cols+'</div>' +
-                '<span class="text-2xl font-black '+sc(r.media_final)+'">'+((r.media_final||0).toFixed(1))+'</span></div>';
-        }).join('') || '<p class="text-slate-300 text-center py-12">Nenhuma análise encontrada.</p>';
-        content.innerHTML = '<div class="glass-card p-8"><h4 class="font-black text-slate-700 mb-6 flex items-center gap-2"><i data-lucide="user-circle" class="w-5 h-5 text-blue-500"></i> '+coord+'</h4><div class="space-y-3">'+rows+'</div></div>';
-        lucide.createIcons();
-    } catch(err) { content.innerHTML = '<p class="text-center py-20 text-red-400 font-bold">Erro: '+err.message+'</p>'; }
-}
-
+ 
 // ── Calendário inline ─────────────────────────────────────────────────────────
 async function loadCalendario() {
     const content = document.getElementById('dash-content');
