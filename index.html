@@ -57,7 +57,7 @@
 <body class="pb-20 antialiased">
 
 <!-- LOGIN SCREEN -->
-<div id="login-screen" class="hidden fixed inset-0 z-[200] bg-[#001a4d] flex items-center  p-6">
+<div id="login-screen" class="hidden fixed inset-0 z-[200] bg-[#001a4d] flex items-center justify-center p-6">
     <div class="bg-white rounded-[2.5rem] p-12 max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-6">
         <div class="bg-[#002d72] p-4 rounded-2xl"><i data-lucide="shield-check" class="text-white w-10 h-10"></i></div>
         <div>
@@ -65,7 +65,7 @@
             <p class="text-slate-400 text-sm font-medium">Acesso restrito — apenas Heads</p>
         </div>
         <div id="login-error" class="hidden w-full bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-700 font-medium"></div>
-        <a href="/api/auth" class="w-full flex items-center  gap-3 bg-white border-2 border-slate-200 hover:border-blue-400 text-slate-700 font-bold px-6 py-4 rounded-2xl transition-all shadow-sm hover:shadow-md">
+        <a href="/api/auth" class="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-200 hover:border-blue-400 text-slate-700 font-bold px-6 py-4 rounded-2xl transition-all shadow-sm hover:shadow-md">
             <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
             Entrar com Google Nibo
         </a>
@@ -144,7 +144,7 @@
         <div id="analysis-content" class="hidden space-y-8">
             <!-- Vendedor banner -->
             <div id="vendedor-banner" class="hidden bg-white border border-slate-200 rounded-[2rem] p-5 flex items-center gap-4 shadow-sm">
-                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center  font-black text-blue-600 text-lg flex-shrink-0" id="vendedor-avatar">?</div>
+                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-black text-blue-600 text-lg flex-shrink-0" id="vendedor-avatar">?</div>
                 <div class="flex-1 min-w-0">
                     <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Consultor identificado pela IA</p>
                     <p id="vendedor-nome-display" class="font-black text-slate-800 text-base truncate"></p>
@@ -161,12 +161,12 @@
             </div>
             <!-- Score hero -->
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                <div class="lg:col-span-1 glass-card p-10 flex flex-col items-center  text-center border-b-[10px] border-blue-600">
+                <div class="lg:col-span-1 glass-card p-10 flex flex-col items-center justify-center text-center border-b-[10px] border-blue-600">
                     <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Média Global (Máx 5)</span>
                     <div id="media-final" class="text-7xl font-black text-[#002d72] mb-3">0.0</div>
                     <div id="status-tag" class="px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">---</div>
                 </div>
-                <div class="lg:col-span-3 glass-card p-10 bg-gradient-to-br from-blue-700 to-blue-900 text-white flex flex-col ">
+                <div class="lg:col-span-3 glass-card p-10 bg-gradient-to-br from-blue-700 to-blue-900 text-white flex flex-col justify-center">
                     <div id="concorrentes-tags" class="flex flex-wrap gap-2 mb-4"></div>
                     <h3 class="font-bold text-blue-200 text-[10px] uppercase tracking-widest mb-4">Diagnóstico Geral</h3>
                     <p id="resumo-text" class="text-xl md:text-2xl font-bold leading-tight mb-8"></p>
@@ -199,7 +199,7 @@
                 </p>
                 <div id="notas-grid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="glass-card p-8 min-h-[380px] flex items-center "><canvas id="radarChart"></canvas></div>
+                    <div class="glass-card p-8 min-h-[380px] flex items-center justify-center"><canvas id="radarChart"></canvas></div>
                     <div class="space-y-6">
                         <div class="glass-card p-8">
                             <h4 class="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest">Tempo de Fala</h4>
@@ -260,8 +260,9 @@
         </div>
         <div id="modal-subcriterios"></div>
     </div>
+    </div>
 </div>
-</div>
+
 <!-- DASHBOARD MODAL -->
 <div id="dashboard-modal" class="hidden fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm overflow-y-auto p-4">
     <div class="max-w-7xl mx-auto mt-8 mb-16">
@@ -455,7 +456,7 @@ async function exportarPDFSdr() {
         wrapper.style.cssText = 'width:794px;font-family:Inter,sans-serif;background:white;padding:0;';
         const vendNome  = document.getElementById('vendedor-nome-display')?.textContent?.trim() || 'lead';
         const coordSel  = document.querySelector('input[name="coordenador"]:checked');
-        const coordNome = coordSel ? coordSel.closest('label')?.querySelector('span')?.textContent?.trim() || 'Coordenador' : 'Coordenador';
+        const coordNome = coordSel ? coordSel.closest('label')?.querySelector('p')?.textContent?.trim() || 'Coordenador' : 'Coordenador';
         const dataHoje  = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'});
         const rawText   = qualContent.innerText || '';
         const isFora = /FORA/i.test(rawText);
@@ -560,7 +561,7 @@ function renderDashboard(data) {
         const criteriosHTML = (p.criterios||[]).map(c => {
             const cc = getScoreColor(c.score);
             return `<div class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-100 hover:border-slate-200 transition-all">
-                <div class="flex-shrink-0 w-8 h-8 rounded-lg ${cm.light} flex items-center ">
+                <div class="flex-shrink-0 w-8 h-8 rounded-lg ${cm.light} flex items-center justify-center">
                     <span class="text-xs font-black ${cm.text}">${c.score||'—'}</span>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -573,7 +574,7 @@ function renderDashboard(data) {
         return `<div onclick="openModal(${idx})" class="pilar-card bg-white rounded-[2rem] p-6 flex flex-col cursor-pointer border-t-4 ${cm.border} shadow-sm hover:shadow-md transition-all">
             <div class="zoom-icon"><i data-lucide="zoom-in" class="w-3 h-3 text-blue-400"></i></div>
             <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-xl ${cm.light} flex items-center  flex-shrink-0">
+                <div class="w-10 h-10 rounded-xl ${cm.light} flex items-center justify-center flex-shrink-0">
                     <i data-lucide="${p.icon}" class="w-5 h-5 ${cm.text}"></i>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -600,7 +601,7 @@ function renderDashboard(data) {
     document.getElementById('checklist-container').innerHTML = Object.entries(ckLabels).map(([k,l]) => `
         <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
             <span class="text-[9px] font-bold text-slate-600 uppercase tracking-tight">${l}</span>
-            <div class="w-5 h-5 rounded-full flex items-center  ${ck[k]?'bg-emerald-500':'bg-slate-300'}">
+            <div class="w-5 h-5 rounded-full flex items-center justify-center ${ck[k]?'bg-emerald-500':'bg-slate-300'}">
                 <i data-lucide="${ck[k]?'check':'minus'}" class="text-white w-3 h-3"></i>
             </div>
         </div>`).join('');
@@ -616,24 +617,22 @@ function renderDashboard(data) {
 function renderRadar(data) {
     const ctx = document.getElementById('radarChart').getContext('2d');
     if (radarChartInstance) radarChartInstance.destroy();
- 
-    // Montar labels e valores de todos os sub-critérios disponíveis
+
     const allCriterios = [];
     fields.forEach(f => {
         (f.criterios || []).forEach(c => {
             allCriterios.push({ label: c.l, key: c.k });
         });
     });
- 
-    // Fallback: se ainda não há sub-critérios (formato legado), usa etapas
+
     const labels = allCriterios.length > 0
         ? allCriterios.map(c => c.label)
         : fields.map(f => f.l);
- 
+
     const values = allCriterios.length > 0
         ? allCriterios.map(c => data[`nota_${c.key}`] || 0)
         : fields.map(f => data[`nota_${f.k}`] || 0);
- 
+
     radarChartInstance = new Chart(ctx, {
         type: 'radar',
         data: {
@@ -665,7 +664,69 @@ function renderRadar(data) {
         }
     });
 }
- 
+
+function openModal(idx) {
+    const p = pilarData[idx];
+    const col = getScoreColor(p.score);
+    document.getElementById('modal-title').textContent = `Etapa ${idx+1} — ${p.label}`;
+    document.getElementById('modal-score').textContent = p.score;
+    const ring = document.getElementById('modal-score-ring');
+    ring.style.borderColor = col.border; ring.style.background = col.bg; ring.style.color = col.border;
+    document.getElementById('modal-stars').innerHTML = buildStars(p.score);
+    document.getElementById('modal-text').textContent = p.porque;
+    const isMax = p.score >= 5;
+    const ic = document.getElementById('modal-improvement-container');
+    const ii = document.getElementById('modal-improvement-icon');
+    const il = document.getElementById('modal-improvement-label');
+    const it = document.getElementById('modal-improvement-text');
+    if (isMax) {
+        ic.className = "rounded-2xl p-4 border bg-emerald-50 border-emerald-100";
+        ii.setAttribute('data-lucide','award'); ii.className = "w-4 h-4 text-emerald-600";
+        il.className = "text-[9px] font-bold uppercase tracking-widest block text-emerald-700"; il.textContent = "Excelência atingida!";
+        it.className = "text-[13px] leading-relaxed font-medium text-emerald-900";
+    } else {
+        ic.className = "rounded-2xl p-4 border bg-amber-50 border-amber-100";
+        ii.setAttribute('data-lucide','target'); ii.className = "w-4 h-4 text-amber-600";
+        il.className = "text-[9px] font-bold uppercase tracking-widest block text-amber-700"; il.textContent = "O que faltou para o 5?";
+        it.className = "text-[13px] leading-relaxed font-medium text-amber-900";
+    }
+    it.textContent = p.melhoria;
+    const subEl = document.getElementById('modal-subcriterios');
+    if (p.criterios && p.criterios.length > 0) {
+        subEl.innerHTML = `<div class="mt-2">
+            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="list-checks" class="w-4 h-4 text-blue-400"></i> Critérios desta etapa</h4>
+            <div class="space-y-4">${p.criterios.map(c => {
+                const cc = getScoreColor(c.score);
+                const bg = c.score >= 4 ? 'border-emerald-100 bg-emerald-50' : c.score >= 3 ? 'border-blue-100 bg-blue-50' : 'border-red-100 bg-red-50';
+                return `<div class="p-4 rounded-2xl border ${bg}">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-[11px] font-black ${cc.text} uppercase tracking-wide">${c.label}</p>
+                        <div class="flex items-center gap-1"><span class="text-2xl font-black ${cc.text}">${c.score}</span><span class="text-[10px] text-slate-400 font-bold">/5</span></div>
+                    </div>
+                    <p class="text-[9px] text-slate-500 italic mb-2">${c.desc}</p>
+                    <p class="text-[11px] text-slate-700 font-medium leading-relaxed mb-2">${c.porque||''}</p>
+                    ${c.melhoria && c.score < 5 ? `<p class="text-[10px] text-amber-700 font-bold flex items-start gap-1"><i data-lucide="lightbulb" class="w-3 h-3 mt-0.5 flex-shrink-0"></i>${c.melhoria}</p>` : ''}
+                </div>`;
+            }).join('')}</div></div>`;
+    } else { subEl.innerHTML = ''; }
+    const modal = document.getElementById('justification-modal');
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        document.getElementById('modal-content-box').classList.remove('scale-95');
+        document.getElementById('modal-content-box').classList.add('scale-100');
+        lucide.createIcons();
+    }, 10);
+}
+
+function closeModal() {
+    const modal = document.getElementById('justification-modal');
+    const box = document.getElementById('modal-content-box');
+    modal.classList.add('opacity-0'); box.classList.remove('scale-100'); box.classList.add('scale-95');
+    setTimeout(() => { modal.classList.add('hidden'); }, 300);
+}
+document.getElementById('justification-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 function _buildQualSection(data, pCfg) {
     const foraPortfolio = !data.qual_produto_no_portfolio;
@@ -684,7 +745,7 @@ function _buildQualSection(data, pCfg) {
         `<div class="rounded-2xl p-5 border flex flex-col gap-3 ${ok?'bg-emerald-50 border-emerald-100':'bg-red-50 border-red-100'}">
             <div class="flex items-center justify-between">
                 <span class="text-[9px] font-black uppercase tracking-widest ${ok?'text-emerald-700':'text-red-700'}">${l||'—'}</span>
-                <div class="w-6 h-6 rounded-full flex items-center  ${ok?'bg-emerald-500':'bg-red-400'}"><i data-lucide="${ok?'check':'x'}" class="text-white w-3 h-3"></i></div>
+                <div class="w-6 h-6 rounded-full flex items-center justify-center ${ok?'bg-emerald-500':'bg-red-400'}"><i data-lucide="${ok?'check':'x'}" class="text-white w-3 h-3"></i></div>
             </div>
             <p class="text-[11px] italic leading-relaxed ${ok?'text-emerald-700':'text-red-600'}">${ev||'Sem evidência.'}</p>
         </div>`
@@ -698,7 +759,7 @@ function _buildQualSection(data, pCfg) {
         `<div class="rounded-2xl p-5 border flex flex-col gap-2 ${ok?'bg-emerald-50 border-emerald-100':'bg-red-50 border-red-100'}">
             <div class="flex items-center justify-between">
                 <span class="text-[10px] font-black uppercase tracking-widest ${ok?'text-emerald-700':'text-red-700'}">${label}</span>
-                <div class="w-6 h-6 rounded-full flex items-center  ${ok?'bg-emerald-500':'bg-red-400'}"><i data-lucide="${ok?'check':'x'}" class="text-white w-3 h-3"></i></div>
+                <div class="w-6 h-6 rounded-full flex items-center justify-center ${ok?'bg-emerald-500':'bg-red-400'}"><i data-lucide="${ok?'check':'x'}" class="text-white w-3 h-3"></i></div>
             </div>
             <p class="text-[11px] italic leading-relaxed ${ok?'text-emerald-700':'text-red-600'}">${ev||'Sem evidência.'}</p>
         </div>`
@@ -723,7 +784,7 @@ function _buildQualSection(data, pCfg) {
                 <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Veredicto</h4>
                 <div class="px-5 py-3 rounded-2xl border-2 text-sm font-black text-center tracking-wide ${vc}">${verd||'—'}</div>
             </div>
-            <div class="glass-card p-6 flex flex-col items-center  text-center border-b-[8px] border-violet-500">
+            <div class="glass-card p-6 flex flex-col items-center justify-center text-center border-b-[8px] border-violet-500">
                 <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Nota do SDR</span>
                 <div class="text-6xl font-black text-violet-600 mb-1">${data.qual_nota_sdr||'—'}</div>
                 <span class="text-[9px] text-slate-400 font-bold">/ 10</span>
@@ -769,7 +830,7 @@ async function renderVendedorBanner(data) {
     const nome = data.vendedor_nome || 'Não identificado';
     const media = data.media_final || 0;
     display.textContent = nome; avatar.textContent = nome.charAt(0).toUpperCase();
-    avatar.className = 'w-10 h-10 rounded-full flex items-center  font-black text-lg flex-shrink-0 ' +
+    avatar.className = 'w-10 h-10 rounded-full flex items-center justify-center font-black text-lg flex-shrink-0 ' +
         (media >= 4 ? 'bg-emerald-100 text-emerald-700' : media >= 3 ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700');
     btn.classList.add('hidden'); salvoTag.classList.add('hidden');
     try {
@@ -796,67 +857,6 @@ async function renderVendedorBanner(data) {
         }
     };
     banner.classList.remove('hidden'); lucide.createIcons();
-}
-
-async function exportarPDF() {
-    try {
-        const vendas = document.getElementById('analysis-content');
-        const qualif = document.getElementById('qual-content');
-        // Build a combined printable div with both sections
-        const wrapper = document.createElement('div');
-        wrapper.style.cssText = 'font-family:sans-serif;padding:0;background:white;';
-
-        // Header
-        wrapper.innerHTML = `
-        <div style="background:#002d72;color:white;padding:24px 32px;border-radius:16px;margin-bottom:20px;">
-            <h1 style="font-size:22px;font-weight:900;margin:0;letter-spacing:2px;">AUDITORIA DE VENDAS</h1>
-            <p style="font-size:11px;color:#93c5fd;margin:4px 0 0;font-weight:700;">Nibo · Análise Completa (Vendas + Qualificação do Lead)</p>
-        </div>`;
-
-        // Clone auditoria section
-        const vendasClone = vendas.cloneNode(true);
-        vendasClone.querySelectorAll('.hidden').forEach(el => {
-            if (el.id === 'section-qualif') { el.classList.remove('hidden'); }
-        });
-        // Make both sections visible in clone
-        const secVendas = vendasClone.querySelector('#section-vendas');
-        const secQualif = vendasClone.querySelector('#section-qualif');
-        if (secVendas) secVendas.classList.remove('hidden');
-        if (secQualif) secQualif.classList.remove('hidden');
-
-        // Add section title for Vendas
-        const titleVendas = document.createElement('div');
-        titleVendas.style.cssText = 'border-left:5px solid #2563eb;padding:8px 16px;margin:0 0 16px;background:#eff6ff;border-radius:0 8px 8px 0;';
-        titleVendas.innerHTML = '<p style="font-size:13px;font-weight:900;color:#1e40af;text-transform:uppercase;letter-spacing:2px;margin:0;">Auditoria de Vendas</p>';
-        wrapper.appendChild(titleVendas);
-        wrapper.appendChild(vendasClone);
-
-        // Add section title for Qualificação
-        const titleQual = document.createElement('div');
-        titleQual.style.cssText = 'border-left:5px solid #7c3aed;padding:8px 16px;margin:24px 0 16px;background:#f5f3ff;border-radius:0 8px 8px 0;page-break-before:always;';
-        titleQual.innerHTML = '<p style="font-size:13px;font-weight:900;color:#5b21b6;text-transform:uppercase;letter-spacing:2px;margin:0;">Qualificação do Lead (SDR)</p>';
-        wrapper.appendChild(titleQual);
-
-        // Clone qual section full content
-        const qualClone = qualif.cloneNode(true);
-        wrapper.appendChild(qualClone);
-
-        document.body.appendChild(wrapper);
-        wrapper.style.position = 'fixed';
-        wrapper.style.left = '-9999px';
-        wrapper.style.top = '0';
-        wrapper.style.width = '794px';
-
-        await html2pdf().set({
-            margin: [10,10,10,10],
-            filename: 'auditoria-nibo-completa.pdf',
-            image: { type:'jpeg', quality:0.95 },
-            html2canvas: { scale:1.5, useCORS:true },
-            jsPDF: { unit:'mm', format:'a4', orientation:'portrait' }
-        }).from(wrapper).save();
-
-        document.body.removeChild(wrapper);
-    } catch(err) { alert('Erro ao gerar PDF: ' + err.message); }
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -924,7 +924,7 @@ function renderDashboardData({ reunioes, stats }) {
         const bgColor = isSimone ? 'bg-blue-100' : 'bg-violet-100';
         return '<div class="glass-card p-8 border-t-4 ' + border + '">' +
             '<div class="flex items-center gap-3 mb-6">' +
-                '<div class="w-10 h-10 rounded-full ' + bgColor + ' flex items-center "><i data-lucide="user-circle" class="w-5 h-5 ' + iconColor + '"></i></div>' +
+                '<div class="w-10 h-10 rounded-full ' + bgColor + ' flex items-center justify-center"><i data-lucide="user-circle" class="w-5 h-5 ' + iconColor + '"></i></div>' +
                 '<div><p class="font-black text-sm text-slate-800">' + nome + '</p>' +
                 '<button onclick="abrirAnalysesCoord(\'' + nome.replace(/'/g,"\\'") + '\')" class="text-[10px] text-blue-500 hover:text-blue-700 font-black underline">' + coData.total + ' reuniões →</button></div>' +
             '</div>' +
@@ -943,7 +943,7 @@ function renderDashboardData({ reunioes, stats }) {
         const medalColor  = v.media >= 4 ? 'border-emerald-300' : v.media >= 3 ? 'border-blue-300' : 'border-red-300';
         const malBadge    = (v.total_mal_qualif > 0) ? '<span class="text-[8px] font-black text-orange-500 bg-orange-50 border border-orange-200 rounded-lg px-2 py-0.5 ml-1">'+v.total_mal_qualif+' excl.</span>' : '';
         return '<div class="flex items-center gap-4 p-4 rounded-2xl border '+scBg(v.media)+' hover:shadow-sm transition-all">' +
-            '<div class="w-8 h-8 rounded-full bg-white border-2 '+medalColor+' flex items-center  font-black text-sm text-slate-600">'+(i+1)+'</div>' +
+            '<div class="w-8 h-8 rounded-full bg-white border-2 '+medalColor+' flex items-center justify-center font-black text-sm text-slate-600">'+(i+1)+'</div>' +
             '<div class="flex-1"><p class="font-black text-sm text-slate-800">'+v.nome+malBadge+'</p>' +
             '<p class="text-[10px] text-slate-400 font-bold">'+v.coordenador+' · '+(v.total_validas||v.total)+' válidas</p></div>' +
             '<div class="grid gap-2 text-center hidden md:grid" style="grid-template-columns:repeat('+pilarLabels.length+',minmax(0,1fr))">'+pilarCols+'</div>' +
@@ -1106,10 +1106,10 @@ function renderVendedorDash(nome, obj) {
     }
     const v = stats.ranking.find(r => r.nome === nome) || stats.ranking[0];
     if (!v) return;
- 
+
     const sc    = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
     const fmt   = n => (typeof n === 'number' && !isNaN(n) && n > 0) ? n.toFixed(1) : '—';
- 
+
     const bar = (label, val, color) => {
         const pct = Math.round((val||0)/5*100);
         return `<div class="flex items-center gap-3">
@@ -1120,29 +1120,24 @@ function renderVendedorDash(nome, obj) {
             <span class="text-xs font-black ${sc(val)} w-8 text-right">${fmt(val)}</span>
         </div>`;
     };
- 
-    // Todos os sub-critérios com suas médias calculadas a partir das reuniões válidas
+
     const reunioesValidas = reunioes.filter(r => !r.mal_qualificado && r.analise_json);
- 
+
     const subMap = {
-        // Etapa 1
         rapport:           { l: 'Rapport',              color: 'bg-blue-400',    etapa: 1 },
         spin:              { l: 'SPIN',                  color: 'bg-blue-500',    etapa: 1 },
         comunicacao:       { l: 'Comunicação Eficaz',   color: 'bg-blue-600',    etapa: 1 },
-        // Etapa 2
         produto:           { l: 'Produto',               color: 'bg-violet-400',  etapa: 2 },
         objecoes:          { l: 'Objeções',              color: 'bg-violet-500',  etapa: 2 },
         solucao_dor:       { l: 'Solução da Dor',        color: 'bg-violet-600',  etapa: 2 },
         encantamento:      { l: 'Encantamento',          color: 'bg-violet-700',  etapa: 2 },
-        // Etapa 3
         pre_fechamento_sub:{ l: 'Pré-Fechamento',        color: 'bg-emerald-400', etapa: 3 },
         escuta_ativa:      { l: 'Escuta Ativa',          color: 'bg-emerald-500', etapa: 3 },
         resiliencia:       { l: 'Resiliência',           color: 'bg-emerald-600', etapa: 3 },
         gestao_tempo:      { l: 'Gestão do Tempo',       color: 'bg-emerald-700', etapa: 3 },
         regras_fechamento: { l: 'Regras de Fechamento',  color: 'bg-teal-600',    etapa: 3 },
     };
- 
-    // Calcular média de cada sub-critério
+
     const subMedias = {};
     Object.keys(subMap).forEach(k => {
         const vals = reunioesValidas
@@ -1150,10 +1145,7 @@ function renderVendedorDash(nome, obj) {
             .filter(v => v !== undefined && v !== null && v > 0);
         subMedias[k] = vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : 0;
     });
- 
-    const temEtapas = v.avg_etapa1 > 0 || v.avg_etapa2 > 0 || v.avg_etapa3 > 0;
- 
-    // Barras agrupadas por etapa
+
     const barsPorEtapa = [
         { label: 'Etapa 1 — Consultividade / SPIN', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-100',
           keys: ['rapport','spin','comunicacao'] },
@@ -1162,7 +1154,7 @@ function renderVendedorDash(nome, obj) {
         { label: 'Etapa 3 — Negociação', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-100',
           keys: ['pre_fechamento_sub','escuta_ativa','resiliencia','gestao_tempo','regras_fechamento'] },
     ];
- 
+
     const barsHTML = barsPorEtapa.map(etapa => {
         const etapaKey = etapa.keys[0] === 'rapport' ? 'etapa1' : etapa.keys[0] === 'produto' ? 'etapa2' : 'etapa3';
         const mediaEtapa = v[`avg_${etapaKey}`] || 0;
@@ -1175,35 +1167,33 @@ function renderVendedorDash(nome, obj) {
             <div class="space-y-3">${subBars}</div>
         </div>`;
     }).join('');
- 
-    // Radar com sub-critérios
+
     const radarLabels = Object.values(subMap).map(s => s.l);
     const radarVals   = Object.keys(subMap).map(k => subMedias[k]);
- 
-    // Ponto forte e fraco
+
     const allVals = Object.keys(subMap).map(k => ({ l: subMap[k].l, v: subMedias[k] })).filter(x => x.v > 0);
     const maxItem = allVals.reduce((a, b) => a.v >= b.v ? a : b, { l: '—', v: 0 });
     const minItem = allVals.reduce((a, b) => a.v <= b.v ? a : b, { l: '—', v: 99 });
- 
+
     const medias = reunioes.filter(r => r.media_final && !r.mal_qualificado).map(r => r.media_final);
     const avgMedia = medias.length ? medias.reduce((a,b)=>a+b,0)/medias.length : 0;
     const stdDev = medias.length > 1 ? Math.sqrt(medias.map(m=>Math.pow(m-avgMedia,2)).reduce((a,b)=>a+b,0)/medias.length) : 0;
     const consLabel = stdDev < 0.5 ? 'Alta' : stdDev < 1.0 ? 'Média' : 'Baixa';
     const consColor = stdDev < 0.5 ? 'text-emerald-600 bg-emerald-50' : stdDev < 1.0 ? 'text-blue-600 bg-blue-50' : 'text-red-500 bg-red-50';
- 
+
     const sdrVereds = { QUALIFICADO:0,PARCIALMENTE:0,MAL:0,FORA:0,SEM:0 };
     reunioes.forEach(r => { const vv=(r.qual_veredicto||'').toUpperCase(); if(vv.includes('FORA'))sdrVereds.FORA++; else if(vv.includes('MAL'))sdrVereds.MAL++; else if(vv.includes('PARC'))sdrVereds.PARCIALMENTE++; else if(vv.includes('QUAL'))sdrVereds.QUALIFICADO++; else sdrVereds.SEM++; });
     const sdrColors={QUALIFICADO:'bg-emerald-500',PARCIALMENTE:'bg-yellow-400',MAL:'bg-red-500',FORA:'bg-purple-500',SEM:'bg-slate-300'};
     const sdrLabs={QUALIFICADO:'Qualificado',PARCIALMENTE:'Parcial',MAL:'Mal Qualif.',FORA:'Fora Portf.',SEM:'Sem dados'};
     const sdrBars=Object.entries(sdrVereds).map(([k,val])=>{const pct=Math.round(val/reunioes.length*100);return`<div class="flex items-center gap-3"><span class="text-[9px] font-black text-slate-500 uppercase w-20 flex-shrink-0">${sdrLabs[k]||k}</span><div class="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden"><div class="h-full ${sdrColors[k]||'bg-slate-300'} rounded-full" style="width:${pct}%"></div></div><span class="text-[10px] font-black text-slate-600 w-8 text-right">${val}</span></div>`;}).join('');
- 
+
     const ultimasRows = reunioes.filter(r => !r.mal_qualificado).slice(0,5).map(r =>
         `<div class="p-3 rounded-xl border border-slate-100 bg-white cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all" onclick="abrirAnaliseCompleta('${r.id}')">
             <div class="flex items-center justify-between"><p class="text-[10px] font-black text-slate-700">${r.produto||'—'}</p><span class="text-lg font-black ${sc(r.media_final)}">${r.media_final||'—'}</span></div>
             <p class="text-[9px] text-slate-400">${new Date(r.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</p>
         </div>`
     ).join('') || '<p class="text-[10px] text-slate-300 text-center py-4">Sem análises válidas.</p>';
- 
+
     content.innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div class="glass-card p-8 flex flex-col items-center justify-center text-center border-b-[8px] border-blue-600">
@@ -1222,8 +1212,7 @@ function renderVendedorDash(nome, obj) {
                 <p class="text-[9px] text-slate-400 mt-2">σ = ${stdDev.toFixed(2)}</p>
             </div>
         </div>
- 
-        <!-- Radar + Sub-critérios -->
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="glass-card p-8 flex items-center justify-center min-h-[380px]">
                 <canvas id="radarVendedor"></canvas>
@@ -1248,8 +1237,7 @@ function renderVendedorDash(nome, obj) {
                 }).join('')}
             </div>
         </div>
- 
-        <!-- Barras agrupadas por etapa -->
+
         <div class="glass-card p-7">
             <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2">
                 <i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-400"></i> Detalhamento por Etapa e Critério
@@ -1268,7 +1256,7 @@ function renderVendedorDash(nome, obj) {
                 </div>
             </div>
         </div>
- 
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="glass-card p-7">
                 <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -1283,10 +1271,9 @@ function renderVendedorDash(nome, obj) {
                 <div class="space-y-2">${ultimasRows}</div>
             </div>
         </div>`;
- 
+
     lucide.createIcons();
- 
-    // Radar do vendedor com todos os sub-critérios
+
     const rCtx = document.getElementById('radarVendedor')?.getContext('2d');
     if (rCtx) {
         new Chart(rCtx, {
@@ -1313,8 +1300,6 @@ function renderVendedorDash(nome, obj) {
         });
     }
 }
- 
- 
 
 // ── Gestão Panel ──────────────────────────────────────────────────────────────
 async function loadGestaoPanel() {
@@ -1334,7 +1319,7 @@ async function loadGestaoPanel() {
                 const vStats = porVendedor[v.nome] || { total:0, total_validas:0, total_mal_qualif:0, media:0 };
                 const sc = vStats.media >= 4 ? 'text-emerald-600' : vStats.media >= 3 ? 'text-blue-600' : 'text-red-500';
                 return '<div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 transition-colors border border-slate-100">' +
-                    '<div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black text-sm flex items-center  flex-shrink-0">'+v.nome.charAt(0)+'</div>' +
+                    '<div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black text-sm flex items-center justify-center flex-shrink-0">'+v.nome.charAt(0)+'</div>' +
                     '<div class="flex-1 min-w-0"><p class="font-black text-sm text-slate-700 truncate">'+v.nome+'</p>' +
                     '<p class="text-[9px] text-slate-400">'+vStats.total_validas+' válidas'+(vStats.total_mal_qualif>0?' · <span class="text-orange-500">'+vStats.total_mal_qualif+' excl.</span>':'')+'</p></div>' +
                     '<span class="text-xl font-black '+sc+'">'+((vStats.media>0)?vStats.media.toFixed(1):'—')+'</span></div>';
@@ -1347,7 +1332,7 @@ async function loadGestaoPanel() {
                     '<button onclick="abrirAnalysesCoord(\''+coord.replace(/'/g,"\\'")+'\')" class="mt-3 text-[10px] font-black text-blue-500 hover:text-blue-700 underline flex items-center gap-1"><i data-lucide="history" class="w-3 h-3"></i> Ver histórico completo →</button>' +
                 '</div>' +
                 '<div class="p-6 space-y-2">'+vendRows+'</div>' +
-                '<div class="px-6 pb-6"><button onclick="abrirModalAddVendedor(\''+coord.replace(/'/g,"\\'")+'\')" class="w-full flex items-center  gap-2 border-2 border-dashed border-slate-200 hover:border-blue-400 text-slate-400 hover:text-blue-600 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest transition-all"><i data-lucide="user-plus" class="w-3 h-3"></i> Adicionar vendedor</button></div>' +
+                '<div class="px-6 pb-6"><button onclick="abrirModalAddVendedor(\''+coord.replace(/'/g,"\\'")+'\')" class="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 hover:border-blue-400 text-slate-400 hover:text-blue-600 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest transition-all"><i data-lucide="user-plus" class="w-3 h-3"></i> Adicionar vendedor</button></div>' +
             '</div>';
         }).join('');
         content.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">'+coordCards+'</div>';
@@ -1395,9 +1380,9 @@ async function loadHistorico(reset) {
             <button onclick="deletarNaoIdentificados()" class="flex items-center gap-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black px-4 py-2 rounded-xl text-[10px] uppercase tracking-widest transition-all"><i data-lucide="trash-2" class="w-3 h-3"></i> Limpar não identificados</button></div>
         </div>
         <div id="hist-table-container" class="overflow-x-auto">
-            <div class="flex items-center py-12  text-slate-300"><div class="loader"></div></div>
+            <div class="flex items-center py-12 justify-center text-slate-300"><div class="loader"></div></div>
         </div>
-        <div id="hist-pagination" class="flex items-center  gap-4 mt-6"></div>
+        <div id="hist-pagination" class="flex items-center justify-center gap-4 mt-6"></div>
     </div>`;
     lucide.createIcons();
     if (!VENDORS_CACHE.length) await loadVendorsCache();
@@ -1486,6 +1471,7 @@ async function deletarNaoIdentificados() {
     } catch(err) { alert('Erro: '+err.message); }
 }
 
+// ── Análise completa ───────────────────────────────────────────────────────────
 async function abrirAnaliseCompleta(id) {
     const modal = document.createElement('div');
     modal.id = 'analise-modal-'+id;
@@ -1502,28 +1488,6 @@ async function abrirAnaliseCompleta(id) {
     </div>`;
     document.body.appendChild(modal);
     lucide.createIcons();
- async function exportarPDFModal(id) {
-    const body = document.getElementById('analise-modal-body-'+id);
-    if (!body) return;
- 
-    // Esconder botões e selects do print
-    const btns = body.querySelectorAll('button, select, input');
-    btns.forEach(el => el.style.display = 'none');
- 
-    const nomeEl = body.querySelector('.font-black.text-slate-700');
-    const nomeVend = nomeEl ? nomeEl.textContent.trim() : id;
- 
-    await html2pdf().set({
-        margin: [8, 8, 8, 8],
-        filename: 'auditoria-completa-' + nomeVend.replace(/[^a-zA-Z0-9À-ſ]/g, '-') + '.pdf',
-        image: { type: 'jpeg', quality: 0.97 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    }).from(body).save();
- 
-    // Restaurar
-    btns.forEach(el => el.style.display = '');
-}
     try {
         const res = await fetch('/api/records?id='+id);
         const d = await res.json();
@@ -1533,11 +1497,10 @@ async function abrirAnaliseCompleta(id) {
         const body = document.getElementById('analise-modal-body-'+id);
         const sc = n => n>=4?'text-emerald-600':n>=3?'text-blue-600':'text-red-500';
         const fmt = n => (n && n > 0) ? Number(n).toFixed(1) : '—';
- 
+
         const verd = r.qual_veredicto||'—';
         const vc = verd.toUpperCase().includes('FORA')?'bg-purple-100 text-purple-700':verd.toUpperCase().includes('MAL')?'bg-red-100 text-red-700':verd.toUpperCase().includes('PARC')?'bg-yellow-100 text-yellow-800':'bg-emerald-100 text-emerald-800';
- 
-        // Sub-critérios completos
+
         const etapas = [
             {
                 titulo: 'Etapa 1 — Consultividade / SPIN',
@@ -1546,9 +1509,9 @@ async function abrirAnaliseCompleta(id) {
                 porque: j.porque_etapa1,
                 melhoria: j.melhoria_etapa1,
                 criterios: [
-                    { l:'Rapport',           k:'rapport',           nota: j.nota_rapport,            porque: j.porque_rapport,           melhoria: j.melhoria_rapport },
-                    { l:'SPIN',              k:'spin',              nota: j.nota_spin,               porque: j.porque_spin,              melhoria: j.melhoria_spin },
-                    { l:'Comunicação Eficaz',k:'comunicacao',       nota: j.nota_comunicacao,        porque: j.porque_comunicacao,       melhoria: j.melhoria_comunicacao },
+                    { l:'Rapport',           nota: j.nota_rapport,           porque: j.porque_rapport,          melhoria: j.melhoria_rapport },
+                    { l:'SPIN',              nota: j.nota_spin,              porque: j.porque_spin,             melhoria: j.melhoria_spin },
+                    { l:'Comunicação Eficaz',nota: j.nota_comunicacao,       porque: j.porque_comunicacao,      melhoria: j.melhoria_comunicacao },
                 ]
             },
             {
@@ -1558,10 +1521,10 @@ async function abrirAnaliseCompleta(id) {
                 porque: j.porque_etapa2,
                 melhoria: j.melhoria_etapa2,
                 criterios: [
-                    { l:'Produto',           k:'produto',           nota: j.nota_produto,            porque: j.porque_produto,           melhoria: j.melhoria_produto },
-                    { l:'Objeções',          k:'objecoes',          nota: j.nota_objecoes,           porque: j.porque_objecoes,          melhoria: j.melhoria_objecoes },
-                    { l:'Solução da Dor',    k:'solucao_dor',       nota: j.nota_solucao_dor,        porque: j.porque_solucao_dor,       melhoria: j.melhoria_solucao_dor },
-                    { l:'Encantamento',      k:'encantamento',      nota: j.nota_encantamento,       porque: j.porque_encantamento,      melhoria: j.melhoria_encantamento },
+                    { l:'Produto',        nota: j.nota_produto,      porque: j.porque_produto,      melhoria: j.melhoria_produto },
+                    { l:'Objeções',       nota: j.nota_objecoes,     porque: j.porque_objecoes,     melhoria: j.melhoria_objecoes },
+                    { l:'Solução da Dor', nota: j.nota_solucao_dor,  porque: j.porque_solucao_dor,  melhoria: j.melhoria_solucao_dor },
+                    { l:'Encantamento',   nota: j.nota_encantamento, porque: j.porque_encantamento, melhoria: j.melhoria_encantamento },
                 ]
             },
             {
@@ -1571,15 +1534,15 @@ async function abrirAnaliseCompleta(id) {
                 porque: j.porque_etapa3,
                 melhoria: j.melhoria_etapa3,
                 criterios: [
-                    { l:'Pré-Fechamento',         k:'pre_fechamento_sub',  nota: j.nota_pre_fechamento_sub,  porque: j.porque_pre_fechamento_sub,  melhoria: j.melhoria_pre_fechamento_sub },
-                    { l:'Escuta Ativa',            k:'escuta_ativa',        nota: j.nota_escuta_ativa,        porque: j.porque_escuta_ativa,        melhoria: j.melhoria_escuta_ativa },
-                    { l:'Resiliência',             k:'resiliencia',         nota: j.nota_resiliencia,         porque: j.porque_resiliencia,         melhoria: j.melhoria_resiliencia },
-                    { l:'Gestão do Tempo',         k:'gestao_tempo',        nota: j.nota_gestao_tempo,        porque: j.porque_gestao_tempo,        melhoria: j.melhoria_gestao_tempo },
-                    { l:'Regras de Fechamento',    k:'regras_fechamento',   nota: j.nota_regras_fechamento,   porque: j.porque_regras_fechamento,   melhoria: j.melhoria_regras_fechamento },
+                    { l:'Pré-Fechamento',      nota: j.nota_pre_fechamento_sub, porque: j.porque_pre_fechamento_sub, melhoria: j.melhoria_pre_fechamento_sub },
+                    { l:'Escuta Ativa',         nota: j.nota_escuta_ativa,       porque: j.porque_escuta_ativa,       melhoria: j.melhoria_escuta_ativa },
+                    { l:'Resiliência',          nota: j.nota_resiliencia,        porque: j.porque_resiliencia,        melhoria: j.melhoria_resiliencia },
+                    { l:'Gestão do Tempo',      nota: j.nota_gestao_tempo,       porque: j.porque_gestao_tempo,       melhoria: j.melhoria_gestao_tempo },
+                    { l:'Regras de Fechamento', nota: j.nota_regras_fechamento,  porque: j.porque_regras_fechamento,  melhoria: j.melhoria_regras_fechamento },
                 ]
             }
         ];
- 
+
         const etapasHTML = etapas.map(e => {
             const notaEtapa = e.nota || 0;
             const colEtapa = getScoreColor(notaEtapa);
@@ -1599,7 +1562,7 @@ async function abrirAnaliseCompleta(id) {
                     ${c.melhoria && nota < 5 ? `<p class="text-[10px] text-amber-700 font-bold flex items-start gap-1 mt-1"><i data-lucide="lightbulb" class="w-3 h-3 mt-0.5 flex-shrink-0"></i>${c.melhoria}</p>` : ''}
                 </div>`;
             }).join('');
- 
+
             return `<div class="rounded-[2rem] border-t-4 ${e.cor} bg-white shadow-sm overflow-hidden">
                 <div class="p-6 ${e.bg} border-b border-slate-100">
                     <div class="flex items-center justify-between">
@@ -1614,7 +1577,7 @@ async function abrirAnaliseCompleta(id) {
                 <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-3">${subCards}</div>
             </div>`;
         }).join('');
- 
+
         body.innerHTML = `
             <div class="flex flex-wrap gap-3 mb-6">
                 <div class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl"><span class="text-[10px] font-black text-slate-500">Vendedor:</span><span class="font-black text-slate-700">${r.vendedor_nome||'—'}</span></div>
@@ -1623,13 +1586,10 @@ async function abrirAnaliseCompleta(id) {
                 <div class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl"><span class="text-[10px] font-black text-slate-500">Data:</span><span class="font-black text-slate-700">${new Date(r.created_at).toLocaleDateString('pt-BR')}</span></div>
                 <div class="flex items-center gap-2 px-4 py-2 rounded-xl ${vc}"><span class="text-[10px] font-black">SDR: ${verd}</span></div>
             </div>
- 
             <div class="flex items-center gap-4 p-6 bg-gradient-to-r from-blue-700 to-blue-900 rounded-[2rem] mb-6">
                 <div class="text-6xl font-black text-white">${(r.media_final||0).toFixed(1)}</div>
                 <p class="text-white font-bold text-sm leading-relaxed flex-1">${j.resumo_executivo||'—'}</p>
             </div>
- 
-            <!-- Resumo de etapas -->
             <div class="grid grid-cols-3 gap-3 mb-6">
                 ${[{l:'Consultividade',v:j.nota_etapa1||r.nota_rapport,c:'border-blue-500'},{l:'Apres. Ferramenta',v:j.nota_etapa2||r.nota_produto,c:'border-violet-500'},{l:'Negociação',v:j.nota_etapa3||r.nota_apresentacao,c:'border-emerald-500'}].map(p=>`
                 <div class="text-center p-4 bg-slate-50 rounded-2xl border-t-4 ${p.c} border border-slate-100">
@@ -1637,11 +1597,7 @@ async function abrirAnaliseCompleta(id) {
                     <p class="text-3xl font-black ${sc(p.v||0)}">${(p.v||0)}</p>
                 </div>`).join('')}
             </div>
- 
-            <!-- Etapas + sub-critérios completos -->
             <div class="space-y-5 mb-6">${etapasHTML}</div>
- 
-            <!-- Pontos fortes e atenção -->
             ${(j.pontos_fortes||[]).length || (j.pontos_atencao||[]).length ? `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div class="bg-emerald-50 p-6 rounded-[2rem] border border-emerald-100">
@@ -1653,8 +1609,6 @@ async function abrirAnaliseCompleta(id) {
                     <ul class="space-y-2">${(j.pontos_atencao||[]).map(i=>`<li class="text-[12px] font-bold text-amber-900 flex gap-2"><span>▶</span>${i}</li>`).join('')}</ul>
                 </div>
             </div>` : ''}
- 
-            <!-- Plano de coaching -->
             ${j.justificativa_detalhada ? `
             <div class="glass-card p-8 mb-6">
                 <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -1662,8 +1616,6 @@ async function abrirAnaliseCompleta(id) {
                 </h4>
                 <div class="markdown-content">${marked.parse(j.justificativa_detalhada)}</div>
             </div>` : ''}
- 
-            <!-- SDR completo -->
             ${j.qual_analise_completa ? `
             <div class="glass-card p-8 border-t-4 border-violet-500">
                 <h4 class="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -1671,14 +1623,36 @@ async function abrirAnaliseCompleta(id) {
                 </h4>
                 <div class="markdown-content">${marked.parse(j.qual_analise_completa)}</div>
             </div>` : ''}`;
- 
+
         lucide.createIcons();
     } catch(err) {
         document.getElementById('analise-modal-body-'+id).innerHTML = `<p class="text-center py-20 text-red-400 font-bold">Erro ao carregar: ${err.message}</p>`;
     }
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
- 
+
+// ── exportarPDFModal — função global (FORA de abrirAnaliseCompleta) ────────────
+async function exportarPDFModal(id) {
+    const body = document.getElementById('analise-modal-body-'+id);
+    if (!body) return;
+
+    const btns = body.querySelectorAll('button, select, input');
+    btns.forEach(el => el.style.display = 'none');
+
+    const nomeEl = body.querySelector('.font-black.text-slate-700');
+    const nomeVend = nomeEl ? nomeEl.textContent.trim() : id;
+
+    await html2pdf().set({
+        margin: [8, 8, 8, 8],
+        filename: 'auditoria-completa-' + nomeVend.replace(/[^a-zA-Z0-9À-ſ]/g, '-') + '.pdf',
+        image: { type: 'jpeg', quality: 0.97 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).from(body).save();
+
+    btns.forEach(el => el.style.display = '');
+}
+
 // ── Calendário inline ─────────────────────────────────────────────────────────
 async function loadCalendario() {
     const content = document.getElementById('dash-content');
@@ -1724,7 +1698,7 @@ async function loadCalendario() {
 window.mostrarDiaCal = async function(dia) {
     const el = document.getElementById('cal-dia-detalhe');
     el.classList.remove('hidden');
-    el.innerHTML = '<div class="flex items-center py-8  text-slate-300"><div class="loader"></div></div>';
+    el.innerHTML = '<div class="flex items-center py-8 justify-center text-slate-300"><div class="loader"></div></div>';
     try {
         const res = await fetch('/api/records?data_inicio='+dia+'&data_fim='+dia+'&limit=50&offset=0');
         const d = await res.json();
@@ -1738,6 +1712,33 @@ window.mostrarDiaCal = async function(dia) {
     } catch { el.innerHTML = '<p class="text-red-400 text-sm text-center py-4">Erro ao carregar.</p>'; }
 };
 
+async function abrirAnalysesCoord(coord) {
+    const content = document.getElementById('dash-content');
+    content.innerHTML = '<div class="flex flex-col items-center py-16 text-slate-300"><div class="loader mb-4"></div><p class="font-bold text-xs uppercase tracking-widest animate-pulse">Carregando histórico de '+coord+'...</p></div>';
+    try {
+        const res = await fetch('/api/records?coordenador='+encodeURIComponent(coord)+'&limit=50&offset=0');
+        const d = await res.json();
+        if (!d.records) throw new Error('Erro ao carregar');
+        const sc = n => n>=4?'text-emerald-600':n>=3?'text-blue-600':'text-red-500';
+        const rows = d.records.map(r => {
+            const dt = new Date(r.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+            const temEtapas = r.nota_pre_fechamento === null && r.nota_fechamento === null;
+            const colMap = temEtapas ? [
+                {l:'E1',val:r.nota_rapport||0},{l:'E2',val:r.nota_produto||0},{l:'E3',val:r.nota_apresentacao||0}
+            ] : [
+                {l:'R',val:r.nota_rapport||0},{l:'Pr',val:r.nota_produto||0},{l:'A',val:r.nota_apresentacao||0},{l:'PF',val:r.nota_pre_fechamento||0},{l:'F',val:r.nota_fechamento||0}
+            ];
+            const cols = colMap.map(c => '<div class="text-center"><p class="text-[7px] font-black text-slate-400">'+c.l+'</p><p class="text-xs font-black '+sc(c.val)+'">'+c.val+'</p></div>').join('');
+            return '<div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:bg-blue-50/30 transition-colors cursor-pointer" onclick="abrirAnaliseCompleta(\''+r.id+'\')">' +
+                '<div class="flex-1 min-w-0"><p class="font-black text-sm text-slate-700">'+(r.vendedor_nome||'—')+'</p><p class="text-[10px] text-slate-400">'+(r.produto||'—')+' · '+dt+'</p></div>' +
+                '<div class="grid gap-2 hidden md:grid" style="grid-template-columns:repeat('+colMap.length+',minmax(0,1fr))">'+cols+'</div>' +
+                '<span class="text-2xl font-black '+sc(r.media_final)+'">'+((r.media_final||0).toFixed(1))+'</span></div>';
+        }).join('') || '<p class="text-slate-300 text-center py-12">Nenhuma análise encontrada.</p>';
+        content.innerHTML = '<div class="glass-card p-8"><h4 class="font-black text-slate-700 mb-6 flex items-center gap-2"><i data-lucide="user-circle" class="w-5 h-5 text-blue-500"></i> '+coord+'</h4><div class="space-y-3">'+rows+'</div></div>';
+        lucide.createIcons();
+    } catch(err) { content.innerHTML = '<p class="text-center py-20 text-red-400 font-bold">Erro: '+err.message+'</p>'; }
+}
+
 // ── SDR Dashboard ─────────────────────────────────────────────────────────────
 async function loadSdrDash() {
     const content = document.getElementById('dash-content');
@@ -1749,15 +1750,13 @@ async function loadSdrDash() {
         const d = await res.json();
         const reunioes = d.reunioes || [];
         const stats = d.stats || {};
-        const porVendedor = stats.porVendedor || {};
 
-        // ── Contagens por veredicto ──────────────────────────────────────────
         const cats = {
-            QUALIFICADO:  { label:'Qualificado',          color:'#10b981', bg:'bg-emerald-500', light:'bg-emerald-50',  border:'border-emerald-300', text:'text-emerald-700', count:0 },
-            PARCIALMENTE: { label:'Parc. Qualificado',    color:'#f59e0b', bg:'bg-amber-400',   light:'bg-amber-50',    border:'border-amber-300',   text:'text-amber-700',   count:0 },
-            MAL:          { label:'Mal Qualificado',      color:'#ef4444', bg:'bg-red-500',     light:'bg-red-50',      border:'border-red-300',     text:'text-red-700',     count:0 },
-            FORA:         { label:'Fora do Portfólio',    color:'#8b5cf6', bg:'bg-violet-500',  light:'bg-violet-50',   border:'border-violet-300',  text:'text-violet-700',  count:0 },
-            SEM:          { label:'Sem Dados',            color:'#94a3b8', bg:'bg-slate-300',   light:'bg-slate-50',    border:'border-slate-200',   text:'text-slate-500',   count:0 }
+            QUALIFICADO:  { label:'Qualificado',        color:'#10b981', bg:'bg-emerald-500', light:'bg-emerald-50', border:'border-emerald-300', text:'text-emerald-700', count:0 },
+            PARCIALMENTE: { label:'Parc. Qualificado',  color:'#f59e0b', bg:'bg-amber-400',   light:'bg-amber-50',   border:'border-amber-300',   text:'text-amber-700',   count:0 },
+            MAL:          { label:'Mal Qualificado',    color:'#ef4444', bg:'bg-red-500',     light:'bg-red-50',     border:'border-red-300',     text:'text-red-700',     count:0 },
+            FORA:         { label:'Fora do Portfólio',  color:'#8b5cf6', bg:'bg-violet-500',  light:'bg-violet-50',  border:'border-violet-300',  text:'text-violet-700',  count:0 },
+            SEM:          { label:'Sem Dados',          color:'#94a3b8', bg:'bg-slate-300',   light:'bg-slate-50',   border:'border-slate-200',   text:'text-slate-500',   count:0 }
         };
         reunioes.forEach(r => {
             const v = (r.qual_veredicto||'').toUpperCase();
@@ -1770,18 +1769,17 @@ async function loadSdrDash() {
         const total = reunioes.length || 1;
         const dentroPct = Math.round(((cats.QUALIFICADO.count + cats.PARCIALMENTE.count) / total) * 100);
 
-        // ── KPI cards ──────────────────────────────────────────────────────
         const kpiData = [
-            { label:'Total de Reuniões', val: reunioes.length, icon:'clipboard-list', color:'text-blue-600', bg:'bg-blue-50' },
-            { label:'Dentro do Portfólio', val: cats.QUALIFICADO.count + cats.PARCIALMENTE.count, pct: dentroPct+'%', icon:'check-circle', color:'text-emerald-600', bg:'bg-emerald-50' },
-            { label:'Fora do Portfólio', val: cats.FORA.count, pct: Math.round(cats.FORA.count/total*100)+'%', icon:'x-circle', color:'text-violet-600', bg:'bg-violet-50' },
-            { label:'Mal Qualificados', val: cats.MAL.count, pct: Math.round(cats.MAL.count/total*100)+'%', icon:'alert-triangle', color:'text-red-600', bg:'bg-red-50' },
-            { label:'Qualif. Plenos', val: cats.QUALIFICADO.count, pct: Math.round(cats.QUALIFICADO.count/total*100)+'%', icon:'star', color:'text-teal-600', bg:'bg-teal-50' },
-            { label:'Parc. Qualificados', val: cats.PARCIALMENTE.count, pct: Math.round(cats.PARCIALMENTE.count/total*100)+'%', icon:'minus-circle', color:'text-amber-600', bg:'bg-amber-50' },
+            { label:'Total de Reuniões',   val: reunioes.length,                              icon:'clipboard-list', color:'text-blue-600',    bg:'bg-blue-50' },
+            { label:'Dentro do Portfólio', val: cats.QUALIFICADO.count+cats.PARCIALMENTE.count, pct: dentroPct+'%', icon:'check-circle',   color:'text-emerald-600', bg:'bg-emerald-50' },
+            { label:'Fora do Portfólio',   val: cats.FORA.count, pct: Math.round(cats.FORA.count/total*100)+'%',   icon:'x-circle',       color:'text-violet-600',  bg:'bg-violet-50' },
+            { label:'Mal Qualificados',    val: cats.MAL.count,  pct: Math.round(cats.MAL.count/total*100)+'%',    icon:'alert-triangle', color:'text-red-600',     bg:'bg-red-50' },
+            { label:'Qualif. Plenos',      val: cats.QUALIFICADO.count, pct: Math.round(cats.QUALIFICADO.count/total*100)+'%', icon:'star', color:'text-teal-600', bg:'bg-teal-50' },
+            { label:'Parc. Qualificados',  val: cats.PARCIALMENTE.count, pct: Math.round(cats.PARCIALMENTE.count/total*100)+'%', icon:'minus-circle', color:'text-amber-600', bg:'bg-amber-50' },
         ];
         const kpiHTML = kpiData.map(k =>
             `<div class="glass-card p-5 flex items-center gap-4">
-                <div class="w-12 h-12 ${k.bg} rounded-2xl flex items-center  flex-shrink-0">
+                <div class="w-12 h-12 ${k.bg} rounded-2xl flex items-center justify-center flex-shrink-0">
                     <i data-lucide="${k.icon}" class="w-6 h-6 ${k.color}"></i>
                 </div>
                 <div>
@@ -1792,7 +1790,6 @@ async function loadSdrDash() {
             </div>`
         ).join('');
 
-        // ── Donut chart HTML (SVG) ─────────────────────────────────────────
         const cx=80, cy=80, r=60, stroke=22;
         const circum = 2*Math.PI*r;
         let offset = 0;
@@ -1807,8 +1804,7 @@ async function loadSdrDash() {
         const donutSlices = slices.map(s =>
             `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${stroke}"
              stroke-dasharray="${s.dash} ${s.gap}" stroke-dashoffset="${-s.offset+circum*0.25}"
-             transform="rotate(-90 ${cx} ${cy})">
-             <title>${s.label}: ${s.count} (${s.pct}%)</title></circle>`
+             transform="rotate(-90 ${cx} ${cy})"><title>${s.label}: ${s.count} (${s.pct}%)</title></circle>`
         ).join('');
         const donutLegend = slices.map(s =>
             `<div class="flex items-center gap-2">
@@ -1819,20 +1815,18 @@ async function loadSdrDash() {
             </div>`
         ).join('');
 
-        // ── Barras de distribuição ─────────────────────────────────────────
         const distBars = Object.values(cats).map(c => {
             const pct = Math.round(c.count/total*100);
             return `<div class="flex items-center gap-3">
                 <span class="text-[9px] font-black uppercase tracking-widest w-28 flex-shrink-0 ${c.text}">${c.label}</span>
-                <div class="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden relative">
-                    <div class="${c.bg} h-full rounded-full transition-all duration-700" style="width:${pct}%"></div>
+                <div class="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="${c.bg} h-full rounded-full" style="width:${pct}%"></div>
                 </div>
                 <span class="text-[11px] font-black text-slate-700 w-6 text-right">${c.count}</span>
                 <span class="text-[9px] text-slate-400 w-8 text-right">${pct}%</span>
             </div>`;
         }).join('');
 
-        // ── Ranking por nota SDR ──────────────────────────────────────────
         const sdrByVend = {};
         reunioes.forEach(r => {
             const n = r.vendedor_nome||'—';
@@ -1872,7 +1866,6 @@ async function loadSdrDash() {
                 </div>`;
             }).join('') || '<p class="text-center py-10 text-slate-300 font-bold">Nenhum dado disponível.</p>';
 
-        // ── Evolução SDR por semana ────────────────────────────────────────
         const sdrEvolSemanas = {};
         reunioes.forEach(r => {
             const dt = new Date(r.created_at);
@@ -1884,34 +1877,24 @@ async function loadSdrDash() {
             else if (v.includes('QUAL')||v.includes('PARC')) sdrEvolSemanas[wk].dentro++;
         });
         const sdrSemKeys = Object.keys(sdrEvolSemanas).sort().slice(-8);
-        const evolLabels = sdrSemKeys.map(k => JSON.stringify(sdrEvolSemanas[k].label));
         const evolDentro = sdrSemKeys.map(k => sdrEvolSemanas[k].dentro);
         const evolFora   = sdrSemKeys.map(k => sdrEvolSemanas[k].fora);
         const evolMal    = sdrSemKeys.map(k => sdrEvolSemanas[k].mal);
 
-        // ── Render ────────────────────────────────────────────────────────
         content.innerHTML = `
-        <!-- KPIs -->
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">${kpiHTML}</div>
-
-        <!-- Distribuição + Donut -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div class="glass-card p-7">
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2">
-                    <i data-lucide="pie-chart" class="w-4 h-4 text-violet-400"></i> Distribuição de Veredictos
-                </h4>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4 text-violet-400"></i> Distribuição de Veredictos</h4>
                 <div class="space-y-3">${distBars}</div>
-                <!-- Indicador principal -->
                 <div class="mt-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 flex items-center gap-4">
                     <div class="text-4xl font-black text-emerald-600">${dentroPct}%</div>
                     <div><p class="font-black text-emerald-700 text-sm">Taxa Dentro do Portfólio</p><p class="text-[10px] text-emerald-500">Qualificados + Parciais</p></div>
                 </div>
             </div>
             <div class="glass-card p-7">
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2">
-                    <i data-lucide="target" class="w-4 h-4 text-violet-400"></i> Visão Gráfica
-                </h4>
-                <div class="flex items-center gap-6 ">
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="target" class="w-4 h-4 text-violet-400"></i> Visão Gráfica</h4>
+                <div class="flex items-center gap-6 justify-center">
                     <svg viewBox="0 0 160 160" class="w-40 h-40 flex-shrink-0">
                         ${donutSlices}
                         <text x="80" y="75" text-anchor="middle" font-size="20" font-weight="900" fill="#1e293b">${total}</text>
@@ -1921,27 +1904,17 @@ async function loadSdrDash() {
                 </div>
             </div>
         </div>
-
-        <!-- Ranking por vendedor -->
         <div class="glass-card p-7 mb-6">
-            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2">
-                <i data-lucide="award" class="w-4 h-4 text-violet-400"></i> Ranking SDR por Vendedor
-                <span class="ml-auto text-[9px] font-bold text-slate-300">ordenado por nota SDR</span>
-            </h4>
+            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-violet-400"></i> Ranking SDR por Vendedor</h4>
             <div class="space-y-3">${rankingRows}</div>
         </div>
-
-        <!-- Evolução semanal SDR -->
         <div class="glass-card p-7">
-            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2">
-                <i data-lucide="trending-up" class="w-4 h-4 text-violet-400"></i> Evolução Semanal de Qualificação
-            </h4>
+            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4 text-violet-400"></i> Evolução Semanal de Qualificação</h4>
             <canvas id="chart-sdr-evol" height="100"></canvas>
         </div>`;
 
         lucide.createIcons();
 
-        // Render evolução chart
         const ctx = document.getElementById('chart-sdr-evol')?.getContext('2d');
         if (ctx && sdrSemKeys.length) {
             new Chart(ctx, {
