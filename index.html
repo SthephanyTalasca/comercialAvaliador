@@ -57,7 +57,7 @@
 <body class="pb-20 antialiased">
 
 <!-- LOGIN SCREEN -->
-<div id="login-screen" class="hidden fixed inset-0 z-[200] bg-[#001a4d] flex items-center justify-center p-6">
+<div id="login-screen" class="hidden fixed inset-0 z-[200] bg-[#001a4d] flex items-center  p-6">
     <div class="bg-white rounded-[2.5rem] p-12 max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-6">
         <div class="bg-[#002d72] p-4 rounded-2xl"><i data-lucide="shield-check" class="text-white w-10 h-10"></i></div>
         <div>
@@ -65,7 +65,7 @@
             <p class="text-slate-400 text-sm font-medium">Acesso restrito — apenas Heads</p>
         </div>
         <div id="login-error" class="hidden w-full bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-700 font-medium"></div>
-        <a href="/api/auth" class="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-200 hover:border-blue-400 text-slate-700 font-bold px-6 py-4 rounded-2xl transition-all shadow-sm hover:shadow-md">
+        <a href="/api/auth" class="w-full flex items-center  gap-3 bg-white border-2 border-slate-200 hover:border-blue-400 text-slate-700 font-bold px-6 py-4 rounded-2xl transition-all shadow-sm hover:shadow-md">
             <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
             Entrar com Google Nibo
         </a>
@@ -144,7 +144,7 @@
         <div id="analysis-content" class="hidden space-y-8">
             <!-- Vendedor banner -->
             <div id="vendedor-banner" class="hidden bg-white border border-slate-200 rounded-[2rem] p-5 flex items-center gap-4 shadow-sm">
-                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-black text-blue-600 text-lg flex-shrink-0" id="vendedor-avatar">?</div>
+                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center  font-black text-blue-600 text-lg flex-shrink-0" id="vendedor-avatar">?</div>
                 <div class="flex-1 min-w-0">
                     <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Consultor identificado pela IA</p>
                     <p id="vendedor-nome-display" class="font-black text-slate-800 text-base truncate"></p>
@@ -161,12 +161,12 @@
             </div>
             <!-- Score hero -->
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                <div class="lg:col-span-1 glass-card p-10 flex flex-col items-center justify-center text-center border-b-[10px] border-blue-600">
+                <div class="lg:col-span-1 glass-card p-10 flex flex-col items-center  text-center border-b-[10px] border-blue-600">
                     <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Média Global (Máx 5)</span>
                     <div id="media-final" class="text-7xl font-black text-[#002d72] mb-3">0.0</div>
                     <div id="status-tag" class="px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">---</div>
                 </div>
-                <div class="lg:col-span-3 glass-card p-10 bg-gradient-to-br from-blue-700 to-blue-900 text-white flex flex-col justify-center">
+                <div class="lg:col-span-3 glass-card p-10 bg-gradient-to-br from-blue-700 to-blue-900 text-white flex flex-col ">
                     <div id="concorrentes-tags" class="flex flex-wrap gap-2 mb-4"></div>
                     <h3 class="font-bold text-blue-200 text-[10px] uppercase tracking-widest mb-4">Diagnóstico Geral</h3>
                     <p id="resumo-text" class="text-xl md:text-2xl font-bold leading-tight mb-8"></p>
@@ -199,7 +199,7 @@
                 </p>
                 <div id="notas-grid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="glass-card p-8 min-h-[380px] flex items-center justify-center"><canvas id="radarChart"></canvas></div>
+                    <div class="glass-card p-8 min-h-[380px] flex items-center "><canvas id="radarChart"></canvas></div>
                     <div class="space-y-6">
                         <div class="glass-card p-8">
                             <h4 class="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest">Tempo de Fala</h4>
@@ -236,8 +236,8 @@
 </main>
 
 <!-- MODAL PILAR/ETAPA -->
-<div id="justification-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm opacity-0 p-4 overflow-y-auto">
-    <div id="modal-content-box" class="bg-white rounded-[2rem] p-8 max-w-lg w-full shadow-2xl transform scale-95 flex flex-col gap-5 my-8">
+<div id="justification-modal" class="fixed inset-0 z-[100] hidden bg-slate-900/50 backdrop-blur-sm opacity-0 p-6 overflow-y-auto">
+   <div id="modal-content-box" class="bg-white rounded-[2rem] p-8 max-w-lg w-full shadow-2xl transform scale-95 flex flex-col gap-5 my-8 mx-auto">
         <div class="flex justify-between items-center">
             <span id="modal-title" class="text-[11px] font-black uppercase text-slate-400 tracking-widest">Etapa</span>
             <button onclick="closeModal()" class="bg-slate-100 hover:bg-slate-200 p-2.5 rounded-full text-slate-500 transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -559,7 +559,7 @@ function renderDashboard(data) {
         const criteriosHTML = (p.criterios||[]).map(c => {
             const cc = getScoreColor(c.score);
             return `<div class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-100 hover:border-slate-200 transition-all">
-                <div class="flex-shrink-0 w-8 h-8 rounded-lg ${cm.light} flex items-center justify-center">
+                <div class="flex-shrink-0 w-8 h-8 rounded-lg ${cm.light} flex items-center ">
                     <span class="text-xs font-black ${cm.text}">${c.score||'—'}</span>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -572,7 +572,7 @@ function renderDashboard(data) {
         return `<div onclick="openModal(${idx})" class="pilar-card bg-white rounded-[2rem] p-6 flex flex-col cursor-pointer border-t-4 ${cm.border} shadow-sm hover:shadow-md transition-all">
             <div class="zoom-icon"><i data-lucide="zoom-in" class="w-3 h-3 text-blue-400"></i></div>
             <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-xl ${cm.light} flex items-center justify-center flex-shrink-0">
+                <div class="w-10 h-10 rounded-xl ${cm.light} flex items-center  flex-shrink-0">
                     <i data-lucide="${p.icon}" class="w-5 h-5 ${cm.text}"></i>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -599,7 +599,7 @@ function renderDashboard(data) {
     document.getElementById('checklist-container').innerHTML = Object.entries(ckLabels).map(([k,l]) => `
         <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
             <span class="text-[9px] font-bold text-slate-600 uppercase tracking-tight">${l}</span>
-            <div class="w-5 h-5 rounded-full flex items-center justify-center ${ck[k]?'bg-emerald-500':'bg-slate-300'}">
+            <div class="w-5 h-5 rounded-full flex items-center  ${ck[k]?'bg-emerald-500':'bg-slate-300'}">
                 <i data-lucide="${ck[k]?'check':'minus'}" class="text-white w-3 h-3"></i>
             </div>
         </div>`).join('');
@@ -710,7 +710,7 @@ function _buildQualSection(data, pCfg) {
         `<div class="rounded-2xl p-5 border flex flex-col gap-3 ${ok?'bg-emerald-50 border-emerald-100':'bg-red-50 border-red-100'}">
             <div class="flex items-center justify-between">
                 <span class="text-[9px] font-black uppercase tracking-widest ${ok?'text-emerald-700':'text-red-700'}">${l||'—'}</span>
-                <div class="w-6 h-6 rounded-full flex items-center justify-center ${ok?'bg-emerald-500':'bg-red-400'}"><i data-lucide="${ok?'check':'x'}" class="text-white w-3 h-3"></i></div>
+                <div class="w-6 h-6 rounded-full flex items-center  ${ok?'bg-emerald-500':'bg-red-400'}"><i data-lucide="${ok?'check':'x'}" class="text-white w-3 h-3"></i></div>
             </div>
             <p class="text-[11px] italic leading-relaxed ${ok?'text-emerald-700':'text-red-600'}">${ev||'Sem evidência.'}</p>
         </div>`
@@ -724,7 +724,7 @@ function _buildQualSection(data, pCfg) {
         `<div class="rounded-2xl p-5 border flex flex-col gap-2 ${ok?'bg-emerald-50 border-emerald-100':'bg-red-50 border-red-100'}">
             <div class="flex items-center justify-between">
                 <span class="text-[10px] font-black uppercase tracking-widest ${ok?'text-emerald-700':'text-red-700'}">${label}</span>
-                <div class="w-6 h-6 rounded-full flex items-center justify-center ${ok?'bg-emerald-500':'bg-red-400'}"><i data-lucide="${ok?'check':'x'}" class="text-white w-3 h-3"></i></div>
+                <div class="w-6 h-6 rounded-full flex items-center  ${ok?'bg-emerald-500':'bg-red-400'}"><i data-lucide="${ok?'check':'x'}" class="text-white w-3 h-3"></i></div>
             </div>
             <p class="text-[11px] italic leading-relaxed ${ok?'text-emerald-700':'text-red-600'}">${ev||'Sem evidência.'}</p>
         </div>`
@@ -749,7 +749,7 @@ function _buildQualSection(data, pCfg) {
                 <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Veredicto</h4>
                 <div class="px-5 py-3 rounded-2xl border-2 text-sm font-black text-center tracking-wide ${vc}">${verd||'—'}</div>
             </div>
-            <div class="glass-card p-6 flex flex-col items-center justify-center text-center border-b-[8px] border-violet-500">
+            <div class="glass-card p-6 flex flex-col items-center  text-center border-b-[8px] border-violet-500">
                 <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Nota do SDR</span>
                 <div class="text-6xl font-black text-violet-600 mb-1">${data.qual_nota_sdr||'—'}</div>
                 <span class="text-[9px] text-slate-400 font-bold">/ 10</span>
@@ -795,7 +795,7 @@ async function renderVendedorBanner(data) {
     const nome = data.vendedor_nome || 'Não identificado';
     const media = data.media_final || 0;
     display.textContent = nome; avatar.textContent = nome.charAt(0).toUpperCase();
-    avatar.className = 'w-10 h-10 rounded-full flex items-center justify-center font-black text-lg flex-shrink-0 ' +
+    avatar.className = 'w-10 h-10 rounded-full flex items-center  font-black text-lg flex-shrink-0 ' +
         (media >= 4 ? 'bg-emerald-100 text-emerald-700' : media >= 3 ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700');
     btn.classList.add('hidden'); salvoTag.classList.add('hidden');
     try {
@@ -950,7 +950,7 @@ function renderDashboardData({ reunioes, stats }) {
         const bgColor = isSimone ? 'bg-blue-100' : 'bg-violet-100';
         return '<div class="glass-card p-8 border-t-4 ' + border + '">' +
             '<div class="flex items-center gap-3 mb-6">' +
-                '<div class="w-10 h-10 rounded-full ' + bgColor + ' flex items-center justify-center"><i data-lucide="user-circle" class="w-5 h-5 ' + iconColor + '"></i></div>' +
+                '<div class="w-10 h-10 rounded-full ' + bgColor + ' flex items-center "><i data-lucide="user-circle" class="w-5 h-5 ' + iconColor + '"></i></div>' +
                 '<div><p class="font-black text-sm text-slate-800">' + nome + '</p>' +
                 '<button onclick="abrirAnalysesCoord(\'' + nome.replace(/'/g,"\\'") + '\')" class="text-[10px] text-blue-500 hover:text-blue-700 font-black underline">' + coData.total + ' reuniões →</button></div>' +
             '</div>' +
@@ -969,7 +969,7 @@ function renderDashboardData({ reunioes, stats }) {
         const medalColor  = v.media >= 4 ? 'border-emerald-300' : v.media >= 3 ? 'border-blue-300' : 'border-red-300';
         const malBadge    = (v.total_mal_qualif > 0) ? '<span class="text-[8px] font-black text-orange-500 bg-orange-50 border border-orange-200 rounded-lg px-2 py-0.5 ml-1">'+v.total_mal_qualif+' excl.</span>' : '';
         return '<div class="flex items-center gap-4 p-4 rounded-2xl border '+scBg(v.media)+' hover:shadow-sm transition-all">' +
-            '<div class="w-8 h-8 rounded-full bg-white border-2 '+medalColor+' flex items-center justify-center font-black text-sm text-slate-600">'+(i+1)+'</div>' +
+            '<div class="w-8 h-8 rounded-full bg-white border-2 '+medalColor+' flex items-center  font-black text-sm text-slate-600">'+(i+1)+'</div>' +
             '<div class="flex-1"><p class="font-black text-sm text-slate-800">'+v.nome+malBadge+'</p>' +
             '<p class="text-[10px] text-slate-400 font-bold">'+v.coordenador+' · '+(v.total_validas||v.total)+' válidas</p></div>' +
             '<div class="grid gap-2 text-center hidden md:grid" style="grid-template-columns:repeat('+pilarLabels.length+',minmax(0,1fr))">'+pilarCols+'</div>' +
@@ -1192,9 +1192,9 @@ function renderVendedorDash(nome, obj) {
 
     content.innerHTML =
         '<div class="grid grid-cols-1 md:grid-cols-3 gap-5">' +
-            '<div class="glass-card p-8 flex flex-col items-center justify-center text-center border-b-[8px] border-blue-600"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Média Global</p><div class="text-6xl font-black '+sc(v.media)+' mb-2">'+fmt(v.media)+'</div><div class="flex gap-px">'+buildStars(Math.round(v.media))+'</div></div>' +
-            '<div class="glass-card p-8 flex flex-col items-center justify-center text-center"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">RDs Válidas</p><div class="text-6xl font-black text-slate-700 mb-1">'+(v.total_validas||v.total)+'</div>'+(v.total_mal_qualif>0?'<p class="text-[9px] text-orange-500 font-black">'+v.total_mal_qualif+' excluída(s) da média</p>':'')+'</div>' +
-            '<div class="glass-card p-8 flex flex-col items-center justify-center text-center"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Consistência</p><div class="text-4xl font-black px-4 py-2 rounded-2xl '+consColor+'">'+consLabel+'</div><p class="text-[9px] text-slate-400 mt-2">σ = '+stdDev.toFixed(2)+'</p></div>' +
+            '<div class="glass-card p-8 flex flex-col items-center  text-center border-b-[8px] border-blue-600"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Média Global</p><div class="text-6xl font-black '+sc(v.media)+' mb-2">'+fmt(v.media)+'</div><div class="flex gap-px">'+buildStars(Math.round(v.media))+'</div></div>' +
+            '<div class="glass-card p-8 flex flex-col items-center  text-center"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">RDs Válidas</p><div class="text-6xl font-black text-slate-700 mb-1">'+(v.total_validas||v.total)+'</div>'+(v.total_mal_qualif>0?'<p class="text-[9px] text-orange-500 font-black">'+v.total_mal_qualif+' excluída(s) da média</p>':'')+'</div>' +
+            '<div class="glass-card p-8 flex flex-col items-center  text-center"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Consistência</p><div class="text-4xl font-black px-4 py-2 rounded-2xl '+consColor+'">'+consLabel+'</div><p class="text-[9px] text-slate-400 mt-2">σ = '+stdDev.toFixed(2)+'</p></div>' +
         '</div>' +
         '<div class="glass-card p-7"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="zap" class="w-4 h-4 text-amber-400"></i> Diagnóstico Personalizado</h4><div class="space-y-2">'+diagRows+'</div></div>' +
         '<div class="glass-card p-7"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-400"></i> Desempenho por '+(temEtapas?'Etapa':'Pilar')+'</h4><div class="space-y-4">'+barEtapas+'</div>' +
@@ -1227,7 +1227,7 @@ async function loadGestaoPanel() {
                 const vStats = porVendedor[v.nome] || { total:0, total_validas:0, total_mal_qualif:0, media:0 };
                 const sc = vStats.media >= 4 ? 'text-emerald-600' : vStats.media >= 3 ? 'text-blue-600' : 'text-red-500';
                 return '<div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 transition-colors border border-slate-100">' +
-                    '<div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black text-sm flex items-center justify-center flex-shrink-0">'+v.nome.charAt(0)+'</div>' +
+                    '<div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black text-sm flex items-center  flex-shrink-0">'+v.nome.charAt(0)+'</div>' +
                     '<div class="flex-1 min-w-0"><p class="font-black text-sm text-slate-700 truncate">'+v.nome+'</p>' +
                     '<p class="text-[9px] text-slate-400">'+vStats.total_validas+' válidas'+(vStats.total_mal_qualif>0?' · <span class="text-orange-500">'+vStats.total_mal_qualif+' excl.</span>':'')+'</p></div>' +
                     '<span class="text-xl font-black '+sc+'">'+((vStats.media>0)?vStats.media.toFixed(1):'—')+'</span></div>';
@@ -1240,7 +1240,7 @@ async function loadGestaoPanel() {
                     '<button onclick="abrirAnalysesCoord(\''+coord.replace(/'/g,"\\'")+'\')" class="mt-3 text-[10px] font-black text-blue-500 hover:text-blue-700 underline flex items-center gap-1"><i data-lucide="history" class="w-3 h-3"></i> Ver histórico completo →</button>' +
                 '</div>' +
                 '<div class="p-6 space-y-2">'+vendRows+'</div>' +
-                '<div class="px-6 pb-6"><button onclick="abrirModalAddVendedor(\''+coord.replace(/'/g,"\\'")+'\')" class="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 hover:border-blue-400 text-slate-400 hover:text-blue-600 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest transition-all"><i data-lucide="user-plus" class="w-3 h-3"></i> Adicionar vendedor</button></div>' +
+                '<div class="px-6 pb-6"><button onclick="abrirModalAddVendedor(\''+coord.replace(/'/g,"\\'")+'\')" class="w-full flex items-center  gap-2 border-2 border-dashed border-slate-200 hover:border-blue-400 text-slate-400 hover:text-blue-600 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest transition-all"><i data-lucide="user-plus" class="w-3 h-3"></i> Adicionar vendedor</button></div>' +
             '</div>';
         }).join('');
         content.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">'+coordCards+'</div>';
@@ -1288,9 +1288,9 @@ async function loadHistorico(reset) {
             <button onclick="deletarNaoIdentificados()" class="flex items-center gap-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black px-4 py-2 rounded-xl text-[10px] uppercase tracking-widest transition-all"><i data-lucide="trash-2" class="w-3 h-3"></i> Limpar não identificados</button></div>
         </div>
         <div id="hist-table-container" class="overflow-x-auto">
-            <div class="flex items-center py-12 justify-center text-slate-300"><div class="loader"></div></div>
+            <div class="flex items-center py-12  text-slate-300"><div class="loader"></div></div>
         </div>
-        <div id="hist-pagination" class="flex items-center justify-center gap-4 mt-6"></div>
+        <div id="hist-pagination" class="flex items-center  gap-4 mt-6"></div>
     </div>`;
     lucide.createIcons();
     if (!VENDORS_CACHE.length) await loadVendorsCache();
@@ -1392,7 +1392,7 @@ async function abrirAnaliseCompleta(id) {
                 <button onclick="document.getElementById('analise-modal-${id}').remove()" class="bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-2xl transition-all"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
         </div>
-        <div id="analise-modal-body-${id}" class="p-8"><div class="flex items-center justify-center py-20"><div class="loader"></div></div></div>
+        <div id="analise-modal-body-${id}" class="p-8"><div class="flex items-center  py-20"><div class="loader"></div></div></div>
     </div>`;
     document.body.appendChild(modal);
     lucide.createIcons();
@@ -1516,7 +1516,7 @@ async function loadCalendario() {
 window.mostrarDiaCal = async function(dia) {
     const el = document.getElementById('cal-dia-detalhe');
     el.classList.remove('hidden');
-    el.innerHTML = '<div class="flex items-center py-8 justify-center text-slate-300"><div class="loader"></div></div>';
+    el.innerHTML = '<div class="flex items-center py-8  text-slate-300"><div class="loader"></div></div>';
     try {
         const res = await fetch('/api/records?data_inicio='+dia+'&data_fim='+dia+'&limit=50&offset=0');
         const d = await res.json();
@@ -1573,7 +1573,7 @@ async function loadSdrDash() {
         ];
         const kpiHTML = kpiData.map(k =>
             `<div class="glass-card p-5 flex items-center gap-4">
-                <div class="w-12 h-12 ${k.bg} rounded-2xl flex items-center justify-center flex-shrink-0">
+                <div class="w-12 h-12 ${k.bg} rounded-2xl flex items-center  flex-shrink-0">
                     <i data-lucide="${k.icon}" class="w-6 h-6 ${k.color}"></i>
                 </div>
                 <div>
@@ -1703,7 +1703,7 @@ async function loadSdrDash() {
                 <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2">
                     <i data-lucide="target" class="w-4 h-4 text-violet-400"></i> Visão Gráfica
                 </h4>
-                <div class="flex items-center gap-6 justify-center">
+                <div class="flex items-center gap-6 ">
                     <svg viewBox="0 0 160 160" class="w-40 h-40 flex-shrink-0">
                         ${donutSlices}
                         <text x="80" y="75" text-anchor="middle" font-size="20" font-weight="900" fill="#1e293b">${total}</text>
