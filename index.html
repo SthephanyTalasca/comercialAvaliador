@@ -236,8 +236,9 @@
 </main>
 
 <!-- MODAL PILAR/ETAPA -->
-<div id="justification-modal" class="fixed inset-0 z-[100] hidden bg-slate-900/50 backdrop-blur-sm opacity-0 p-6 overflow-y-auto">
-   <div id="modal-content-box" class="bg-white rounded-[2rem] p-8 max-w-lg w-full shadow-2xl transform scale-95 flex flex-col gap-5 my-8 mx-auto">
+<div id="justification-modal" class="fixed inset-0 z-[100] hidden bg-slate-900/50 backdrop-blur-sm opacity-0 overflow-y-auto">
+    <div class="min-h-full flex items-center justify-center p-4 pointer-events-none">
+    <div id="modal-content-box" class="bg-white rounded-[2rem] p-8 max-w-lg w-full shadow-2xl transform scale-95 flex flex-col gap-5 my-8 pointer-events-auto">
         <div class="flex justify-between items-center">
             <span id="modal-title" class="text-[11px] font-black uppercase text-slate-400 tracking-widest">Etapa</span>
             <button onclick="closeModal()" class="bg-slate-100 hover:bg-slate-200 p-2.5 rounded-full text-slate-500 transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -260,7 +261,7 @@
         <div id="modal-subcriterios"></div>
     </div>
 </div>
-
+</div>
 <!-- DASHBOARD MODAL -->
 <div id="dashboard-modal" class="hidden fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm overflow-y-auto p-4">
     <div class="max-w-7xl mx-auto mt-8 mb-16">
@@ -675,7 +676,7 @@ function openModal(idx) {
             }).join('')}</div></div>`;
     } else { subEl.innerHTML = ''; }
     const modal = document.getElementById('justification-modal');
-    modal.classList.remove('hidden'); modal.classList.add('flex');
+    modal.classList.remove('hidden');
     setTimeout(() => {
         modal.classList.remove('opacity-0');
         document.getElementById('modal-content-box').classList.remove('scale-95');
@@ -688,7 +689,7 @@ function closeModal() {
     const modal = document.getElementById('justification-modal');
     const box = document.getElementById('modal-content-box');
     modal.classList.add('opacity-0'); box.classList.remove('scale-100'); box.classList.add('scale-95');
-    setTimeout(() => { modal.classList.remove('flex'); modal.classList.add('hidden'); }, 300);
+    setTimeout(() => { modal.classList.add('hidden'); }, 300);
 }
 document.getElementById('justification-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
