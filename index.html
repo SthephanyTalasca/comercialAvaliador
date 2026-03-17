@@ -236,9 +236,8 @@
 </main>
 
 <!-- MODAL PILAR/ETAPA -->
-<div id="justification-modal" class="fixed inset-0 z-[100] hidden bg-slate-900/50 backdrop-blur-sm opacity-0 overflow-y-auto">
-    <div class="min-h-full flex items-center justify-center p-4">
-    <div id="modal-content-box" class="bg-white rounded-[2rem] p-8 max-w-lg w-full shadow-2xl transform scale-95 flex flex-col gap-5 my-8">
+<div id="justification-modal" class="fixed inset-0 z-[100] hidden bg-slate-900/50 backdrop-blur-sm opacity-0 p-6 overflow-y-auto">
+   <div id="modal-content-box" class="bg-white rounded-[2rem] p-8 max-w-lg w-full shadow-2xl transform scale-95 flex flex-col gap-5 my-8 mx-auto">
         <div class="flex justify-between items-center">
             <span id="modal-title" class="text-[11px] font-black uppercase text-slate-400 tracking-widest">Etapa</span>
             <button onclick="closeModal()" class="bg-slate-100 hover:bg-slate-200 p-2.5 rounded-full text-slate-500 transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -248,9 +247,8 @@
             <div class="flex-1">
                 <div id="modal-stars" class="stars-row justify-start mb-3"></div>
                 <p id="modal-text" class="text-[13px] text-slate-600 font-medium leading-relaxed"></p>
-             </div>
-    </div>
-</div>
+            </div>
+        </div>
         <div class="w-full h-px bg-slate-100"></div>
         <div id="modal-improvement-container" class="rounded-2xl p-4 border">
             <div class="flex items-center gap-2 mb-2">
@@ -261,6 +259,8 @@
         </div>
         <div id="modal-subcriterios"></div>
     </div>
+</div>
+
 <!-- DASHBOARD MODAL -->
 <div id="dashboard-modal" class="hidden fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm overflow-y-auto p-4">
     <div class="max-w-7xl mx-auto mt-8 mb-16">
@@ -534,7 +534,7 @@ function renderDashboard(data) {
     else if (media >= 3.5) { status.textContent = "Alta Performance"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700"; }
     else { status.textContent = "Acompanhamento"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; }
 
-    Data = fields.map(f => ({
+    pilarData = fields.map(f => ({
         label: f.l, icon: f.icon, color: f.color || 'blue',
         score: data[`nota_${f.k}`] || 0,
         porque: data[`porque_${f.k}`] || "Sem justificativa disponível.",
@@ -553,7 +553,7 @@ function renderDashboard(data) {
         emerald: { border:'border-emerald-500', light:'bg-emerald-50', text:'text-emerald-700' }
     };
 
-    document.getElementById('notas-grid').innerHTML = Data.map((p, idx) => {
+    document.getElementById('notas-grid').innerHTML = pilarData.map((p, idx) => {
         const col = getScoreColor(p.score);
         const cm = colorMap[p.color] || colorMap.blue;
         const criteriosHTML = (p.criterios||[]).map(c => {
@@ -569,7 +569,7 @@ function renderDashboard(data) {
                 <div class="flex-shrink-0 flex gap-px">${buildStars(c.score, true)}</div>
             </div>`;
         }).join('');
-        return `<div onclick="openModal(${idx})" class="-card bg-white rounded-[2rem] p-6 flex flex-col cursor-pointer border-t-4 ${cm.border} shadow-sm hover:shadow-md transition-all">
+        return `<div onclick="openModal(${idx})" class="pilar-card bg-white rounded-[2rem] p-6 flex flex-col cursor-pointer border-t-4 ${cm.border} shadow-sm hover:shadow-md transition-all">
             <div class="zoom-icon"><i data-lucide="zoom-in" class="w-3 h-3 text-blue-400"></i></div>
             <div class="flex items-center gap-3 mb-4">
                 <div class="w-10 h-10 rounded-xl ${cm.light} flex items-center  flex-shrink-0">
