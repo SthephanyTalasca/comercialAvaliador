@@ -1502,7 +1502,28 @@ async function abrirAnaliseCompleta(id) {
     </div>`;
     document.body.appendChild(modal);
     lucide.createIcons();
+ async function exportarPDFModal(id) {
+    const body = document.getElementById('analise-modal-body-'+id);
+    if (!body) return;
  
+    // Esconder botões e selects do print
+    const btns = body.querySelectorAll('button, select, input');
+    btns.forEach(el => el.style.display = 'none');
+ 
+    const nomeEl = body.querySelector('.font-black.text-slate-700');
+    const nomeVend = nomeEl ? nomeEl.textContent.trim() : id;
+ 
+    await html2pdf().set({
+        margin: [8, 8, 8, 8],
+        filename: 'auditoria-completa-' + nomeVend.replace(/[^a-zA-Z0-9À-ſ]/g, '-') + '.pdf',
+        image: { type: 'jpeg', quality: 0.97 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).from(body).save();
+ 
+    // Restaurar
+    btns.forEach(el => el.style.display = '');
+}
     try {
         const res = await fetch('/api/records?id='+id);
         const d = await res.json();
