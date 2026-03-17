@@ -1,25 +1,29 @@
 // api/analyze.js
 // ─────────────────────────────────────────────────────────────────────────────
-// NOVA ESTRUTURA DE AVALIAÇÃO (3 etapas, 8 critérios)
+// ESTRUTURA DE AVALIAÇÃO (3 etapas, 12 critérios)
 //
 //  Etapa 1 – Consultividade / Diagnóstico - SPIN
-//    • SPIN          (nota_spin)
-//    • Comunicação   (nota_comunicacao)
-//    • Interação     (nota_interacao)
-//    → nota_etapa1   salva em: nota_rapport (coluna existente)
+//    • Rapport          (nota_rapport)
+//    • SPIN             (nota_spin)
+//    • Comunicação      (nota_comunicacao)
+//    → nota_etapa1      salva em: nota_rapport (coluna existente)
 //
 //  Etapa 2 – Apresentação da Ferramenta
-//    • Objeções      (nota_objecoes)
-//    • Solução da dor(nota_solucao_dor)
-//    → nota_etapa2   salva em: nota_produto (coluna existente)
+//    • Produto          (nota_produto)
+//    • Objeções         (nota_objecoes)
+//    • Solução da dor   (nota_solucao_dor)
+//    • Encantamento     (nota_encantamento)
+//    → nota_etapa2      salva em: nota_produto (coluna existente)
 //
 //  Etapa 3 – Negociação
-//    • Escuta ativa  (nota_escuta_ativa)
-//    • Resiliência   (nota_resiliencia)
-//    • Gestão do tempo (nota_gestao_tempo)
-//    → nota_etapa3   salva em: nota_apresentacao (coluna existente)
+//    • Pré-fechamento   (nota_pre_fechamento)
+//    • Escuta ativa     (nota_escuta_ativa)
+//    • Resiliência      (nota_resiliencia)
+//    • Gestão do tempo  (nota_gestao_tempo)
+//    • Regras de fech.  (nota_regras_fechamento)
+//    → nota_etapa3      salva em: nota_apresentacao (coluna existente)
 //
-//  media_final = média dos 8 critérios
+//  media_final = média dos 12 critérios
 //
 //  REGRA MAL QUALIFICADO:
 //    Se qual_veredicto contém "MAL" ou "FORA", a reunião não contabiliza
@@ -75,6 +79,10 @@ export default async function handler(req, res) {
                         concorrentes_detectados: { type: Type.ARRAY, items: { type: Type.STRING } },
 
                         // ── ETAPA 1 — Consultividade / Diagnóstico - SPIN ────
+                        nota_rapport:           { type: Type.NUMBER },   // 1-5
+                        porque_rapport:         { type: Type.STRING },
+                        melhoria_rapport:       { type: Type.STRING },
+
                         nota_spin:              { type: Type.NUMBER },   // 1-5
                         porque_spin:            { type: Type.STRING },
                         melhoria_spin:          { type: Type.STRING },
@@ -83,15 +91,15 @@ export default async function handler(req, res) {
                         porque_comunicacao:     { type: Type.STRING },
                         melhoria_comunicacao:   { type: Type.STRING },
 
-                        nota_interacao:         { type: Type.NUMBER },   // 1-5
-                        porque_interacao:       { type: Type.STRING },
-                        melhoria_interacao:     { type: Type.STRING },
-
-                        nota_etapa1:            { type: Type.NUMBER },   // avg(spin+com+int)
-                        porque_etapa1:          { type: Type.STRING },   // síntese da etapa
+                        nota_etapa1:            { type: Type.NUMBER },   // avg(rapport+spin+com)
+                        porque_etapa1:          { type: Type.STRING },
                         melhoria_etapa1:        { type: Type.STRING },
 
                         // ── ETAPA 2 — Apresentação da Ferramenta ─────────────
+                        nota_produto:           { type: Type.NUMBER },   // 1-5
+                        porque_produto:         { type: Type.STRING },
+                        melhoria_produto:       { type: Type.STRING },
+
                         nota_objecoes:          { type: Type.NUMBER },   // 1-5
                         porque_objecoes:        { type: Type.STRING },
                         melhoria_objecoes:      { type: Type.STRING },
@@ -100,11 +108,19 @@ export default async function handler(req, res) {
                         porque_solucao_dor:     { type: Type.STRING },
                         melhoria_solucao_dor:   { type: Type.STRING },
 
-                        nota_etapa2:            { type: Type.NUMBER },   // avg(obj+sol)
+                        nota_encantamento:      { type: Type.NUMBER },   // 1-5
+                        porque_encantamento:    { type: Type.STRING },
+                        melhoria_encantamento:  { type: Type.STRING },
+
+                        nota_etapa2:            { type: Type.NUMBER },   // avg(prod+obj+sol+enc)
                         porque_etapa2:          { type: Type.STRING },
                         melhoria_etapa2:        { type: Type.STRING },
 
                         // ── ETAPA 3 — Negociação ─────────────────────────────
+                        nota_pre_fechamento_sub:   { type: Type.NUMBER },   // 1-5  (sub-critério — não confundir com coluna DB)
+                        porque_pre_fechamento_sub: { type: Type.STRING },
+                        melhoria_pre_fechamento_sub:{ type: Type.STRING },
+
                         nota_escuta_ativa:      { type: Type.NUMBER },   // 1-5
                         porque_escuta_ativa:    { type: Type.STRING },
                         melhoria_escuta_ativa:  { type: Type.STRING },
@@ -117,7 +133,11 @@ export default async function handler(req, res) {
                         porque_gestao_tempo:    { type: Type.STRING },
                         melhoria_gestao_tempo:  { type: Type.STRING },
 
-                        nota_etapa3:            { type: Type.NUMBER },   // avg(esc+res+ges)
+                        nota_regras_fechamento:      { type: Type.NUMBER },   // 1-5
+                        porque_regras_fechamento:    { type: Type.STRING },
+                        melhoria_regras_fechamento:  { type: Type.STRING },
+
+                        nota_etapa3:            { type: Type.NUMBER },   // avg(pre+esc+res+ges+reg)
                         porque_etapa3:          { type: Type.STRING },
                         melhoria_etapa3:        { type: Type.STRING },
 
@@ -184,20 +204,24 @@ export default async function handler(req, res) {
                         "concorrentes_detectados",
 
                         // Etapa 1
+                        "nota_rapport", "porque_rapport", "melhoria_rapport",
                         "nota_spin", "porque_spin", "melhoria_spin",
                         "nota_comunicacao", "porque_comunicacao", "melhoria_comunicacao",
-                        "nota_interacao", "porque_interacao", "melhoria_interacao",
                         "nota_etapa1", "porque_etapa1", "melhoria_etapa1",
 
                         // Etapa 2
+                        "nota_produto", "porque_produto", "melhoria_produto",
                         "nota_objecoes", "porque_objecoes", "melhoria_objecoes",
                         "nota_solucao_dor", "porque_solucao_dor", "melhoria_solucao_dor",
+                        "nota_encantamento", "porque_encantamento", "melhoria_encantamento",
                         "nota_etapa2", "porque_etapa2", "melhoria_etapa2",
 
                         // Etapa 3
+                        "nota_pre_fechamento_sub", "porque_pre_fechamento_sub", "melhoria_pre_fechamento_sub",
                         "nota_escuta_ativa", "porque_escuta_ativa", "melhoria_escuta_ativa",
                         "nota_resiliencia", "porque_resiliencia", "melhoria_resiliencia",
                         "nota_gestao_tempo", "porque_gestao_tempo", "melhoria_gestao_tempo",
+                        "nota_regras_fechamento", "porque_regras_fechamento", "melhoria_regras_fechamento",
                         "nota_etapa3", "porque_etapa3", "melhoria_etapa3",
 
                         "tempo_fala_consultor", "tempo_fala_cliente",
@@ -233,7 +257,6 @@ export default async function handler(req, res) {
 
         // ── Inject UI config (hidden from frontend source) ─────────────────
         analysisData._config = {
-            // 3 estágios substituem os 5 pilares antigos
             fields: [
                 {
                     l: 'Consultividade / SPIN',
@@ -241,9 +264,9 @@ export default async function handler(req, res) {
                     icon: 'search',
                     color: 'blue',
                     criterios: [
-                        { l: 'SPIN', k: 'spin',        desc: 'Realizou perguntas de Situação, Problema, Implicação e Necessidade?' },
-                        { l: 'Comunicação Eficaz', k: 'comunicacao', desc: 'Demonstrou capacidade de ouvir as dores e o cenário do cliente?' },
-                        { l: 'Interação',  k: 'interacao',   desc: 'Utilizou vocabulário adequado garantindo comunicação saudável?' }
+                        { l: 'Rapport',            k: 'rapport',      desc: 'Criou conexão genuína e estabeleceu confiança com o lead?' },
+                        { l: 'SPIN',               k: 'spin',         desc: 'Realizou perguntas de Situação, Problema, Implicação e Necessidade?' },
+                        { l: 'Comunicação Eficaz', k: 'comunicacao',  desc: 'Demonstrou capacidade de ouvir as dores e o cenário do cliente?' }
                     ]
                 },
                 {
@@ -252,8 +275,10 @@ export default async function handler(req, res) {
                     icon: 'presentation',
                     color: 'violet',
                     criterios: [
-                        { l: 'Objeções',      k: 'objecoes',    desc: 'Conseguiu contornar objeções de maneira amistosa e convincente?' },
-                        { l: 'Solução da Dor', k: 'solucao_dor', desc: 'Utilizou a dor identificada no diagnóstico para mostrar a solução?' }
+                        { l: 'Produto',                      k: 'produto',       desc: 'Apresentou o produto com clareza, domínio e adequação ao cenário?' },
+                        { l: 'Objeções',                     k: 'objecoes',      desc: 'Conseguiu contornar objeções de maneira amistosa e convincente?' },
+                        { l: 'Solução da Dor',               k: 'solucao_dor',   desc: 'Utilizou a dor identificada no diagnóstico para mostrar a solução?' },
+                        { l: 'Encantamento e Emoção',        k: 'encantamento',  desc: 'Gerou emoção comercial, entusiasmo e encantou o lead com a ferramenta?' }
                     ]
                 },
                 {
@@ -262,9 +287,11 @@ export default async function handler(req, res) {
                     icon: 'handshake',
                     color: 'emerald',
                     criterios: [
-                        { l: 'Escuta Ativa',     k: 'escuta_ativa',  desc: 'Exerceu escuta ativa com pausas necessárias para feedback do lead?' },
-                        { l: 'Resiliência',      k: 'resiliencia',   desc: 'Demonstrou firmeza com bons argumentos para fechamento ou próximo contato?' },
-                        { l: 'Gestão do Tempo',  k: 'gestao_tempo',  desc: 'Conseguiu boa gestão do tempo garantindo call de qualidade em 60 min?' }
+                        { l: 'Pré-Fechamento',   k: 'pre_fechamento_sub',  desc: 'Preparou o terreno para o fechamento com ancoragem e comprometimento do lead?' },
+                        { l: 'Escuta Ativa',     k: 'escuta_ativa',        desc: 'Exerceu escuta ativa com pausas necessárias para feedback do lead?' },
+                        { l: 'Resiliência',      k: 'resiliencia',         desc: 'Demonstrou firmeza com bons argumentos para fechamento ou próximo contato?' },
+                        { l: 'Gestão do Tempo',  k: 'gestao_tempo',        desc: 'Conseguiu boa gestão do tempo garantindo call de qualidade em 60 min?' },
+                        { l: 'Regras de Fech.',  k: 'regras_fechamento',   desc: 'Aplicou corretamente as regras e técnicas de fechamento Nibo?' }
                     ]
                 }
             ],
