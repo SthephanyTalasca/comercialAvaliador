@@ -311,6 +311,17 @@
                         </select>
                     </div>
                     <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Produto:</span>
+                        <select id="dash-filter-produto" onchange="loadDashboard()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300">
+                            <option value="todos">Todos os produtos</option>
+                            <option value="RADAR-ECAC">RADAR-ECAC</option>
+                            <option value="NIBO OBRIGAÇÕES">NIBO OBRIGAÇÕES</option>
+                            <option value="CONCILIADOR">CONCILIADOR</option>
+                            <option value="WHATSAPP WEB">WHATSAPP WEB</option>
+                            <option value="EMISSOR DE NOTAS">EMISSOR DE NOTAS</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2">
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Período:</span>
                         <select id="dash-filter-periodo" onchange="onPeriodoChange()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300">
                             <option value="30">Últimos 30 dias</option>
@@ -926,13 +937,14 @@ async function loadDashboard() {
     const coord = document.getElementById('dash-filter-coord').value;
     const vendedor = document.getElementById('dash-filter-vendedor')?.value || 'todos';
     const periodo = document.getElementById('dash-filter-periodo').value;
+    const produto = document.getElementById('dash-filter-produto')?.value || 'todos';
     const loading = document.getElementById('dash-loading');
     const content = document.getElementById('dash-content');
     loading.classList.remove('hidden');
     try {
         const inicio = document.getElementById('dash-filter-inicio')?.value || '';
         const fim = document.getElementById('dash-filter-fim')?.value || '';
-        let qs = 'coordenador=' + encodeURIComponent(coord) + '&periodo=' + periodo + '&vendedor=' + encodeURIComponent(vendedor);
+        let qs = 'coordenador=' + encodeURIComponent(coord) + '&periodo=' + periodo + '&vendedor=' + encodeURIComponent(vendedor) + '&produto=' + encodeURIComponent(produto);
         if (inicio) qs += '&data_inicio=' + encodeURIComponent(inicio);
         if (fim) qs += '&data_fim=' + encodeURIComponent(fim);
         const res = await fetch('/api/dashboard?' + qs);
