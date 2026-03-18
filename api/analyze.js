@@ -1,327 +1,229 @@
-// api/analyze.js
+// api/dashboard.js
 // ─────────────────────────────────────────────────────────────────────────────
-// ESTRUTURA DE AVALIAÇÃO (3 etapas, 12 critérios)
-//
-//  Etapa 1 – Consultividade / Diagnóstico - SPIN
-//    • Rapport          (nota_rapport)
-//    • SPIN             (nota_spin)
-//    • Comunicação      (nota_comunicacao)
-//    → nota_etapa1      salva em: nota_rapport (coluna existente)
-//
-//  Etapa 2 – Apresentação da Ferramenta
-//    • Produto          (nota_produto)
-//    • Objeções         (nota_objecoes)
-//    • Solução da dor   (nota_solucao_dor)
-//    • Encantamento     (nota_encantamento)
-//    → nota_etapa2      salva em: nota_produto (coluna existente)
-//
-//  Etapa 3 – Negociação
-//    • Pré-fechamento   (nota_pre_fechamento)
-//    • Escuta ativa     (nota_escuta_ativa)
-//    • Resiliência      (nota_resiliencia)
-//    • Gestão do tempo  (nota_gestao_tempo)
-//    • Regras de fech.  (nota_regras_fechamento)
-//    → nota_etapa3      salva em: nota_apresentacao (coluna existente)
-//
-//  media_final = média dos 12 critérios
-//
-//  REGRA MAL QUALIFICADO:
-//    Se qual_veredicto contém "MAL" ou "FORA", a reunião não contabiliza
-//    na média do vendedor (tratado em api/dashboard.js e api/save.js).
-//
-//  auditoria_objecoes: lista de até 10 objeções identificadas na transcrição,
-//    com flag se foram contornadas e sugestão de abordagem quando não foram.
+// REGRA MAL QUALIFICADO:
+//   Reuniões onde mal_qualificado = true (lead Mal Qualificado ou Fora de
+//   Portfólio) NÃO contabilizam na média do vendedor nem no ranking.
+//   Elas aparecem apenas em stats.reunioes_mal_qualificadas para relatório
+//   separado.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { GoogleGenAI, Type } from '@google/genai';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 
-export const maxDuration = 60;
-
-export default async function handler(req, res) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: "Método não permitido. Use POST." });
-    }
-
-    // ── Verificar sessão ────────────────────────────────────────────────────
+function getSession(req) {
     const cookie = req.headers.cookie || '';
     const match  = cookie.match(/nibo_session=([^;]+)/);
-    if (!match) return res.status(401).json({ error: "Não autorizado." });
+    if (!match) return null;
     try {
-        const session = JSON.parse(Buffer.from(match[1], 'base64').toString('utf8'));
-        if (!session.exp || Date.now() > session.exp) return res.status(401).json({ error: "Sessão expirada." });
-        const domain = session.email.toLowerCase().split('@')[1];
-        if (domain !== 'nibo.com.br') return res.status(403).json({ error: "Acesso negado." });
-    } catch { return res.status(401).json({ error: "Sessão inválida." }); }
-    // ────────────────────────────────────────────────────────────────────────
+        const s = JSON.parse(Buffer.from(match[1], 'base64').toString('utf8'));
+        if (s.exp && Date.now() > s.exp) return null;
+        if (s.email.toLowerCase().split('@')[1] !== 'nibo.com.br') return null;
+        return s;
+    } catch { return null; }
+}
 
-    const { prompt } = req.body;
-    if (!prompt) return res.status(400).json({ error: "O texto da transcrição é obrigatório." });
+export default async function handler(req, res) {
+    if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido' });
+    if (!getSession(req)) return res.status(401).json({ error: 'Não autorizado' });
+
+    const { coordenador, periodo, inicio, fim, vendedor, produto } = req.query;
+
+    let filter = '';
+
+    if (coordenador && coordenador !== 'todos') {
+        filter += `&coordenador=eq.${encodeURIComponent(coordenador)}`;
+    }
+    if (vendedor && vendedor !== 'todos') {
+        filter += `&vendedor_nome=eq.${encodeURIComponent(vendedor)}`;
+    }
+    // ── Filtro por produto ────────────────────────────────────────────────────
+    if (produto && produto !== 'todos') {
+        filter += `&produto=ilike.${encodeURIComponent('*' + produto + '*')}`;
+    }
+
+    // Filtro de período
+    if (periodo && periodo !== 'todos') {
+        const now   = new Date();
+        let   desde = null;
+        if (periodo === '7d')  { desde = new Date(now); desde.setDate(now.getDate() - 7); }
+        if (periodo === '30d') { desde = new Date(now); desde.setDate(now.getDate() - 30); }
+        if (periodo === '90d') { desde = new Date(now); desde.setDate(now.getDate() - 90); }
+        if (periodo === 'mes') { desde = new Date(now.getFullYear(), now.getMonth(), 1); }
+        if (periodo === 'custom' && inicio && fim) {
+            filter += `&created_at=gte.${new Date(inicio).toISOString()}&created_at=lte.${new Date(fim + 'T23:59:59').toISOString()}`;
+        } else if (desde) {
+            filter += `&created_at=gte.${desde.toISOString()}`;
+        }
+    }
+    // suporte a periodo numérico (ex: "30", "7", "90") vindo dos filtros de histórico
+    if (periodo && !isNaN(parseInt(periodo, 10))) {
+        const dias = parseInt(periodo, 10);
+        const desde = new Date(Date.now() - dias * 86400000).toISOString();
+        filter += `&created_at=gte.${desde}`;
+    }
 
     try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const systemInstruction = process.env.SYSTEM_PROMPT;
-        if (!systemInstruction) return res.status(500).json({ error: "Prompt não configurado no servidor." });
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                systemInstruction,
-                responseMimeType: "application/json",
-                maxOutputTokens: 65536,
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-
-                        // ── IDENTIFICAÇÃO ────────────────────────────────────
-                        vendedor_nome:           { type: Type.STRING },
-                        media_final:             { type: Type.NUMBER },
-                        resumo_executivo:        { type: Type.STRING },
-                        chance_fechamento:       { type: Type.STRING },
-                        alerta_cancelamento:     { type: Type.STRING },
-                        concorrentes_detectados: { type: Type.ARRAY, items: { type: Type.STRING } },
-
-                        // ── ETAPA 1 — Consultividade / Diagnóstico - SPIN ────
-                        nota_rapport:           { type: Type.NUMBER },   // 1-5
-                        porque_rapport:         { type: Type.STRING },
-                        melhoria_rapport:       { type: Type.STRING },
-
-                        nota_spin:              { type: Type.NUMBER },   // 1-5
-                        porque_spin:            { type: Type.STRING },
-                        melhoria_spin:          { type: Type.STRING },
-
-                        nota_comunicacao:       { type: Type.NUMBER },   // 1-5
-                        porque_comunicacao:     { type: Type.STRING },
-                        melhoria_comunicacao:   { type: Type.STRING },
-
-                        nota_etapa1:            { type: Type.NUMBER },   // avg(rapport+spin+com)
-                        porque_etapa1:          { type: Type.STRING },
-                        melhoria_etapa1:        { type: Type.STRING },
-
-                        // ── ETAPA 2 — Apresentação da Ferramenta ─────────────
-                        nota_produto:           { type: Type.NUMBER },   // 1-5
-                        porque_produto:         { type: Type.STRING },
-                        melhoria_produto:       { type: Type.STRING },
-
-                        nota_objecoes:          { type: Type.NUMBER },   // 1-5
-                        porque_objecoes:        { type: Type.STRING },
-                        melhoria_objecoes:      { type: Type.STRING },
-
-                        nota_solucao_dor:       { type: Type.NUMBER },   // 1-5
-                        porque_solucao_dor:     { type: Type.STRING },
-                        melhoria_solucao_dor:   { type: Type.STRING },
-
-                        nota_encantamento:      { type: Type.NUMBER },   // 1-5
-                        porque_encantamento:    { type: Type.STRING },
-                        melhoria_encantamento:  { type: Type.STRING },
-
-                        nota_etapa2:            { type: Type.NUMBER },   // avg(prod+obj+sol+enc)
-                        porque_etapa2:          { type: Type.STRING },
-                        melhoria_etapa2:        { type: Type.STRING },
-
-                        // ── ETAPA 3 — Negociação ─────────────────────────────
-                        nota_pre_fechamento_sub:   { type: Type.NUMBER },   // 1-5
-                        porque_pre_fechamento_sub: { type: Type.STRING },
-                        melhoria_pre_fechamento_sub:{ type: Type.STRING },
-
-                        nota_escuta_ativa:      { type: Type.NUMBER },   // 1-5
-                        porque_escuta_ativa:    { type: Type.STRING },
-                        melhoria_escuta_ativa:  { type: Type.STRING },
-
-                        nota_resiliencia:       { type: Type.NUMBER },   // 1-5
-                        porque_resiliencia:     { type: Type.STRING },
-                        melhoria_resiliencia:   { type: Type.STRING },
-
-                        nota_gestao_tempo:      { type: Type.NUMBER },   // 1-5
-                        porque_gestao_tempo:    { type: Type.STRING },
-                        melhoria_gestao_tempo:  { type: Type.STRING },
-
-                        nota_regras_fechamento:      { type: Type.NUMBER },   // 1-5
-                        porque_regras_fechamento:    { type: Type.STRING },
-                        melhoria_regras_fechamento:  { type: Type.STRING },
-
-                        nota_etapa3:            { type: Type.NUMBER },   // avg(pre+esc+res+ges+reg)
-                        porque_etapa3:          { type: Type.STRING },
-                        melhoria_etapa3:        { type: Type.STRING },
-
-                        // ── EXTRAS ───────────────────────────────────────────
-                        tempo_fala_consultor:   { type: Type.NUMBER },
-                        tempo_fala_cliente:     { type: Type.NUMBER },
-
-                        // ── AUDITORIA DE OBJEÇÕES ─────────────────────────────
-                        // Identifica até 10 objeções reais do cliente na transcrição.
-                        // Considera objeção: dúvida, resistência, comparação com
-                        // concorrente, preço, falta de urgência/interesse, barreiras
-                        // técnicas ou operacionais. Não inventa — só o que está na call.
-                        auditoria_objecoes: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    objecao:            { type: Type.STRING },  // fala/resumo da objeção do cliente
-                                    contornada:         { type: Type.BOOLEAN }, // true = bem contornada, false = mal/ignorada
-                                    abordagem_sugerida: { type: Type.STRING }   // preenchido apenas quando contornada=false
-                                }
-                            }
-                        },
-
-                        pontos_fortes:          { type: Type.ARRAY, items: { type: Type.STRING } },
-                        pontos_atencao:         { type: Type.ARRAY, items: { type: Type.STRING } },
-                        justificativa_detalhada: { type: Type.STRING },
-
-                        // ── QUALIFICAÇÃO SDR ─────────────────────────────────
-                        qual_produto_identificado:  { type: Type.STRING },
-                        qual_produto_no_portfolio:  { type: Type.BOOLEAN },
-                        qual_produto_alerta:        { type: Type.STRING },
-                        qual_contexto: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    label: { type: Type.STRING },
-                                    valor: { type: Type.STRING }
-                                }
-                            }
-                        },
-                        qual_sabia_o_que_veria:   { type: Type.BOOLEAN },
-                        qual_sabia_evidencia:     { type: Type.STRING },
-                        qual_produto_correto:     { type: Type.BOOLEAN },
-                        qual_produto_evidencia:   { type: Type.STRING },
-                        qual_interesse_real:      { type: Type.BOOLEAN },
-                        qual_interesse_evidencia: { type: Type.STRING },
-                        qual_cenario_diagnosticado: { type: Type.BOOLEAN },
-                        qual_cenario_evidencia:     { type: Type.STRING },
-
-                        qual_sla_1_label: { type: Type.STRING },
-                        qual_sla_1_ok:    { type: Type.BOOLEAN },
-                        qual_sla_1_ev:    { type: Type.STRING },
-                        qual_sla_2_label: { type: Type.STRING },
-                        qual_sla_2_ok:    { type: Type.BOOLEAN },
-                        qual_sla_2_ev:    { type: Type.STRING },
-                        qual_sla_3_label: { type: Type.STRING },
-                        qual_sla_3_ok:    { type: Type.BOOLEAN },
-                        qual_sla_3_ev:    { type: Type.STRING },
-
-                        qual_veredicto:              { type: Type.STRING },
-                        qual_nota_sdr:               { type: Type.NUMBER },
-                        qual_nota_sdr_justificativa: { type: Type.STRING },
-                        qual_analise_completa:       { type: Type.STRING }
-                    },
-                    required: [
-                        "vendedor_nome", "media_final", "resumo_executivo", "chance_fechamento", "alerta_cancelamento",
-                        "concorrentes_detectados",
-
-                        // Etapa 1
-                        "nota_rapport", "porque_rapport", "melhoria_rapport",
-                        "nota_spin", "porque_spin", "melhoria_spin",
-                        "nota_comunicacao", "porque_comunicacao", "melhoria_comunicacao",
-                        "nota_etapa1", "porque_etapa1", "melhoria_etapa1",
-
-                        // Etapa 2
-                        "nota_produto", "porque_produto", "melhoria_produto",
-                        "nota_objecoes", "porque_objecoes", "melhoria_objecoes",
-                        "nota_solucao_dor", "porque_solucao_dor", "melhoria_solucao_dor",
-                        "nota_encantamento", "porque_encantamento", "melhoria_encantamento",
-                        "nota_etapa2", "porque_etapa2", "melhoria_etapa2",
-
-                        // Etapa 3
-                        "nota_pre_fechamento_sub", "porque_pre_fechamento_sub", "melhoria_pre_fechamento_sub",
-                        "nota_escuta_ativa", "porque_escuta_ativa", "melhoria_escuta_ativa",
-                        "nota_resiliencia", "porque_resiliencia", "melhoria_resiliencia",
-                        "nota_gestao_tempo", "porque_gestao_tempo", "melhoria_gestao_tempo",
-                        "nota_regras_fechamento", "porque_regras_fechamento", "melhoria_regras_fechamento",
-                        "nota_etapa3", "porque_etapa3", "melhoria_etapa3",
-
-                        "tempo_fala_consultor", "tempo_fala_cliente",
-                        "auditoria_objecoes",
-                        "pontos_fortes", "pontos_atencao",
-                        "justificativa_detalhada",
-
-                        "qual_produto_identificado", "qual_produto_no_portfolio", "qual_produto_alerta",
-                        "qual_contexto",
-                        "qual_sabia_o_que_veria", "qual_sabia_evidencia",
-                        "qual_produto_correto", "qual_produto_evidencia",
-                        "qual_interesse_real", "qual_interesse_evidencia",
-                        "qual_cenario_diagnosticado", "qual_cenario_evidencia",
-                        "qual_sla_1_label", "qual_sla_1_ok", "qual_sla_1_ev",
-                        "qual_sla_2_label", "qual_sla_2_ok", "qual_sla_2_ev",
-                        "qual_sla_3_label", "qual_sla_3_ok", "qual_sla_3_ev",
-                        "qual_veredicto", "qual_nota_sdr", "qual_nota_sdr_justificativa",
-                        "qual_analise_completa"
-                    ]
-                }
+        const url = `${SUPABASE_URL}/rest/v1/reunioes?select=*&order=created_at.desc${filter}`;
+        const response = await fetch(url, {
+            headers: {
+                'apikey':        SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`
             }
         });
 
-        let analysisData;
-        try {
-            const rawText = typeof response.text === 'function' ? response.text() : response.text;
-            console.log("RAW length:", rawText?.length, "| first 100:", rawText?.substring(0,100));
-            analysisData = JSON.parse(rawText);
-        } catch (parseError) {
-            const rawText = typeof response.text === 'function' ? response.text() : response.text;
-            console.error("Parse error:", parseError.message, "| raw:", rawText?.substring(0,300));
-            return res.status(500).json({ error: "Erro ao processar resposta da IA: " + parseError.message });
+        if (!response.ok) {
+            const err = await response.text();
+            return res.status(500).json({ error: 'Erro ao buscar dados: ' + err });
         }
 
-        // ── Inject UI config (hidden from frontend source) ─────────────────
-        analysisData._config = {
-            fields: [
-                {
-                    l: 'Consultividade / SPIN',
-                    k: 'etapa1',
-                    icon: 'search',
-                    color: 'blue',
-                    criterios: [
-                        { l: 'Rapport',            k: 'rapport',      desc: 'Criou conexão genuína e estabeleceu confiança com o lead?' },
-                        { l: 'SPIN',               k: 'spin',         desc: 'Realizou perguntas de Situação, Problema, Implicação e Necessidade?' },
-                        { l: 'Comunicação Eficaz', k: 'comunicacao',  desc: 'Demonstrou capacidade de ouvir as dores e o cenário do cliente?' }
-                    ]
-                },
-                {
-                    l: 'Apresentação da Ferramenta',
-                    k: 'etapa2',
-                    icon: 'presentation',
-                    color: 'violet',
-                    criterios: [
-                        { l: 'Produto',                      k: 'produto',       desc: 'Apresentou o produto com clareza, domínio e adequação ao cenário?' },
-                        { l: 'Objeções',                     k: 'objecoes',      desc: 'Conseguiu contornar objeções de maneira amistosa e convincente?' },
-                        { l: 'Solução da Dor',               k: 'solucao_dor',   desc: 'Utilizou a dor identificada no diagnóstico para mostrar a solução?' },
-                        { l: 'Encantamento e Emoção',        k: 'encantamento',  desc: 'Gerou emoção comercial, entusiasmo e encantou o lead com a ferramenta?' }
-                    ]
-                },
-                {
-                    l: 'Negociação',
-                    k: 'etapa3',
-                    icon: 'handshake',
-                    color: 'emerald',
-                    criterios: [
-                        { l: 'Pré-Fechamento',   k: 'pre_fechamento_sub',  desc: 'Preparou o terreno para o fechamento com ancoragem e comprometimento do lead?' },
-                        { l: 'Escuta Ativa',     k: 'escuta_ativa',        desc: 'Exerceu escuta ativa com pausas necessárias para feedback do lead?' },
-                        { l: 'Resiliência',      k: 'resiliencia',         desc: 'Demonstrou firmeza com bons argumentos para fechamento ou próximo contato?' },
-                        { l: 'Gestão do Tempo',  k: 'gestao_tempo',        desc: 'Conseguiu boa gestão do tempo garantindo call de qualidade em 60 min?' },
-                        { l: 'Regras de Fech.',  k: 'regras_fechamento',   desc: 'Aplicou corretamente as regras e técnicas de fechamento Nibo?' }
-                    ]
-                }
-            ],
-            prodConfig: {
-                'RADAR-ECAC':       { color: 'bg-sky-100 text-sky-800 border-sky-300',             icon: 'radar' },
-                'NIBO OBRIGAÇÕES':  { color: 'bg-violet-100 text-violet-800 border-violet-300',    icon: 'file-text' },
-                'CONCILIADOR':      { color: 'bg-blue-100 text-blue-800 border-blue-300',          icon: 'git-merge' },
-                'WHATSAPP WEB':     { color: 'bg-emerald-100 text-emerald-800 border-emerald-300', icon: 'message-circle' },
-                'EMISSOR DE NOTAS': { color: 'bg-orange-100 text-orange-800 border-orange-300',    icon: 'file-plus' },
-                'FORA':             { color: 'bg-red-100 text-red-800 border-red-300',             icon: 'alert-triangle' }
-            }
-        };
+        const reunioes = await response.json();
+        if (!reunioes.length) return res.status(200).json({ reunioes: [], stats: null });
 
-        // ── Flag de mal qualificado para uso no save ──────────────────────
-        const veredicto = (analysisData.qual_veredicto || '').toUpperCase();
-        analysisData._mal_qualificado = veredicto.includes('MAL') || veredicto.includes('FORA');
-
-        return res.status(200).json(analysisData);
+        const stats = calcStats(reunioes);
+        return res.status(200).json({ reunioes, stats });
 
     } catch (error) {
-        console.error("Erro na API:", error);
-        return res.status(500).json({ error: "Erro do Google Gemini: " + error.message });
+        console.error('Dashboard error:', error);
+        return res.status(500).json({ error: error.message });
     }
+}
+
+// ── Helper: detecta mal qualificado (campo novo ou derivado do veredicto) ─────
+function isMalQualificado(r) {
+    if (r.mal_qualificado === true) return true;
+    const v = (r.qual_veredicto || '').toUpperCase();
+    return v.includes('MAL') || v.includes('FORA');
+}
+
+function calcStats(reunioes) {
+    const total = reunioes.length;
+    const avg = arr => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+
+    // Separar bem qualificados das RDs com lead mal qualificado
+    const reunioesBoas = reunioes.filter(r => !isMalQualificado(r));
+    const reunioesMalQ = reunioes.filter(r => isMalQualificado(r));
+
+    // Média geral só conta reuniões bem qualificadas
+    const medias = reunioesBoas.map(r => r.media_final).filter(Boolean);
+
+    // ── Por coordenador ──────────────────────────────────────────────────────
+    const porCoordenador = {};
+    for (const r of reunioes) {
+        if (!porCoordenador[r.coordenador]) {
+            porCoordenador[r.coordenador] = { total: 0, medias: [], sdr_notas: [], mal_qualificados: 0 };
+        }
+        const c = porCoordenador[r.coordenador];
+        c.total++;
+        if (isMalQualificado(r)) {
+            c.mal_qualificados++;
+        } else {
+            if (r.media_final) c.medias.push(r.media_final);
+        }
+        if (r.qual_nota_sdr) c.sdr_notas.push(r.qual_nota_sdr);
+    }
+    for (const k of Object.keys(porCoordenador)) {
+        const c = porCoordenador[k];
+        c.media_vendas = +avg(c.medias).toFixed(1);
+        c.media_sdr    = +avg(c.sdr_notas).toFixed(1);
+    }
+
+    // ── Ranking vendedores (EXCLUI reuniões mal qualificadas da média) ────────
+    const porVendedor = {};
+    for (const r of reunioes) {
+        if (!porVendedor[r.vendedor_nome]) {
+            porVendedor[r.vendedor_nome] = {
+                nome:              r.vendedor_nome,
+                coordenador:       r.coordenador,
+                total:             0,
+                total_validas:     0,
+                total_mal_qualif:  0,
+                medias: [],
+                etapa1: [], etapa2: [], etapa3: [],
+                rapport: [], produto: [], apresentacao: [],
+                pre_fechamento: [], fechamento: []
+            };
+        }
+        const v = porVendedor[r.vendedor_nome];
+        v.total++;
+
+        if (isMalQualificado(r)) {
+            v.total_mal_qualif++;
+        } else {
+            v.total_validas++;
+            if (r.media_final) v.medias.push(r.media_final);
+
+            const temEtapas = r.nota_pre_fechamento === null && r.nota_fechamento === null;
+            if (temEtapas) {
+                if (r.nota_rapport)      v.etapa1.push(r.nota_rapport);
+                if (r.nota_produto)      v.etapa2.push(r.nota_produto);
+                if (r.nota_apresentacao) v.etapa3.push(r.nota_apresentacao);
+            } else {
+                if (r.nota_rapport)        v.rapport.push(r.nota_rapport);
+                if (r.nota_produto)        v.produto.push(r.nota_produto);
+                if (r.nota_apresentacao)   v.apresentacao.push(r.nota_apresentacao);
+                if (r.nota_pre_fechamento) v.pre_fechamento.push(r.nota_pre_fechamento);
+                if (r.nota_fechamento)     v.fechamento.push(r.nota_fechamento);
+            }
+        }
+    }
+
+    const ranking = Object.values(porVendedor).map(v => ({
+        ...v,
+        media:              +avg(v.medias).toFixed(1),
+        avg_etapa1:         +avg(v.etapa1).toFixed(1),
+        avg_etapa2:         +avg(v.etapa2).toFixed(1),
+        avg_etapa3:         +avg(v.etapa3).toFixed(1),
+        avg_rapport:        +avg(v.rapport).toFixed(1),
+        avg_produto:        +avg(v.produto).toFixed(1),
+        avg_apresentacao:   +avg(v.apresentacao).toFixed(1),
+        avg_pre_fechamento: +avg(v.pre_fechamento).toFixed(1),
+        avg_fechamento:     +avg(v.fechamento).toFixed(1),
+    })).sort((a, b) => b.media - a.media);
+
+    // ── Evolução temporal (por semana) ───────────────────────────────────────
+    const porSemana = {};
+    for (const r of reunioesBoas) {
+        const d   = new Date(r.created_at);
+        const mon = new Date(d);
+        mon.setDate(d.getDate() - d.getDay());
+        const key = mon.toISOString().split('T')[0];
+        if (!porSemana[key]) porSemana[key] = { semana: key, medias: [], total: 0 };
+        porSemana[key].total++;
+        if (r.media_final) porSemana[key].medias.push(r.media_final);
+    }
+    const evolucao = Object.values(porSemana)
+        .map(s => ({ semana: s.semana, media: +avg(s.medias).toFixed(1), total: s.total }))
+        .sort((a, b) => a.semana.localeCompare(b.semana));
+
+    // ── SDR stats ────────────────────────────────────────────────────────────
+    const veredictos = { QUALIFICADO: 0, PARCIALMENTE: 0, MAL: 0, FORA: 0, SEM: 0 };
+    for (const r of reunioes) {
+        const v = (r.qual_veredicto || '').toUpperCase();
+        if (v.includes('FORA'))       veredictos.FORA++;
+        else if (v.includes('MAL'))   veredictos.MAL++;
+        else if (v.includes('PARC'))  veredictos.PARCIALMENTE++;
+        else if (v.includes('QUAL'))  veredictos.QUALIFICADO++;
+        else                          veredictos.SEM++;
+    }
+
+    return {
+        total,
+        total_validas:    reunioesBoas.length,
+        total_mal_qualif: reunioesMalQ.length,
+        media_geral:      +avg(medias).toFixed(1),
+        porCoordenador,
+        ranking,
+        evolucao,
+        veredictos,
+        reunioes_mal_qualificadas: reunioesMalQ.map(r => ({
+            id:             r.id,
+            coordenador:    r.coordenador,
+            vendedor_nome:  r.vendedor_nome,
+            produto:        r.produto,
+            qual_veredicto: r.qual_veredicto,
+            qual_nota_sdr:  r.qual_nota_sdr,
+            chance_fechamento: r.chance_fechamento,
+            created_at:     r.created_at
+        }))
+    };
 }
