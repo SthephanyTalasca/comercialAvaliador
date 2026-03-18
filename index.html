@@ -205,9 +205,12 @@
                             <h4 class="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest">Tempo de Fala</h4>
                             <div id="talk-time-container" class="space-y-6"></div>
                         </div>
+                        <!-- AUDITORIA DE OBJEÇÕES (substituiu o checklist) -->
                         <div class="glass-card p-8">
-                            <h3 class="font-bold text-slate-800 text-sm mb-6 flex items-center gap-3"><i data-lucide="clipboard-check" class="text-blue-600 w-5 h-5"></i> Checklist do Manual Nibo</h3>
-                            <div id="checklist-container" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+                            <h3 class="font-bold text-slate-800 text-sm mb-5 flex items-center gap-3">
+                                <i data-lucide="shield-alert" class="text-rose-500 w-5 h-5"></i> Auditoria de Objeções
+                            </h3>
+                            <div id="objecoes-container" class="space-y-3"></div>
                         </div>
                     </div>
                 </div>
@@ -292,7 +295,6 @@
                         <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i> Histórico
                     </button>
                 </div>
-                <!-- Gestor filters -->
                 <div id="dash-filters-gestor" class="flex flex-wrap gap-3 items-center">
                     <div class="flex items-center gap-2">
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Time:</span>
@@ -331,7 +333,6 @@
                         <div class="loader" style="width:16px;height:16px;border-width:2px"></div> Carregando...
                     </div>
                 </div>
-                <!-- Vendedor filters -->
                 <div id="dash-filters-vendedor" class="hidden flex flex-wrap gap-3 items-center">
                     <div class="flex items-center gap-2">
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Eu sou:</span>
@@ -419,7 +420,6 @@ let radarChartInstance = null;
 let pilarData = [];
 let fields = [];
 let prodConfig = {};
-let ckLabels = {};
 let _novoFormato = false;
 
 function getScoreColor(n) {
@@ -519,7 +519,6 @@ function renderDashboard(data) {
     if (data._config) {
         fields = data._config.fields || [];
         prodConfig = data._config.prodConfig || {};
-        ckLabels = data._config.ckLabels || {};
     }
     _novoFormato = fields.length === 3 && fields[0] && (fields[0].criterios||[]).length > 0;
     const media = data.media_final || 0;
@@ -597,20 +596,93 @@ function renderDashboard(data) {
         <div><div class="flex justify-between text-[11px] font-bold mb-2"><span>Consultor</span><span class="text-blue-600">${data.tempo_fala_consultor||'0%'}</span></div><div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600" style="width:${tc}%"></div></div></div>
         <div><div class="flex justify-between text-[11px] font-bold mb-2"><span>Cliente</span><span class="text-emerald-500">${data.tempo_fala_cliente||'0%'}</span></div><div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500" style="width:${tl}%"></div></div></div>`;
 
-    const ck = data.checklist_fechamento||{};
-    document.getElementById('checklist-container').innerHTML = Object.entries(ckLabels).map(([k,l]) => `
-        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-            <span class="text-[9px] font-bold text-slate-600 uppercase tracking-tight">${l}</span>
-            <div class="w-5 h-5 rounded-full flex items-center justify-center ${ck[k]?'bg-emerald-500':'bg-slate-300'}">
-                <i data-lucide="${ck[k]?'check':'minus'}" class="text-white w-3 h-3"></i>
-            </div>
-        </div>`).join('');
+    // ── AUDITORIA DE OBJEÇÕES (substituiu o checklist) ────────────────────
+    renderAuditoriaObjecoes(data.auditoria_objecoes || []);
 
     document.getElementById('pontos-fortes-list').innerHTML = (data.pontos_fortes||[]).map(i=>`<li class="flex items-start gap-2"><span>▶</span>${i}</li>`).join('');
     document.getElementById('pontos-atencao-list').innerHTML = (data.pontos_atencao||[]).map(i=>`<li class="flex items-start gap-2"><span>▶</span>${i}</li>`).join('');
     document.getElementById('coaching-body').innerHTML = marked.parse(data.justificativa_detalhada||'');
     document.getElementById('qual-content').innerHTML = _buildQualSection(data, prodConfig);
     renderRadar(data);
+    lucide.createIcons();
+}
+
+// ── Auditoria de Objeções ─────────────────────────────────────────────────────
+function renderAuditoriaObjecoes(objecoes) {
+    const container = document.getElementById('objecoes-container');
+    if (!container) return;
+
+    if (!objecoes || objecoes.length === 0) {
+        container.innerHTML = `
+            <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 text-slate-400">
+                <i data-lucide="info" class="w-4 h-4 flex-shrink-0"></i>
+                <p class="text-[11px] font-semibold">Nenhuma objeção identificada na transcrição.</p>
+            </div>`;
+        lucide.createIcons();
+        return;
+    }
+
+    const totalBem = objecoes.filter(o => o.contornada).length;
+    const totalMal = objecoes.length - totalBem;
+    const scorePct = Math.round((totalBem / objecoes.length) * 100);
+
+    const scoreColor = scorePct >= 70
+        ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
+        : scorePct >= 40
+            ? 'text-amber-600 bg-amber-50 border-amber-200'
+            : 'text-red-600 bg-red-50 border-red-200';
+
+    const rows = objecoes.map((o, i) => {
+        const bem = o.contornada;
+        const bordaCor = bem ? 'border-emerald-100' : 'border-red-100';
+        const bgCor    = bem ? 'bg-emerald-50/60'  : 'bg-red-50/60';
+        const iconCor  = bem ? 'bg-emerald-500'    : 'bg-red-400';
+        const iconName = bem ? 'check'             : 'x';
+        const labelCor = bem ? 'text-emerald-600'  : 'text-red-600';
+        const labelTxt = bem ? 'Contornada'        : 'Não contornada';
+
+        return `
+            <div class="rounded-2xl border ${bordaCor} ${bgCor} p-4 flex flex-col gap-2">
+                <div class="flex items-start gap-3">
+                    <div class="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5 ${iconCor}">
+                        <i data-lucide="${iconName}" class="text-white w-3 h-3"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-[8px] font-black uppercase tracking-widest text-slate-400">Objeção ${i + 1}</span>
+                            <span class="text-[8px] font-black uppercase tracking-widest ${labelCor}">${labelTxt}</span>
+                        </div>
+                        <p class="text-[12px] font-bold text-slate-700 leading-relaxed">${o.objecao}</p>
+                    </div>
+                </div>
+                ${!bem && o.abordagem_sugerida ? `
+                <div class="ml-9 flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 rounded-xl">
+                    <i data-lucide="lightbulb" class="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5"></i>
+                    <p class="text-[11px] text-amber-800 font-medium leading-relaxed">${o.abordagem_sugerida}</p>
+                </div>` : ''}
+            </div>`;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="flex items-center gap-4 mb-4 p-4 rounded-2xl border ${scoreColor}">
+            <div class="text-3xl font-black">${scorePct}%</div>
+            <div class="flex-1">
+                <p class="font-black text-sm">Taxa de contorno</p>
+                <p class="text-[10px] font-bold opacity-70">${totalBem} de ${objecoes.length} objeções bem contornadas</p>
+            </div>
+            <div class="flex gap-2 flex-shrink-0">
+                <div class="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-xl text-center">
+                    <p class="text-xs font-black">✅ ${totalBem}</p>
+                    <p class="text-[8px] font-bold uppercase">Contornadas</p>
+                </div>
+                <div class="px-3 py-1.5 bg-red-100 text-red-700 rounded-xl text-center">
+                    <p class="text-xs font-black">❌ ${totalMal}</p>
+                    <p class="text-[8px] font-bold uppercase">Perdidas</p>
+                </div>
+            </div>
+        </div>
+        ${rows}`;
+
     lucide.createIcons();
 }
 
@@ -625,42 +697,20 @@ function renderRadar(data) {
         });
     });
 
-    const labels = allCriterios.length > 0
-        ? allCriterios.map(c => c.label)
-        : fields.map(f => f.l);
-
-    const values = allCriterios.length > 0
-        ? allCriterios.map(c => data[`nota_${c.key}`] || 0)
-        : fields.map(f => data[`nota_${f.k}`] || 0);
+    const labels = allCriterios.length > 0 ? allCriterios.map(c => c.label) : fields.map(f => f.l);
+    const values = allCriterios.length > 0 ? allCriterios.map(c => data[`nota_${c.key}`] || 0) : fields.map(f => data[`nota_${f.k}`] || 0);
 
     radarChartInstance = new Chart(ctx, {
         type: 'radar',
         data: {
             labels,
-            datasets: [{
-                label: 'Desempenho',
-                data: values,
-                backgroundColor: 'rgba(37,99,235,0.12)',
-                borderColor: '#2563eb',
-                borderWidth: 2,
-                pointRadius: 4,
-                pointBackgroundColor: '#1e3a8a',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 1.5
-            }]
+            datasets: [{ label: 'Desempenho', data: values,
+                backgroundColor: 'rgba(37,99,235,0.12)', borderColor: '#2563eb', borderWidth: 2,
+                pointRadius: 4, pointBackgroundColor: '#1e3a8a', pointBorderColor: '#fff', pointBorderWidth: 1.5 }]
         },
         options: {
-            scales: {
-                r: {
-                    min: 0, max: 5,
-                    ticks: { stepSize: 1, display: false },
-                    grid: { color: '#e2e8f0' },
-                    angleLines: { color: '#e2e8f0' },
-                    pointLabels: { font: { size: 9, weight: '800' }, color: '#475569' }
-                }
-            },
-            plugins: { legend: { display: false } },
-            maintainAspectRatio: true
+            scales: { r: { min:0, max:5, ticks:{stepSize:1,display:false}, grid:{color:'#e2e8f0'}, angleLines:{color:'#e2e8f0'}, pointLabels:{font:{size:9,weight:'800'},color:'#475569'} } },
+            plugins: { legend: { display: false } }, maintainAspectRatio: true
         }
     });
 }
@@ -1106,198 +1156,89 @@ function renderVendedorDash(nome, obj) {
     }
     const v = stats.ranking.find(r => r.nome === nome) || stats.ranking[0];
     if (!v) return;
-
     const sc    = n => n >= 4 ? 'text-emerald-600' : n >= 3 ? 'text-blue-600' : 'text-red-500';
     const fmt   = n => (typeof n === 'number' && !isNaN(n) && n > 0) ? n.toFixed(1) : '—';
-
     const bar = (label, val, color) => {
         const pct = Math.round((val||0)/5*100);
-        return `<div class="flex items-center gap-3">
-            <span class="text-[9px] font-black text-slate-500 uppercase w-44 flex-shrink-0">${label}</span>
-            <div class="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
-                <div class="h-full ${color} rounded-full" style="width:${pct}%"></div>
-            </div>
-            <span class="text-xs font-black ${sc(val)} w-8 text-right">${fmt(val)}</span>
-        </div>`;
+        return `<div class="flex items-center gap-3"><span class="text-[9px] font-black text-slate-500 uppercase w-44 flex-shrink-0">${label}</span><div class="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden"><div class="h-full ${color} rounded-full" style="width:${pct}%"></div></div><span class="text-xs font-black ${sc(val)} w-8 text-right">${fmt(val)}</span></div>`;
     };
-
     const reunioesValidas = reunioes.filter(r => !r.mal_qualificado && r.analise_json);
-
     const subMap = {
-        rapport:           { l: 'Rapport',              color: 'bg-blue-400',    etapa: 1 },
-        spin:              { l: 'SPIN',                  color: 'bg-blue-500',    etapa: 1 },
-        comunicacao:       { l: 'Comunicação Eficaz',   color: 'bg-blue-600',    etapa: 1 },
-        produto:           { l: 'Produto',               color: 'bg-violet-400',  etapa: 2 },
-        objecoes:          { l: 'Objeções',              color: 'bg-violet-500',  etapa: 2 },
-        solucao_dor:       { l: 'Solução da Dor',        color: 'bg-violet-600',  etapa: 2 },
-        encantamento:      { l: 'Encantamento',          color: 'bg-violet-700',  etapa: 2 },
-        pre_fechamento_sub:{ l: 'Pré-Fechamento',        color: 'bg-emerald-400', etapa: 3 },
-        escuta_ativa:      { l: 'Escuta Ativa',          color: 'bg-emerald-500', etapa: 3 },
-        resiliencia:       { l: 'Resiliência',           color: 'bg-emerald-600', etapa: 3 },
-        gestao_tempo:      { l: 'Gestão do Tempo',       color: 'bg-emerald-700', etapa: 3 },
-        regras_fechamento: { l: 'Regras de Fechamento',  color: 'bg-teal-600',    etapa: 3 },
+        rapport:           { l: 'Rapport',              color: 'bg-blue-400' },
+        spin:              { l: 'SPIN',                  color: 'bg-blue-500' },
+        comunicacao:       { l: 'Comunicação Eficaz',   color: 'bg-blue-600' },
+        produto:           { l: 'Produto',               color: 'bg-violet-400' },
+        objecoes:          { l: 'Objeções',              color: 'bg-violet-500' },
+        solucao_dor:       { l: 'Solução da Dor',        color: 'bg-violet-600' },
+        encantamento:      { l: 'Encantamento',          color: 'bg-violet-700' },
+        pre_fechamento_sub:{ l: 'Pré-Fechamento',        color: 'bg-emerald-400' },
+        escuta_ativa:      { l: 'Escuta Ativa',          color: 'bg-emerald-500' },
+        resiliencia:       { l: 'Resiliência',           color: 'bg-emerald-600' },
+        gestao_tempo:      { l: 'Gestão do Tempo',       color: 'bg-emerald-700' },
+        regras_fechamento: { l: 'Regras de Fechamento',  color: 'bg-teal-600' },
     };
-
     const subMedias = {};
     Object.keys(subMap).forEach(k => {
-        const vals = reunioesValidas
-            .map(r => r.analise_json[`nota_${k}`])
-            .filter(v => v !== undefined && v !== null && v > 0);
+        const vals = reunioesValidas.map(r => r.analise_json[`nota_${k}`]).filter(v => v !== undefined && v !== null && v > 0);
         subMedias[k] = vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : 0;
     });
-
     const barsPorEtapa = [
-        { label: 'Etapa 1 — Consultividade / SPIN', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-100',
-          keys: ['rapport','spin','comunicacao'] },
-        { label: 'Etapa 2 — Apresentação da Ferramenta', color: 'text-violet-700', bg: 'bg-violet-50 border-violet-100',
-          keys: ['produto','objecoes','solucao_dor','encantamento'] },
-        { label: 'Etapa 3 — Negociação', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-100',
-          keys: ['pre_fechamento_sub','escuta_ativa','resiliencia','gestao_tempo','regras_fechamento'] },
+        { label: 'Etapa 1 — Consultividade / SPIN', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-100', keys: ['rapport','spin','comunicacao'] },
+        { label: 'Etapa 2 — Apresentação da Ferramenta', color: 'text-violet-700', bg: 'bg-violet-50 border-violet-100', keys: ['produto','objecoes','solucao_dor','encantamento'] },
+        { label: 'Etapa 3 — Negociação', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-100', keys: ['pre_fechamento_sub','escuta_ativa','resiliencia','gestao_tempo','regras_fechamento'] },
     ];
-
     const barsHTML = barsPorEtapa.map(etapa => {
         const etapaKey = etapa.keys[0] === 'rapport' ? 'etapa1' : etapa.keys[0] === 'produto' ? 'etapa2' : 'etapa3';
         const mediaEtapa = v[`avg_${etapaKey}`] || 0;
         const subBars = etapa.keys.map(k => bar(subMap[k].l, subMedias[k], subMap[k].color)).join('');
-        return `<div class="p-5 rounded-2xl border ${etapa.bg}">
-            <div class="flex items-center justify-between mb-4">
-                <p class="text-[10px] font-black ${etapa.color} uppercase tracking-widest">${etapa.label}</p>
-                <span class="text-2xl font-black ${sc(mediaEtapa)}">${fmt(mediaEtapa)}</span>
-            </div>
-            <div class="space-y-3">${subBars}</div>
-        </div>`;
+        return `<div class="p-5 rounded-2xl border ${etapa.bg}"><div class="flex items-center justify-between mb-4"><p class="text-[10px] font-black ${etapa.color} uppercase tracking-widest">${etapa.label}</p><span class="text-2xl font-black ${sc(mediaEtapa)}">${fmt(mediaEtapa)}</span></div><div class="space-y-3">${subBars}</div></div>`;
     }).join('');
-
     const radarLabels = Object.values(subMap).map(s => s.l);
     const radarVals   = Object.keys(subMap).map(k => subMedias[k]);
-
     const allVals = Object.keys(subMap).map(k => ({ l: subMap[k].l, v: subMedias[k] })).filter(x => x.v > 0);
     const maxItem = allVals.reduce((a, b) => a.v >= b.v ? a : b, { l: '—', v: 0 });
     const minItem = allVals.reduce((a, b) => a.v <= b.v ? a : b, { l: '—', v: 99 });
-
     const medias = reunioes.filter(r => r.media_final && !r.mal_qualificado).map(r => r.media_final);
     const avgMedia = medias.length ? medias.reduce((a,b)=>a+b,0)/medias.length : 0;
     const stdDev = medias.length > 1 ? Math.sqrt(medias.map(m=>Math.pow(m-avgMedia,2)).reduce((a,b)=>a+b,0)/medias.length) : 0;
     const consLabel = stdDev < 0.5 ? 'Alta' : stdDev < 1.0 ? 'Média' : 'Baixa';
     const consColor = stdDev < 0.5 ? 'text-emerald-600 bg-emerald-50' : stdDev < 1.0 ? 'text-blue-600 bg-blue-50' : 'text-red-500 bg-red-50';
-
     const sdrVereds = { QUALIFICADO:0,PARCIALMENTE:0,MAL:0,FORA:0,SEM:0 };
     reunioes.forEach(r => { const vv=(r.qual_veredicto||'').toUpperCase(); if(vv.includes('FORA'))sdrVereds.FORA++; else if(vv.includes('MAL'))sdrVereds.MAL++; else if(vv.includes('PARC'))sdrVereds.PARCIALMENTE++; else if(vv.includes('QUAL'))sdrVereds.QUALIFICADO++; else sdrVereds.SEM++; });
     const sdrColors={QUALIFICADO:'bg-emerald-500',PARCIALMENTE:'bg-yellow-400',MAL:'bg-red-500',FORA:'bg-purple-500',SEM:'bg-slate-300'};
     const sdrLabs={QUALIFICADO:'Qualificado',PARCIALMENTE:'Parcial',MAL:'Mal Qualif.',FORA:'Fora Portf.',SEM:'Sem dados'};
     const sdrBars=Object.entries(sdrVereds).map(([k,val])=>{const pct=Math.round(val/reunioes.length*100);return`<div class="flex items-center gap-3"><span class="text-[9px] font-black text-slate-500 uppercase w-20 flex-shrink-0">${sdrLabs[k]||k}</span><div class="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden"><div class="h-full ${sdrColors[k]||'bg-slate-300'} rounded-full" style="width:${pct}%"></div></div><span class="text-[10px] font-black text-slate-600 w-8 text-right">${val}</span></div>`;}).join('');
-
     const ultimasRows = reunioes.filter(r => !r.mal_qualificado).slice(0,5).map(r =>
-        `<div class="p-3 rounded-xl border border-slate-100 bg-white cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all" onclick="abrirAnaliseCompleta('${r.id}')">
-            <div class="flex items-center justify-between"><p class="text-[10px] font-black text-slate-700">${r.produto||'—'}</p><span class="text-lg font-black ${sc(r.media_final)}">${r.media_final||'—'}</span></div>
-            <p class="text-[9px] text-slate-400">${new Date(r.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</p>
-        </div>`
+        `<div class="p-3 rounded-xl border border-slate-100 bg-white cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all" onclick="abrirAnaliseCompleta('${r.id}')"><div class="flex items-center justify-between"><p class="text-[10px] font-black text-slate-700">${r.produto||'—'}</p><span class="text-lg font-black ${sc(r.media_final)}">${r.media_final||'—'}</span></div><p class="text-[9px] text-slate-400">${new Date(r.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</p></div>`
     ).join('') || '<p class="text-[10px] text-slate-300 text-center py-4">Sem análises válidas.</p>';
 
     content.innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div class="glass-card p-8 flex flex-col items-center justify-center text-center border-b-[8px] border-blue-600">
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Média Global</p>
-                <div class="text-6xl font-black ${sc(v.media)} mb-2">${fmt(v.media)}</div>
-                <div class="flex gap-px">${buildStars(Math.round(v.media))}</div>
-            </div>
-            <div class="glass-card p-8 flex flex-col items-center justify-center text-center">
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">RDs Válidas</p>
-                <div class="text-6xl font-black text-slate-700 mb-1">${v.total_validas||v.total}</div>
-                ${v.total_mal_qualif>0?`<p class="text-[9px] text-orange-500 font-black">${v.total_mal_qualif} excluída(s)</p>`:''}
-            </div>
-            <div class="glass-card p-8 flex flex-col items-center justify-center text-center">
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Consistência</p>
-                <div class="text-4xl font-black px-4 py-2 rounded-2xl ${consColor}">${consLabel}</div>
-                <p class="text-[9px] text-slate-400 mt-2">σ = ${stdDev.toFixed(2)}</p>
-            </div>
+            <div class="glass-card p-8 flex flex-col items-center justify-center text-center border-b-[8px] border-blue-600"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Média Global</p><div class="text-6xl font-black ${sc(v.media)} mb-2">${fmt(v.media)}</div><div class="flex gap-px">${buildStars(Math.round(v.media))}</div></div>
+            <div class="glass-card p-8 flex flex-col items-center justify-center text-center"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">RDs Válidas</p><div class="text-6xl font-black text-slate-700 mb-1">${v.total_validas||v.total}</div>${v.total_mal_qualif>0?`<p class="text-[9px] text-orange-500 font-black">${v.total_mal_qualif} excluída(s)</p>`:''}</div>
+            <div class="glass-card p-8 flex flex-col items-center justify-center text-center"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Consistência</p><div class="text-4xl font-black px-4 py-2 rounded-2xl ${consColor}">${consLabel}</div><p class="text-[9px] text-slate-400 mt-2">σ = ${stdDev.toFixed(2)}</p></div>
         </div>
-
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="glass-card p-8 flex items-center justify-center min-h-[380px]">
-                <canvas id="radarVendedor"></canvas>
-            </div>
+            <div class="glass-card p-8 flex items-center justify-center min-h-[380px]"><canvas id="radarVendedor"></canvas></div>
             <div class="grid grid-cols-2 gap-3 content-start">
-                <div class="col-span-2 flex items-center gap-2 mb-1">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Médias por sub-critério</p>
-                </div>
-                ${Object.keys(subMap).map(k => {
-                    const val = subMedias[k];
-                    const cc = getScoreColor(val);
-                    const pct = Math.round(val/5*100);
-                    return `<div class="p-3 rounded-2xl border bg-slate-50 border-slate-100">
-                        <p class="text-[8px] font-black text-slate-500 uppercase tracking-wide mb-1">${subMap[k].l}</p>
-                        <div class="flex items-center gap-2">
-                            <div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
-                                <div class="h-full ${subMap[k].color} rounded-full" style="width:${pct}%"></div>
-                            </div>
-                            <span class="text-sm font-black ${cc.text} flex-shrink-0">${fmt(val)}</span>
-                        </div>
-                    </div>`;
-                }).join('')}
+                <div class="col-span-2"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Médias por sub-critério</p></div>
+                ${Object.keys(subMap).map(k => { const val=subMedias[k]; const cc=getScoreColor(val); const pct=Math.round(val/5*100); return `<div class="p-3 rounded-2xl border bg-slate-50 border-slate-100"><p class="text-[8px] font-black text-slate-500 uppercase tracking-wide mb-1">${subMap[k].l}</p><div class="flex items-center gap-2"><div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden"><div class="h-full ${subMap[k].color} rounded-full" style="width:${pct}%"></div></div><span class="text-sm font-black ${cc.text} flex-shrink-0">${fmt(val)}</span></div></div>`; }).join('')}
             </div>
         </div>
-
-        <div class="glass-card p-7">
-            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2">
-                <i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-400"></i> Detalhamento por Etapa e Critério
-            </h4>
-            <div class="space-y-4">${barsHTML}</div>
+        <div class="glass-card p-7"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-400"></i> Detalhamento por Etapa e Critério</h4><div class="space-y-4">${barsHTML}</div>
             <div class="grid grid-cols-2 gap-3 mt-5">
-                <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">
-                    <p class="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-1">Ponto Forte</p>
-                    <p class="font-black text-sm text-emerald-700">${maxItem.l}</p>
-                    <p class="text-xl font-black text-emerald-600">${fmt(maxItem.v)}</p>
-                </div>
-                <div class="p-3 bg-red-50 rounded-2xl border border-red-100 text-center">
-                    <p class="text-[8px] font-black text-red-400 uppercase tracking-widest mb-1">Ponto Fraco</p>
-                    <p class="font-black text-sm text-red-600">${minItem.l}</p>
-                    <p class="text-xl font-black text-red-500">${fmt(minItem.v)}</p>
-                </div>
+                <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-center"><p class="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-1">Ponto Forte</p><p class="font-black text-sm text-emerald-700">${maxItem.l}</p><p class="text-xl font-black text-emerald-600">${fmt(maxItem.v)}</p></div>
+                <div class="p-3 bg-red-50 rounded-2xl border border-red-100 text-center"><p class="text-[8px] font-black text-red-400 uppercase tracking-widest mb-1">Ponto Fraco</p><p class="font-black text-sm text-red-600">${minItem.l}</p><p class="text-xl font-black text-red-500">${fmt(minItem.v)}</p></div>
             </div>
         </div>
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="glass-card p-7">
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <i data-lucide="user-check" class="w-4 h-4 text-violet-400"></i> Qualificação (SDR)
-                </h4>
-                <div class="space-y-3">${sdrBars}</div>
-            </div>
-            <div class="glass-card p-7">
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <i data-lucide="clock" class="w-4 h-4 text-slate-400"></i> Últimas Análises Válidas
-                </h4>
-                <div class="space-y-2">${ultimasRows}</div>
-            </div>
+            <div class="glass-card p-7"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="user-check" class="w-4 h-4 text-violet-400"></i> Qualificação (SDR)</h4><div class="space-y-3">${sdrBars}</div></div>
+            <div class="glass-card p-7"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4 text-slate-400"></i> Últimas Análises Válidas</h4><div class="space-y-2">${ultimasRows}</div></div>
         </div>`;
-
     lucide.createIcons();
-
     const rCtx = document.getElementById('radarVendedor')?.getContext('2d');
     if (rCtx) {
-        new Chart(rCtx, {
-            type: 'radar',
-            data: {
-                labels: radarLabels,
-                datasets: [{
-                    label: nome,
-                    data: radarVals,
-                    backgroundColor: 'rgba(37,99,235,0.12)',
-                    borderColor: '#2563eb',
-                    borderWidth: 2,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#1e3a8a',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 1.5
-                }]
-            },
-            options: {
-                scales: { r: { min:0, max:5, ticks:{stepSize:1,display:false}, grid:{color:'#e2e8f0'}, angleLines:{color:'#e2e8f0'}, pointLabels:{font:{size:9,weight:'800'},color:'#475569'} } },
-                plugins: { legend: { display: false } },
-                maintainAspectRatio: true
-            }
-        });
+        new Chart(rCtx, { type:'radar', data:{ labels:radarLabels, datasets:[{ label:nome, data:radarVals, backgroundColor:'rgba(37,99,235,0.12)', borderColor:'#2563eb', borderWidth:2, pointRadius:4, pointBackgroundColor:'#1e3a8a', pointBorderColor:'#fff', pointBorderWidth:1.5 }] }, options:{ scales:{ r:{ min:0,max:5, ticks:{stepSize:1,display:false}, grid:{color:'#e2e8f0'}, angleLines:{color:'#e2e8f0'}, pointLabels:{font:{size:9,weight:'800'},color:'#475569'} } }, plugins:{legend:{display:false}}, maintainAspectRatio:true } });
     }
 }
 
@@ -1318,28 +1259,14 @@ async function loadGestaoPanel() {
             const vendRows = vends.map(v => {
                 const vStats = porVendedor[v.nome] || { total:0, total_validas:0, total_mal_qualif:0, media:0 };
                 const sc = vStats.media >= 4 ? 'text-emerald-600' : vStats.media >= 3 ? 'text-blue-600' : 'text-red-500';
-                return '<div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 transition-colors border border-slate-100">' +
-                    '<div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black text-sm flex items-center justify-center flex-shrink-0">'+v.nome.charAt(0)+'</div>' +
-                    '<div class="flex-1 min-w-0"><p class="font-black text-sm text-slate-700 truncate">'+v.nome+'</p>' +
-                    '<p class="text-[9px] text-slate-400">'+vStats.total_validas+' válidas'+(vStats.total_mal_qualif>0?' · <span class="text-orange-500">'+vStats.total_mal_qualif+' excl.</span>':'')+'</p></div>' +
-                    '<span class="text-xl font-black '+sc+'">'+((vStats.media>0)?vStats.media.toFixed(1):'—')+'</span></div>';
+                return '<div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 transition-colors border border-slate-100"><div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black text-sm flex items-center justify-center flex-shrink-0">'+v.nome.charAt(0)+'</div><div class="flex-1 min-w-0"><p class="font-black text-sm text-slate-700 truncate">'+v.nome+'</p><p class="text-[9px] text-slate-400">'+vStats.total_validas+' válidas'+(vStats.total_mal_qualif>0?' · <span class="text-orange-500">'+vStats.total_mal_qualif+' excl.</span>':'')+'</p></div><span class="text-xl font-black '+sc+'">'+((vStats.media>0)?vStats.media.toFixed(1):'—')+'</span></div>';
             }).join('') || '<p class="text-[10px] text-slate-300 text-center py-4">Nenhum vendedor cadastrado.</p>';
             const borderColor = coord.includes('Simone') ? 'border-blue-500' : 'border-violet-500';
-            return '<div class="glass-card border-t-4 '+borderColor+' overflow-hidden">' +
-                '<div class="p-6 border-b border-slate-100">' +
-                    '<h4 class="font-black text-slate-700 text-sm flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-blue-500"></i> '+coord+'</h4>' +
-                    '<p class="text-[10px] text-slate-400 mt-1">'+vends.length+' vendedor(es) neste time</p>' +
-                    '<button onclick="abrirAnalysesCoord(\''+coord.replace(/'/g,"\\'")+'\')" class="mt-3 text-[10px] font-black text-blue-500 hover:text-blue-700 underline flex items-center gap-1"><i data-lucide="history" class="w-3 h-3"></i> Ver histórico completo →</button>' +
-                '</div>' +
-                '<div class="p-6 space-y-2">'+vendRows+'</div>' +
-                '<div class="px-6 pb-6"><button onclick="abrirModalAddVendedor(\''+coord.replace(/'/g,"\\'")+'\')" class="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 hover:border-blue-400 text-slate-400 hover:text-blue-600 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest transition-all"><i data-lucide="user-plus" class="w-3 h-3"></i> Adicionar vendedor</button></div>' +
-            '</div>';
+            return '<div class="glass-card border-t-4 '+borderColor+' overflow-hidden"><div class="p-6 border-b border-slate-100"><h4 class="font-black text-slate-700 text-sm flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-blue-500"></i> '+coord+'</h4><p class="text-[10px] text-slate-400 mt-1">'+vends.length+' vendedor(es) neste time</p><button onclick="abrirAnalysesCoord(\''+coord.replace(/'/g,"\\'")+'\')" class="mt-3 text-[10px] font-black text-blue-500 hover:text-blue-700 underline flex items-center gap-1"><i data-lucide="history" class="w-3 h-3"></i> Ver histórico completo →</button></div><div class="p-6 space-y-2">'+vendRows+'</div><div class="px-6 pb-6"><button onclick="abrirModalAddVendedor(\''+coord.replace(/'/g,"\\'")+'\')" class="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 hover:border-blue-400 text-slate-400 hover:text-blue-600 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest transition-all"><i data-lucide="user-plus" class="w-3 h-3"></i> Adicionar vendedor</button></div></div>';
         }).join('');
         content.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">'+coordCards+'</div>';
         lucide.createIcons();
-    } catch(err) {
-        content.innerHTML = '<div class="text-center py-20 text-red-400 font-bold">Erro: '+err.message+'</div>';
-    }
+    } catch(err) { content.innerHTML = '<div class="text-center py-20 text-red-400 font-bold">Erro: '+err.message+'</div>'; }
 }
 
 async function abrirModalAddVendedor(coord) {
@@ -1359,31 +1286,7 @@ let histPage = 0; const HIST_PER_PAGE = 20;
 async function loadHistorico(reset) {
     if (reset) histPage = 0;
     const content = document.getElementById('dash-content');
-    content.innerHTML = `
-    <div class="glass-card p-6">
-        <div class="flex flex-wrap gap-3 mb-6 items-end">
-            <div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Coordenador</label>
-            <select id="hist-filter-coord" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300">
-                <option value="todos">Todos</option><option value="Simone Rangel">Simone Rangel</option><option value="Jonathan Dornelas">Jonathan Dornelas</option>
-            </select></div>
-            <div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vendedor</label>
-            <select id="hist-filter-vend" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300">
-                <option value="todos">Todos</option>
-            </select></div>
-            <div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Busca</label>
-            <input type="text" id="hist-search" oninput="loadHistorico(true)" placeholder="buscar..." class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300 w-52" /></div>
-            <div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Período</label>
-            <select id="hist-filter-periodo" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300">
-                <option value="todos">Todo o período</option><option value="30">Últimos 30 dias</option><option value="7">Últimos 7 dias</option><option value="90">Últimos 90 dias</option>
-            </select></div>
-            <div class="ml-auto"><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Não identificados</label>
-            <button onclick="deletarNaoIdentificados()" class="flex items-center gap-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black px-4 py-2 rounded-xl text-[10px] uppercase tracking-widest transition-all"><i data-lucide="trash-2" class="w-3 h-3"></i> Limpar não identificados</button></div>
-        </div>
-        <div id="hist-table-container" class="overflow-x-auto">
-            <div class="flex items-center py-12 justify-center text-slate-300"><div class="loader"></div></div>
-        </div>
-        <div id="hist-pagination" class="flex items-center justify-center gap-4 mt-6"></div>
-    </div>`;
+    content.innerHTML = `<div class="glass-card p-6"><div class="flex flex-wrap gap-3 mb-6 items-end"><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Coordenador</label><select id="hist-filter-coord" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300"><option value="todos">Todos</option><option value="Simone Rangel">Simone Rangel</option><option value="Jonathan Dornelas">Jonathan Dornelas</option></select></div><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vendedor</label><select id="hist-filter-vend" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300"><option value="todos">Todos</option></select></div><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Busca</label><input type="text" id="hist-search" oninput="loadHistorico(true)" placeholder="buscar..." class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300 w-52" /></div><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Período</label><select id="hist-filter-periodo" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-blue-300"><option value="todos">Todo o período</option><option value="30">Últimos 30 dias</option><option value="7">Últimos 7 dias</option><option value="90">Últimos 90 dias</option></select></div><div class="ml-auto"><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Não identificados</label><button onclick="deletarNaoIdentificados()" class="flex items-center gap-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black px-4 py-2 rounded-xl text-[10px] uppercase tracking-widest transition-all"><i data-lucide="trash-2" class="w-3 h-3"></i> Limpar não identificados</button></div></div><div id="hist-table-container" class="overflow-x-auto"><div class="flex items-center py-12 justify-center text-slate-300"><div class="loader"></div></div></div><div id="hist-pagination" class="flex items-center justify-center gap-4 mt-6"></div></div>`;
     lucide.createIcons();
     if (!VENDORS_CACHE.length) await loadVendorsCache();
     const sel = document.getElementById('hist-filter-vend');
@@ -1408,33 +1311,12 @@ async function _fetchHistorico() {
             const dt = new Date(r.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
             const verd = r.qual_veredicto||'—';
             const vc = verd.toUpperCase().includes('FORA')?'bg-purple-100 text-purple-700 border-purple-200':verd.toUpperCase().includes('MAL')?'bg-red-100 text-red-700 border-red-200':verd.toUpperCase().includes('PARC')?'bg-yellow-100 text-yellow-700 border-yellow-200':verd.toUpperCase().includes('QUAL')?'bg-emerald-100 text-emerald-700 border-emerald-200':'bg-slate-100 text-slate-500 border-slate-200';
-            return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition-colors">
-                <td class="py-3 px-3 font-black text-slate-700 text-sm">${r.vendedor_nome||'—'}</td>
-                <td class="py-3 px-3 text-[10px] text-slate-500">${r.coordenador||'—'}</td>
-                <td class="py-3 px-3 text-[10px] text-slate-500">${r.produto||'—'}</td>
-                <td class="py-3 px-3 text-center font-black text-xl ${sc}">${(r.media_final||0).toFixed(1)}</td>
-                <td class="py-3 px-3"><span class="px-2 py-1 rounded-lg border text-[9px] font-black ${vc}">${verd}</span></td>
-                <td class="py-3 px-3 text-[10px] text-slate-400">${dt}</td>
-                <td class="py-3 px-3">
-                    <div class="flex items-center gap-2">
-                        <select onchange="handleReassignHistorico(event,'${r.id}')" class="text-[10px] font-bold border border-slate-200 rounded-xl px-2 py-1 bg-white focus:outline-none focus:ring-2 ring-blue-300 max-w-[150px]">
-                            <option value="">— reatribuir —</option>
-                            ${VENDORS_CACHE.map(v=>`<option value="${v.nome}" ${v.nome===r.vendedor_nome?'selected':''}>${v.nome}</option>`).join('')}
-                        </select>
-                        <button onclick="abrirAnaliseCompleta('${r.id}')" class="text-blue-500 hover:text-blue-700 font-black text-[9px] underline flex-shrink-0">ver</button>
-                        <button onclick="deletarRegistro('${r.id}')" class="text-red-400 hover:text-red-600 font-black text-[9px] underline flex-shrink-0">excluir</button>
-                    </div>
-                </td>
-            </tr>`;
+            return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition-colors"><td class="py-3 px-3 font-black text-slate-700 text-sm">${r.vendedor_nome||'—'}</td><td class="py-3 px-3 text-[10px] text-slate-500">${r.coordenador||'—'}</td><td class="py-3 px-3 text-[10px] text-slate-500">${r.produto||'—'}</td><td class="py-3 px-3 text-center font-black text-xl ${sc}">${(r.media_final||0).toFixed(1)}</td><td class="py-3 px-3"><span class="px-2 py-1 rounded-lg border text-[9px] font-black ${vc}">${verd}</span></td><td class="py-3 px-3 text-[10px] text-slate-400">${dt}</td><td class="py-3 px-3"><div class="flex items-center gap-2"><select onchange="handleReassignHistorico(event,'${r.id}')" class="text-[10px] font-bold border border-slate-200 rounded-xl px-2 py-1 bg-white focus:outline-none focus:ring-2 ring-blue-300 max-w-[150px]"><option value="">— reatribuir —</option>${VENDORS_CACHE.map(v=>`<option value="${v.nome}" ${v.nome===r.vendedor_nome?'selected':''}>${v.nome}</option>`).join('')}</select><button onclick="abrirAnaliseCompleta('${r.id}')" class="text-blue-500 hover:text-blue-700 font-black text-[9px] underline flex-shrink-0">ver</button><button onclick="deletarRegistro('${r.id}')" class="text-red-400 hover:text-red-600 font-black text-[9px] underline flex-shrink-0">excluir</button></div></td></tr>`;
         }).join('');
-        tc.innerHTML = rows.length
-            ? `<table class="w-full text-[10px]"><thead><tr class="border-b border-slate-200"><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Vendedor</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Gestor</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Produto</th><th class="text-center py-2 px-3 font-black text-slate-500 uppercase">Média</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">SDR</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Data</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Ações</th></tr></thead><tbody>${rows}</tbody></table>`
-            : '<p class="text-center py-12 text-slate-300 font-bold">Nenhum registro encontrado.</p>';
+        tc.innerHTML = rows.length ? `<table class="w-full text-[10px]"><thead><tr class="border-b border-slate-200"><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Vendedor</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Gestor</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Produto</th><th class="text-center py-2 px-3 font-black text-slate-500 uppercase">Média</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">SDR</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Data</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Ações</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="text-center py-12 text-slate-300 font-bold">Nenhum registro encontrado.</p>';
         const pg = document.getElementById('hist-pagination');
-        pg.innerHTML = histPage > 0
-            ? '<button onclick="histPage--;_fetchHistorico()" class="px-5 py-2 bg-slate-100 hover:bg-blue-100 text-slate-600 font-black rounded-xl text-xs uppercase transition-all">← Anterior</button>' : '';
-        if (d.records.length === HIST_PER_PAGE)
-            pg.innerHTML += '<button onclick="histPage++;_fetchHistorico()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs uppercase transition-all">Próxima →</button>';
+        pg.innerHTML = histPage > 0 ? '<button onclick="histPage--;_fetchHistorico()" class="px-5 py-2 bg-slate-100 hover:bg-blue-100 text-slate-600 font-black rounded-xl text-xs uppercase transition-all">← Anterior</button>' : '';
+        if (d.records.length === HIST_PER_PAGE) pg.innerHTML += '<button onclick="histPage++;_fetchHistorico()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs uppercase transition-all">Próxima →</button>';
         lucide.createIcons();
     } catch(err) { tc.innerHTML = '<p class="text-center py-12 text-red-400 font-bold">Erro: '+err.message+'</p>'; }
 }
@@ -1471,185 +1353,57 @@ async function deletarNaoIdentificados() {
     } catch(err) { alert('Erro: '+err.message); }
 }
 
-// ── Análise completa ───────────────────────────────────────────────────────────
+// ── Análise completa ──────────────────────────────────────────────────────────
 async function abrirAnaliseCompleta(id) {
     const modal = document.createElement('div');
     modal.id = 'analise-modal-'+id;
     modal.className = 'fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm overflow-y-auto p-4';
-    modal.innerHTML = `<div class="max-w-4xl mx-auto mt-8 mb-16 bg-white rounded-[2.5rem] shadow-2xl overflow-hidden">
-        <div class="bg-[#002d72] p-6 flex items-center justify-between">
-            <h3 class="font-black text-white text-lg uppercase flex items-center gap-3"><i data-lucide="file-search" class="w-5 h-5"></i> Análise Completa</h3>
-            <div class="flex items-center gap-2">
-                <button onclick="exportarPDFModal('${id}')" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"><i data-lucide="download" class="w-3 h-3"></i> PDF</button>
-                <button onclick="document.getElementById('analise-modal-${id}').remove()" class="bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-2xl transition-all"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-        </div>
-        <div id="analise-modal-body-${id}" class="p-8"><div class="flex items-center justify-center py-20"><div class="loader"></div></div></div>
-    </div>`;
+    modal.innerHTML = `<div class="max-w-4xl mx-auto mt-8 mb-16 bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"><div class="bg-[#002d72] p-6 flex items-center justify-between"><h3 class="font-black text-white text-lg uppercase flex items-center gap-3"><i data-lucide="file-search" class="w-5 h-5"></i> Análise Completa</h3><div class="flex items-center gap-2"><button onclick="exportarPDFModal('${id}')" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"><i data-lucide="download" class="w-3 h-3"></i> PDF</button><button onclick="document.getElementById('analise-modal-${id}').remove()" class="bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-2xl transition-all"><i data-lucide="x" class="w-5 h-5"></i></button></div></div><div id="analise-modal-body-${id}" class="p-8"><div class="flex items-center justify-center py-20"><div class="loader"></div></div></div></div>`;
     document.body.appendChild(modal);
     lucide.createIcons();
     try {
         const res = await fetch('/api/records?id='+id);
         const d = await res.json();
         if (!d.record) throw new Error('Registro não encontrado');
-        const r = d.record;
-        const j = r.analise_json || {};
+        const r = d.record; const j = r.analise_json || {};
         const body = document.getElementById('analise-modal-body-'+id);
         const sc = n => n>=4?'text-emerald-600':n>=3?'text-blue-600':'text-red-500';
         const fmt = n => (n && n > 0) ? Number(n).toFixed(1) : '—';
-
         const verd = r.qual_veredicto||'—';
         const vc = verd.toUpperCase().includes('FORA')?'bg-purple-100 text-purple-700':verd.toUpperCase().includes('MAL')?'bg-red-100 text-red-700':verd.toUpperCase().includes('PARC')?'bg-yellow-100 text-yellow-800':'bg-emerald-100 text-emerald-800';
-
         const etapas = [
-            {
-                titulo: 'Etapa 1 — Consultividade / SPIN',
-                cor: 'border-blue-500', bg: 'bg-blue-50', text: 'text-blue-700',
-                nota: j.nota_etapa1 || r.nota_rapport,
-                porque: j.porque_etapa1,
-                melhoria: j.melhoria_etapa1,
-                criterios: [
-                    { l:'Rapport',           nota: j.nota_rapport,           porque: j.porque_rapport,          melhoria: j.melhoria_rapport },
-                    { l:'SPIN',              nota: j.nota_spin,              porque: j.porque_spin,             melhoria: j.melhoria_spin },
-                    { l:'Comunicação Eficaz',nota: j.nota_comunicacao,       porque: j.porque_comunicacao,      melhoria: j.melhoria_comunicacao },
-                ]
-            },
-            {
-                titulo: 'Etapa 2 — Apresentação da Ferramenta',
-                cor: 'border-violet-500', bg: 'bg-violet-50', text: 'text-violet-700',
-                nota: j.nota_etapa2 || r.nota_produto,
-                porque: j.porque_etapa2,
-                melhoria: j.melhoria_etapa2,
-                criterios: [
-                    { l:'Produto',        nota: j.nota_produto,      porque: j.porque_produto,      melhoria: j.melhoria_produto },
-                    { l:'Objeções',       nota: j.nota_objecoes,     porque: j.porque_objecoes,     melhoria: j.melhoria_objecoes },
-                    { l:'Solução da Dor', nota: j.nota_solucao_dor,  porque: j.porque_solucao_dor,  melhoria: j.melhoria_solucao_dor },
-                    { l:'Encantamento',   nota: j.nota_encantamento, porque: j.porque_encantamento, melhoria: j.melhoria_encantamento },
-                ]
-            },
-            {
-                titulo: 'Etapa 3 — Negociação',
-                cor: 'border-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700',
-                nota: j.nota_etapa3 || r.nota_apresentacao,
-                porque: j.porque_etapa3,
-                melhoria: j.melhoria_etapa3,
-                criterios: [
-                    { l:'Pré-Fechamento',      nota: j.nota_pre_fechamento_sub, porque: j.porque_pre_fechamento_sub, melhoria: j.melhoria_pre_fechamento_sub },
-                    { l:'Escuta Ativa',         nota: j.nota_escuta_ativa,       porque: j.porque_escuta_ativa,       melhoria: j.melhoria_escuta_ativa },
-                    { l:'Resiliência',          nota: j.nota_resiliencia,        porque: j.porque_resiliencia,        melhoria: j.melhoria_resiliencia },
-                    { l:'Gestão do Tempo',      nota: j.nota_gestao_tempo,       porque: j.porque_gestao_tempo,       melhoria: j.melhoria_gestao_tempo },
-                    { l:'Regras de Fechamento', nota: j.nota_regras_fechamento,  porque: j.porque_regras_fechamento,  melhoria: j.melhoria_regras_fechamento },
-                ]
-            }
+            { titulo:'Etapa 1 — Consultividade / SPIN', cor:'border-blue-500', bg:'bg-blue-50', text:'text-blue-700', nota:j.nota_etapa1||r.nota_rapport, porque:j.porque_etapa1, melhoria:j.melhoria_etapa1,
+              criterios:[{l:'Rapport',nota:j.nota_rapport,porque:j.porque_rapport,melhoria:j.melhoria_rapport},{l:'SPIN',nota:j.nota_spin,porque:j.porque_spin,melhoria:j.melhoria_spin},{l:'Comunicação Eficaz',nota:j.nota_comunicacao,porque:j.porque_comunicacao,melhoria:j.melhoria_comunicacao}]},
+            { titulo:'Etapa 2 — Apresentação da Ferramenta', cor:'border-violet-500', bg:'bg-violet-50', text:'text-violet-700', nota:j.nota_etapa2||r.nota_produto, porque:j.porque_etapa2, melhoria:j.melhoria_etapa2,
+              criterios:[{l:'Produto',nota:j.nota_produto,porque:j.porque_produto,melhoria:j.melhoria_produto},{l:'Objeções',nota:j.nota_objecoes,porque:j.porque_objecoes,melhoria:j.melhoria_objecoes},{l:'Solução da Dor',nota:j.nota_solucao_dor,porque:j.porque_solucao_dor,melhoria:j.melhoria_solucao_dor},{l:'Encantamento',nota:j.nota_encantamento,porque:j.porque_encantamento,melhoria:j.melhoria_encantamento}]},
+            { titulo:'Etapa 3 — Negociação', cor:'border-emerald-500', bg:'bg-emerald-50', text:'text-emerald-700', nota:j.nota_etapa3||r.nota_apresentacao, porque:j.porque_etapa3, melhoria:j.melhoria_etapa3,
+              criterios:[{l:'Pré-Fechamento',nota:j.nota_pre_fechamento_sub,porque:j.porque_pre_fechamento_sub,melhoria:j.melhoria_pre_fechamento_sub},{l:'Escuta Ativa',nota:j.nota_escuta_ativa,porque:j.porque_escuta_ativa,melhoria:j.melhoria_escuta_ativa},{l:'Resiliência',nota:j.nota_resiliencia,porque:j.porque_resiliencia,melhoria:j.melhoria_resiliencia},{l:'Gestão do Tempo',nota:j.nota_gestao_tempo,porque:j.porque_gestao_tempo,melhoria:j.melhoria_gestao_tempo},{l:'Regras de Fechamento',nota:j.nota_regras_fechamento,porque:j.porque_regras_fechamento,melhoria:j.melhoria_regras_fechamento}]}
         ];
-
         const etapasHTML = etapas.map(e => {
-            const notaEtapa = e.nota || 0;
-            const colEtapa = getScoreColor(notaEtapa);
-            const subCards = e.criterios.map(c => {
-                const nota = c.nota || 0;
-                const col = getScoreColor(nota);
-                const bg2 = nota >= 4 ? 'bg-emerald-50 border-emerald-100' : nota >= 3 ? 'bg-blue-50 border-blue-100' : 'bg-red-50 border-red-100';
-                return `<div class="p-4 rounded-2xl border ${bg2}">
-                    <div class="flex items-center justify-between mb-2">
-                        <p class="text-[11px] font-black ${col.text} uppercase tracking-wide">${c.l}</p>
-                        <div class="flex items-center gap-1">
-                            <span class="text-2xl font-black ${col.text}">${nota}</span>
-                            <span class="text-[9px] text-slate-400">/5</span>
-                        </div>
-                    </div>
-                    ${c.porque ? `<p class="text-[11px] text-slate-600 font-medium leading-relaxed mb-2">${c.porque}</p>` : ''}
-                    ${c.melhoria && nota < 5 ? `<p class="text-[10px] text-amber-700 font-bold flex items-start gap-1 mt-1"><i data-lucide="lightbulb" class="w-3 h-3 mt-0.5 flex-shrink-0"></i>${c.melhoria}</p>` : ''}
-                </div>`;
-            }).join('');
-
-            return `<div class="rounded-[2rem] border-t-4 ${e.cor} bg-white shadow-sm overflow-hidden">
-                <div class="p-6 ${e.bg} border-b border-slate-100">
-                    <div class="flex items-center justify-between">
-                        <p class="text-[11px] font-black ${e.text} uppercase tracking-widest">${e.titulo}</p>
-                        <div class="flex items-center gap-2">
-                            <span class="text-3xl font-black ${colEtapa.text}">${fmt(notaEtapa)}</span>
-                            <span class="text-[10px] text-slate-400">/5</span>
-                        </div>
-                    </div>
-                    ${e.porque ? `<p class="text-[11px] text-slate-600 font-medium mt-2 leading-relaxed">${e.porque}</p>` : ''}
-                </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-3">${subCards}</div>
-            </div>`;
+            const notaEtapa = e.nota||0; const colEtapa = getScoreColor(notaEtapa);
+            const subCards = e.criterios.map(c => { const nota=c.nota||0; const col=getScoreColor(nota); const bg2=nota>=4?'bg-emerald-50 border-emerald-100':nota>=3?'bg-blue-50 border-blue-100':'bg-red-50 border-red-100'; return `<div class="p-4 rounded-2xl border ${bg2}"><div class="flex items-center justify-between mb-2"><p class="text-[11px] font-black ${col.text} uppercase tracking-wide">${c.l}</p><div class="flex items-center gap-1"><span class="text-2xl font-black ${col.text}">${nota}</span><span class="text-[9px] text-slate-400">/5</span></div></div>${c.porque?`<p class="text-[11px] text-slate-600 font-medium leading-relaxed mb-2">${c.porque}</p>`:''} ${c.melhoria&&nota<5?`<p class="text-[10px] text-amber-700 font-bold flex items-start gap-1 mt-1"><i data-lucide="lightbulb" class="w-3 h-3 mt-0.5 flex-shrink-0"></i>${c.melhoria}</p>`:''}</div>`; }).join('');
+            return `<div class="rounded-[2rem] border-t-4 ${e.cor} bg-white shadow-sm overflow-hidden"><div class="p-6 ${e.bg} border-b border-slate-100"><div class="flex items-center justify-between"><p class="text-[11px] font-black ${e.text} uppercase tracking-widest">${e.titulo}</p><div class="flex items-center gap-2"><span class="text-3xl font-black ${colEtapa.text}">${fmt(notaEtapa)}</span><span class="text-[10px] text-slate-400">/5</span></div></div>${e.porque?`<p class="text-[11px] text-slate-600 font-medium mt-2 leading-relaxed">${e.porque}</p>`:''}</div><div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-3">${subCards}</div></div>`;
         }).join('');
-
-        body.innerHTML = `
-            <div class="flex flex-wrap gap-3 mb-6">
-                <div class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl"><span class="text-[10px] font-black text-slate-500">Vendedor:</span><span class="font-black text-slate-700">${r.vendedor_nome||'—'}</span></div>
-                <div class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl"><span class="text-[10px] font-black text-slate-500">Gestor:</span><span class="font-black text-slate-700">${r.coordenador||'—'}</span></div>
-                <div class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl"><span class="text-[10px] font-black text-slate-500">Produto:</span><span class="font-black text-slate-700">${r.produto||'—'}</span></div>
-                <div class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl"><span class="text-[10px] font-black text-slate-500">Data:</span><span class="font-black text-slate-700">${new Date(r.created_at).toLocaleDateString('pt-BR')}</span></div>
-                <div class="flex items-center gap-2 px-4 py-2 rounded-xl ${vc}"><span class="text-[10px] font-black">SDR: ${verd}</span></div>
-            </div>
-            <div class="flex items-center gap-4 p-6 bg-gradient-to-r from-blue-700 to-blue-900 rounded-[2rem] mb-6">
-                <div class="text-6xl font-black text-white">${(r.media_final||0).toFixed(1)}</div>
-                <p class="text-white font-bold text-sm leading-relaxed flex-1">${j.resumo_executivo||'—'}</p>
-            </div>
-            <div class="grid grid-cols-3 gap-3 mb-6">
-                ${[{l:'Consultividade',v:j.nota_etapa1||r.nota_rapport,c:'border-blue-500'},{l:'Apres. Ferramenta',v:j.nota_etapa2||r.nota_produto,c:'border-violet-500'},{l:'Negociação',v:j.nota_etapa3||r.nota_apresentacao,c:'border-emerald-500'}].map(p=>`
-                <div class="text-center p-4 bg-slate-50 rounded-2xl border-t-4 ${p.c} border border-slate-100">
-                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">${p.l}</p>
-                    <p class="text-3xl font-black ${sc(p.v||0)}">${(p.v||0)}</p>
-                </div>`).join('')}
-            </div>
-            <div class="space-y-5 mb-6">${etapasHTML}</div>
-            ${(j.pontos_fortes||[]).length || (j.pontos_atencao||[]).length ? `
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="bg-emerald-50 p-6 rounded-[2rem] border border-emerald-100">
-                    <h4 class="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-4">Pontos Fortes</h4>
-                    <ul class="space-y-2">${(j.pontos_fortes||[]).map(i=>`<li class="text-[12px] font-bold text-emerald-900 flex gap-2"><span>▶</span>${i}</li>`).join('')}</ul>
-                </div>
-                <div class="bg-amber-50 p-6 rounded-[2rem] border border-amber-100">
-                    <h4 class="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-4">Melhorias Imediatas</h4>
-                    <ul class="space-y-2">${(j.pontos_atencao||[]).map(i=>`<li class="text-[12px] font-bold text-amber-900 flex gap-2"><span>▶</span>${i}</li>`).join('')}</ul>
-                </div>
-            </div>` : ''}
-            ${j.justificativa_detalhada ? `
-            <div class="glass-card p-8 mb-6">
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <i data-lucide="graduation-cap" class="w-4 h-4 text-blue-400"></i> Plano de Coaching
-                </h4>
-                <div class="markdown-content">${marked.parse(j.justificativa_detalhada)}</div>
-            </div>` : ''}
-            ${j.qual_analise_completa ? `
-            <div class="glass-card p-8 border-t-4 border-violet-500">
-                <h4 class="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <i data-lucide="user-check" class="w-4 h-4"></i> Análise SDR Completa
-                </h4>
-                <div class="markdown-content">${marked.parse(j.qual_analise_completa)}</div>
-            </div>` : ''}`;
-
+        body.innerHTML = `<div class="flex flex-wrap gap-3 mb-6"><div class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl"><span class="text-[10px] font-black text-slate-500">Vendedor:</span><span class="font-black text-slate-700">${r.vendedor_nome||'—'}</span></div><div class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl"><span class="text-[10px] font-black text-slate-500">Gestor:</span><span class="font-black text-slate-700">${r.coordenador||'—'}</span></div><div class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl"><span class="text-[10px] font-black text-slate-500">Produto:</span><span class="font-black text-slate-700">${r.produto||'—'}</span></div><div class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl"><span class="text-[10px] font-black text-slate-500">Data:</span><span class="font-black text-slate-700">${new Date(r.created_at).toLocaleDateString('pt-BR')}</span></div><div class="flex items-center gap-2 px-4 py-2 rounded-xl ${vc}"><span class="text-[10px] font-black">SDR: ${verd}</span></div></div>
+        <div class="flex items-center gap-4 p-6 bg-gradient-to-r from-blue-700 to-blue-900 rounded-[2rem] mb-6"><div class="text-6xl font-black text-white">${(r.media_final||0).toFixed(1)}</div><p class="text-white font-bold text-sm leading-relaxed flex-1">${j.resumo_executivo||'—'}</p></div>
+        <div class="grid grid-cols-3 gap-3 mb-6">${[{l:'Consultividade',v:j.nota_etapa1||r.nota_rapport,c:'border-blue-500'},{l:'Apres. Ferramenta',v:j.nota_etapa2||r.nota_produto,c:'border-violet-500'},{l:'Negociação',v:j.nota_etapa3||r.nota_apresentacao,c:'border-emerald-500'}].map(p=>`<div class="text-center p-4 bg-slate-50 rounded-2xl border-t-4 ${p.c} border border-slate-100"><p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">${p.l}</p><p class="text-3xl font-black ${sc(p.v||0)}">${(p.v||0)}</p></div>`).join('')}</div>
+        <div class="space-y-5 mb-6">${etapasHTML}</div>
+        ${(j.pontos_fortes||[]).length||(j.pontos_atencao||[]).length?`<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"><div class="bg-emerald-50 p-6 rounded-[2rem] border border-emerald-100"><h4 class="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-4">Pontos Fortes</h4><ul class="space-y-2">${(j.pontos_fortes||[]).map(i=>`<li class="text-[12px] font-bold text-emerald-900 flex gap-2"><span>▶</span>${i}</li>`).join('')}</ul></div><div class="bg-amber-50 p-6 rounded-[2rem] border border-amber-100"><h4 class="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-4">Melhorias Imediatas</h4><ul class="space-y-2">${(j.pontos_atencao||[]).map(i=>`<li class="text-[12px] font-bold text-amber-900 flex gap-2"><span>▶</span>${i}</li>`).join('')}</ul></div></div>`:''}
+        ${j.justificativa_detalhada?`<div class="glass-card p-8 mb-6"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="graduation-cap" class="w-4 h-4 text-blue-400"></i> Plano de Coaching</h4><div class="markdown-content">${marked.parse(j.justificativa_detalhada)}</div></div>`:''}
+        ${j.qual_analise_completa?`<div class="glass-card p-8 border-t-4 border-violet-500"><h4 class="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="user-check" class="w-4 h-4"></i> Análise SDR Completa</h4><div class="markdown-content">${marked.parse(j.qual_analise_completa)}</div></div>`:''}`;
         lucide.createIcons();
-    } catch(err) {
-        document.getElementById('analise-modal-body-'+id).innerHTML = `<p class="text-center py-20 text-red-400 font-bold">Erro ao carregar: ${err.message}</p>`;
-    }
+    } catch(err) { document.getElementById('analise-modal-body-'+id).innerHTML = `<p class="text-center py-20 text-red-400 font-bold">Erro ao carregar: ${err.message}</p>`; }
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
 
-// ── exportarPDFModal — função global (FORA de abrirAnaliseCompleta) ────────────
 async function exportarPDFModal(id) {
     const body = document.getElementById('analise-modal-body-'+id);
     if (!body) return;
-
     const btns = body.querySelectorAll('button, select, input');
     btns.forEach(el => el.style.display = 'none');
-
     const nomeEl = body.querySelector('.font-black.text-slate-700');
     const nomeVend = nomeEl ? nomeEl.textContent.trim() : id;
-
-    await html2pdf().set({
-        margin: [8, 8, 8, 8],
-        filename: 'auditoria-completa-' + nomeVend.replace(/[^a-zA-Z0-9À-ſ]/g, '-') + '.pdf',
-        image: { type: 'jpeg', quality: 0.97 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    }).from(body).save();
-
+    await html2pdf().set({ margin:[8,8,8,8], filename:'auditoria-completa-'+nomeVend.replace(/[^a-zA-Z0-9À-ſ]/g,'-')+'.pdf', image:{type:'jpeg',quality:0.97}, html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'}, jsPDF:{unit:'mm',format:'a4',orientation:'portrait'} }).from(body).save();
     btns.forEach(el => el.style.display = '');
 }
 
@@ -1662,36 +1416,23 @@ async function loadCalendario() {
         const d = await res.json();
         const reunioes = d.reunioes || [];
         const porDia = {};
-        reunioes.forEach(r => {
-            const dia = new Date(r.created_at).toISOString().split('T')[0];
-            if (!porDia[dia]) porDia[dia] = [];
-            porDia[dia].push(r);
-        });
-        const agora = new Date();
-        const ano = agora.getFullYear(); const mes = agora.getMonth();
-        const primeiroDia = new Date(ano, mes, 1).getDay();
-        const diasNoMes = new Date(ano, mes+1, 0).getDate();
+        reunioes.forEach(r => { const dia = new Date(r.created_at).toISOString().split('T')[0]; if (!porDia[dia]) porDia[dia] = []; porDia[dia].push(r); });
+        const agora = new Date(); const ano = agora.getFullYear(); const mes = agora.getMonth();
+        const primeiroDia = new Date(ano, mes, 1).getDay(); const diasNoMes = new Date(ano, mes+1, 0).getDate();
         const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-        let html = '<div class="glass-card p-8">';
-        html += '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4 text-sky-400"></i> '+meses[mes]+' '+ano+'</h4>';
-        html += '<div class="grid grid-cols-7 gap-2">';
+        let html = '<div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4 text-sky-400"></i> '+meses[mes]+' '+ano+'</h4><div class="grid grid-cols-7 gap-2">';
         ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].forEach(d => { html += '<div class="text-center text-[9px] font-black text-slate-400 uppercase py-2">'+d+'</div>'; });
         for (let i=0; i<primeiroDia; i++) html += '<div></div>';
         for (let d=1; d<=diasNoMes; d++) {
             const isoStr = `${ano}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const rDs = porDia[isoStr] || [];
-            const hasData = rDs.length > 0;
+            const rDs = porDia[isoStr] || []; const hasData = rDs.length > 0;
             const isHoje = isoStr === agora.toISOString().split('T')[0];
             const bgCls = isHoje ? 'bg-blue-600 text-white border-blue-600' : hasData ? 'bg-blue-50 border-blue-200 text-blue-700 cursor-pointer hover:bg-blue-100' : 'bg-slate-50 border-slate-100 text-slate-400';
-            html += '<div class="rounded-2xl border text-center py-2 px-1 transition-all '+bgCls+'"'+( hasData ? ' onclick="mostrarDiaCal(\''+isoStr+'\')"' : '')+'>';
-            html += '<p class="text-[11px] font-black">'+d+'</p>';
-            if (hasData) html += '<p class="text-[8px] font-black mt-0.5">'+rDs.length+' RD'+(rDs.length>1?'s':'')+'</p>';
-            html += '</div>';
+            html += '<div class="rounded-2xl border text-center py-2 px-1 transition-all '+bgCls+'"'+(hasData?' onclick="mostrarDiaCal(\''+isoStr+'\')"':'')+'>'+
+                '<p class="text-[11px] font-black">'+d+'</p>'+(hasData?'<p class="text-[8px] font-black mt-0.5">'+rDs.length+' RD'+(rDs.length>1?'s':'')+'</p>':'')+'</div>';
         }
-        html += '</div></div>';
-        html += '<div id="cal-dia-detalhe" class="hidden mt-6 glass-card p-8"></div>';
-        content.innerHTML = html;
-        lucide.createIcons();
+        html += '</div></div><div id="cal-dia-detalhe" class="hidden mt-6 glass-card p-8"></div>';
+        content.innerHTML = html; lucide.createIcons();
     } catch(err) { content.innerHTML = '<p class="text-center py-20 text-red-400 font-bold">Erro: '+err.message+'</p>'; }
 }
 
@@ -1703,11 +1444,8 @@ window.mostrarDiaCal = async function(dia) {
         const res = await fetch('/api/records?data_inicio='+dia+'&data_fim='+dia+'&limit=50&offset=0');
         const d = await res.json();
         const sc = n => n>=4?'text-emerald-600':n>=3?'text-blue-600':'text-red-500';
-        const rows = (d.records||[]).map(r => '<div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 cursor-pointer hover:bg-blue-50 transition-colors" onclick="abrirAnaliseCompleta(\''+r.id+'\')">' +
-            '<div class="flex-1"><p class="font-black text-sm text-slate-700">'+(r.vendedor_nome||'—')+'</p><p class="text-[10px] text-slate-400">'+(r.produto||'—')+'</p></div>' +
-            '<span class="text-2xl font-black '+sc(r.media_final)+'">'+((r.media_final||0).toFixed(1))+'</span></div>'
-        ).join('');
-        el.innerHTML = '<h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">'+dia+'</h5>' + (rows||'<p class="text-slate-300 text-center py-4 text-sm">Nenhuma análise.</p>');
+        const rows = (d.records||[]).map(r => '<div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 cursor-pointer hover:bg-blue-50 transition-colors" onclick="abrirAnaliseCompleta(\''+r.id+'\')"><div class="flex-1"><p class="font-black text-sm text-slate-700">'+(r.vendedor_nome||'—')+'</p><p class="text-[10px] text-slate-400">'+(r.produto||'—')+'</p></div><span class="text-2xl font-black '+sc(r.media_final)+'">'+((r.media_final||0).toFixed(1))+'</span></div>').join('');
+        el.innerHTML = '<h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">'+dia+'</h5>'+(rows||'<p class="text-slate-300 text-center py-4 text-sm">Nenhuma análise.</p>');
         lucide.createIcons();
     } catch { el.innerHTML = '<p class="text-red-400 text-sm text-center py-4">Erro ao carregar.</p>'; }
 };
@@ -1722,17 +1460,9 @@ async function abrirAnalysesCoord(coord) {
         const sc = n => n>=4?'text-emerald-600':n>=3?'text-blue-600':'text-red-500';
         const rows = d.records.map(r => {
             const dt = new Date(r.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
-            const temEtapas = r.nota_pre_fechamento === null && r.nota_fechamento === null;
-            const colMap = temEtapas ? [
-                {l:'E1',val:r.nota_rapport||0},{l:'E2',val:r.nota_produto||0},{l:'E3',val:r.nota_apresentacao||0}
-            ] : [
-                {l:'R',val:r.nota_rapport||0},{l:'Pr',val:r.nota_produto||0},{l:'A',val:r.nota_apresentacao||0},{l:'PF',val:r.nota_pre_fechamento||0},{l:'F',val:r.nota_fechamento||0}
-            ];
+            const colMap = [{l:'E1',val:r.nota_rapport||0},{l:'E2',val:r.nota_produto||0},{l:'E3',val:r.nota_apresentacao||0}];
             const cols = colMap.map(c => '<div class="text-center"><p class="text-[7px] font-black text-slate-400">'+c.l+'</p><p class="text-xs font-black '+sc(c.val)+'">'+c.val+'</p></div>').join('');
-            return '<div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:bg-blue-50/30 transition-colors cursor-pointer" onclick="abrirAnaliseCompleta(\''+r.id+'\')">' +
-                '<div class="flex-1 min-w-0"><p class="font-black text-sm text-slate-700">'+(r.vendedor_nome||'—')+'</p><p class="text-[10px] text-slate-400">'+(r.produto||'—')+' · '+dt+'</p></div>' +
-                '<div class="grid gap-2 hidden md:grid" style="grid-template-columns:repeat('+colMap.length+',minmax(0,1fr))">'+cols+'</div>' +
-                '<span class="text-2xl font-black '+sc(r.media_final)+'">'+((r.media_final||0).toFixed(1))+'</span></div>';
+            return '<div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:bg-blue-50/30 transition-colors cursor-pointer" onclick="abrirAnaliseCompleta(\''+r.id+'\')"><div class="flex-1 min-w-0"><p class="font-black text-sm text-slate-700">'+(r.vendedor_nome||'—')+'</p><p class="text-[10px] text-slate-400">'+(r.produto||'—')+' · '+dt+'</p></div><div class="grid gap-2 hidden md:grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+cols+'</div><span class="text-2xl font-black '+sc(r.media_final)+'">'+((r.media_final||0).toFixed(1))+'</span></div>';
         }).join('') || '<p class="text-slate-300 text-center py-12">Nenhuma análise encontrada.</p>';
         content.innerHTML = '<div class="glass-card p-8"><h4 class="font-black text-slate-700 mb-6 flex items-center gap-2"><i data-lucide="user-circle" class="w-5 h-5 text-blue-500"></i> '+coord+'</h4><div class="space-y-3">'+rows+'</div></div>';
         lucide.createIcons();
@@ -1749,201 +1479,38 @@ async function loadSdrDash() {
         const res = await fetch(`/api/dashboard?coordenador=${encodeURIComponent(coord)}&periodo=${periodo}`);
         const d = await res.json();
         const reunioes = d.reunioes || [];
-        const stats = d.stats || {};
-
-        const cats = {
-            QUALIFICADO:  { label:'Qualificado',        color:'#10b981', bg:'bg-emerald-500', light:'bg-emerald-50', border:'border-emerald-300', text:'text-emerald-700', count:0 },
-            PARCIALMENTE: { label:'Parc. Qualificado',  color:'#f59e0b', bg:'bg-amber-400',   light:'bg-amber-50',   border:'border-amber-300',   text:'text-amber-700',   count:0 },
-            MAL:          { label:'Mal Qualificado',    color:'#ef4444', bg:'bg-red-500',     light:'bg-red-50',     border:'border-red-300',     text:'text-red-700',     count:0 },
-            FORA:         { label:'Fora do Portfólio',  color:'#8b5cf6', bg:'bg-violet-500',  light:'bg-violet-50',  border:'border-violet-300',  text:'text-violet-700',  count:0 },
-            SEM:          { label:'Sem Dados',          color:'#94a3b8', bg:'bg-slate-300',   light:'bg-slate-50',   border:'border-slate-200',   text:'text-slate-500',   count:0 }
-        };
-        reunioes.forEach(r => {
-            const v = (r.qual_veredicto||'').toUpperCase();
-            if (v.includes('FORA')) cats.FORA.count++;
-            else if (v.includes('MAL')) cats.MAL.count++;
-            else if (v.includes('PARC')) cats.PARCIALMENTE.count++;
-            else if (v.includes('QUAL')) cats.QUALIFICADO.count++;
-            else cats.SEM.count++;
-        });
+        const cats = { QUALIFICADO:{label:'Qualificado',color:'#10b981',bg:'bg-emerald-500',light:'bg-emerald-50',border:'border-emerald-300',text:'text-emerald-700',count:0}, PARCIALMENTE:{label:'Parc. Qualificado',color:'#f59e0b',bg:'bg-amber-400',light:'bg-amber-50',border:'border-amber-300',text:'text-amber-700',count:0}, MAL:{label:'Mal Qualificado',color:'#ef4444',bg:'bg-red-500',light:'bg-red-50',border:'border-red-300',text:'text-red-700',count:0}, FORA:{label:'Fora do Portfólio',color:'#8b5cf6',bg:'bg-violet-500',light:'bg-violet-50',border:'border-violet-300',text:'text-violet-700',count:0}, SEM:{label:'Sem Dados',color:'#94a3b8',bg:'bg-slate-300',light:'bg-slate-50',border:'border-slate-200',text:'text-slate-500',count:0} };
+        reunioes.forEach(r => { const v=(r.qual_veredicto||'').toUpperCase(); if(v.includes('FORA'))cats.FORA.count++; else if(v.includes('MAL'))cats.MAL.count++; else if(v.includes('PARC'))cats.PARCIALMENTE.count++; else if(v.includes('QUAL'))cats.QUALIFICADO.count++; else cats.SEM.count++; });
         const total = reunioes.length || 1;
-        const dentroPct = Math.round(((cats.QUALIFICADO.count + cats.PARCIALMENTE.count) / total) * 100);
-
+        const dentroPct = Math.round(((cats.QUALIFICADO.count+cats.PARCIALMENTE.count)/total)*100);
         const kpiData = [
-            { label:'Total de Reuniões',   val: reunioes.length,                              icon:'clipboard-list', color:'text-blue-600',    bg:'bg-blue-50' },
-            { label:'Dentro do Portfólio', val: cats.QUALIFICADO.count+cats.PARCIALMENTE.count, pct: dentroPct+'%', icon:'check-circle',   color:'text-emerald-600', bg:'bg-emerald-50' },
-            { label:'Fora do Portfólio',   val: cats.FORA.count, pct: Math.round(cats.FORA.count/total*100)+'%',   icon:'x-circle',       color:'text-violet-600',  bg:'bg-violet-50' },
-            { label:'Mal Qualificados',    val: cats.MAL.count,  pct: Math.round(cats.MAL.count/total*100)+'%',    icon:'alert-triangle', color:'text-red-600',     bg:'bg-red-50' },
-            { label:'Qualif. Plenos',      val: cats.QUALIFICADO.count, pct: Math.round(cats.QUALIFICADO.count/total*100)+'%', icon:'star', color:'text-teal-600', bg:'bg-teal-50' },
-            { label:'Parc. Qualificados',  val: cats.PARCIALMENTE.count, pct: Math.round(cats.PARCIALMENTE.count/total*100)+'%', icon:'minus-circle', color:'text-amber-600', bg:'bg-amber-50' },
+            {label:'Total de Reuniões',val:reunioes.length,icon:'clipboard-list',color:'text-blue-600',bg:'bg-blue-50'},
+            {label:'Dentro do Portfólio',val:cats.QUALIFICADO.count+cats.PARCIALMENTE.count,pct:dentroPct+'%',icon:'check-circle',color:'text-emerald-600',bg:'bg-emerald-50'},
+            {label:'Fora do Portfólio',val:cats.FORA.count,pct:Math.round(cats.FORA.count/total*100)+'%',icon:'x-circle',color:'text-violet-600',bg:'bg-violet-50'},
+            {label:'Mal Qualificados',val:cats.MAL.count,pct:Math.round(cats.MAL.count/total*100)+'%',icon:'alert-triangle',color:'text-red-600',bg:'bg-red-50'},
+            {label:'Qualif. Plenos',val:cats.QUALIFICADO.count,pct:Math.round(cats.QUALIFICADO.count/total*100)+'%',icon:'star',color:'text-teal-600',bg:'bg-teal-50'},
+            {label:'Parc. Qualificados',val:cats.PARCIALMENTE.count,pct:Math.round(cats.PARCIALMENTE.count/total*100)+'%',icon:'minus-circle',color:'text-amber-600',bg:'bg-amber-50'},
         ];
-        const kpiHTML = kpiData.map(k =>
-            `<div class="glass-card p-5 flex items-center gap-4">
-                <div class="w-12 h-12 ${k.bg} rounded-2xl flex items-center justify-center flex-shrink-0">
-                    <i data-lucide="${k.icon}" class="w-6 h-6 ${k.color}"></i>
-                </div>
-                <div>
-                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">${k.label}</p>
-                    <p class="text-3xl font-black ${k.color}">${k.val}</p>
-                    ${k.pct ? `<p class="text-[10px] font-bold text-slate-400">${k.pct} do total</p>` : ''}
-                </div>
-            </div>`
-        ).join('');
-
-        const cx=80, cy=80, r=60, stroke=22;
-        const circum = 2*Math.PI*r;
-        let offset = 0;
-        const slices = Object.values(cats).map(c => {
-            const pct = c.count/total;
-            const dash = circum*pct;
-            const gap  = circum - dash;
-            const sl = { color:c.color, dash, gap, offset, label:c.label, count:c.count, pct:Math.round(pct*100) };
-            offset += dash;
-            return sl;
-        }).filter(s=>s.count>0);
-        const donutSlices = slices.map(s =>
-            `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${stroke}"
-             stroke-dasharray="${s.dash} ${s.gap}" stroke-dashoffset="${-s.offset+circum*0.25}"
-             transform="rotate(-90 ${cx} ${cy})"><title>${s.label}: ${s.count} (${s.pct}%)</title></circle>`
-        ).join('');
-        const donutLegend = slices.map(s =>
-            `<div class="flex items-center gap-2">
-                <div class="w-3 h-3 rounded-full flex-shrink-0" style="background:${s.color}"></div>
-                <span class="text-[10px] font-bold text-slate-600">${s.label}</span>
-                <span class="ml-auto font-black text-slate-700 text-[11px]">${s.count}</span>
-                <span class="text-[9px] text-slate-400 w-8 text-right">${s.pct}%</span>
-            </div>`
-        ).join('');
-
-        const distBars = Object.values(cats).map(c => {
-            const pct = Math.round(c.count/total*100);
-            return `<div class="flex items-center gap-3">
-                <span class="text-[9px] font-black uppercase tracking-widest w-28 flex-shrink-0 ${c.text}">${c.label}</span>
-                <div class="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden">
-                    <div class="${c.bg} h-full rounded-full" style="width:${pct}%"></div>
-                </div>
-                <span class="text-[11px] font-black text-slate-700 w-6 text-right">${c.count}</span>
-                <span class="text-[9px] text-slate-400 w-8 text-right">${pct}%</span>
-            </div>`;
-        }).join('');
-
-        const sdrByVend = {};
-        reunioes.forEach(r => {
-            const n = r.vendedor_nome||'—';
-            if (!sdrByVend[n]) sdrByVend[n] = { total:0, somaNotas:0, qualif:0, parc:0, fora:0, mal:0, sem:0 };
-            const v = (r.qual_veredicto||'').toUpperCase();
-            sdrByVend[n].total++;
-            if (r.qual_nota_sdr) sdrByVend[n].somaNotas += Number(r.qual_nota_sdr);
-            if (v.includes('FORA')) sdrByVend[n].fora++;
-            else if (v.includes('MAL')) sdrByVend[n].mal++;
-            else if (v.includes('PARC')) sdrByVend[n].parc++;
-            else if (v.includes('QUAL')) sdrByVend[n].qualif++;
-            else sdrByVend[n].sem++;
-        });
-        const rankingRows = Object.entries(sdrByVend)
-            .map(([nome, s]) => ({ nome, ...s, mediaSdr: s.somaNotas>0 ? (s.somaNotas/s.total).toFixed(1) : '—', taxaDentro: Math.round(((s.qualif+s.parc)/s.total)*100) }))
-            .sort((a,b) => (parseFloat(b.mediaSdr)||0) - (parseFloat(a.mediaSdr)||0))
-            .map((s,i) => {
-                const mc = parseFloat(s.mediaSdr)>=7?'text-emerald-600':parseFloat(s.mediaSdr)>=5?'text-amber-500':'text-red-500';
-                const taxaBar = `<div class="w-full h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden"><div class="h-full bg-emerald-400 rounded-full" style="width:${s.taxaDentro}%"></div></div>`;
-                return `<div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:bg-violet-50/30 transition-colors">
-                    <span class="text-lg font-black text-slate-300 w-6">${i+1}</span>
-                    <div class="flex-1 min-w-0">
-                        <p class="font-black text-sm text-slate-700 truncate">${s.nome}</p>
-                        <p class="text-[9px] text-slate-400 mt-0.5">${s.total} RDs · <span class="text-emerald-600 font-bold">${s.qualif+s.parc} dentro</span> · <span class="text-red-500 font-bold">${s.fora+s.mal} fora/excl.</span></p>
-                        <div class="flex items-center gap-1 mt-1"><span class="text-[8px] text-slate-400">${s.taxaDentro}% dentro portf.</span>${taxaBar}</div>
-                    </div>
-                    <div class="grid grid-cols-4 gap-2 text-center hidden md:grid">
-                        <div><p class="text-[7px] font-black text-emerald-500">QUAL</p><p class="text-xs font-black text-slate-700">${s.qualif}</p></div>
-                        <div><p class="text-[7px] font-black text-amber-500">PARC</p><p class="text-xs font-black text-slate-700">${s.parc}</p></div>
-                        <div><p class="text-[7px] font-black text-violet-500">FORA</p><p class="text-xs font-black text-slate-700">${s.fora}</p></div>
-                        <div><p class="text-[7px] font-black text-red-500">MAL</p><p class="text-xs font-black text-slate-700">${s.mal}</p></div>
-                    </div>
-                    <div class="text-center ml-2">
-                        <p class="text-[8px] font-black text-slate-400 uppercase">Nota SDR</p>
-                        <p class="text-2xl font-black ${mc}">${s.mediaSdr}</p>
-                    </div>
-                </div>`;
-            }).join('') || '<p class="text-center py-10 text-slate-300 font-bold">Nenhum dado disponível.</p>';
-
-        const sdrEvolSemanas = {};
-        reunioes.forEach(r => {
-            const dt = new Date(r.created_at);
-            const wk = `${dt.getFullYear()}-S${String(Math.ceil((dt.getDate()+new Date(dt.getFullYear(),dt.getMonth(),1).getDay())/7)).padStart(2,'0')}-${dt.getMonth()+1}`;
-            if (!sdrEvolSemanas[wk]) sdrEvolSemanas[wk] = { label:'Sem '+Math.ceil((dt.getDate()+new Date(dt.getFullYear(),dt.getMonth(),1).getDay())/7)+'/'+String(dt.getMonth()+1).padStart(2,'0'), dentro:0, fora:0, mal:0 };
-            const v = (r.qual_veredicto||'').toUpperCase();
-            if (v.includes('FORA')) sdrEvolSemanas[wk].fora++;
-            else if (v.includes('MAL')) sdrEvolSemanas[wk].mal++;
-            else if (v.includes('QUAL')||v.includes('PARC')) sdrEvolSemanas[wk].dentro++;
-        });
-        const sdrSemKeys = Object.keys(sdrEvolSemanas).sort().slice(-8);
-        const evolDentro = sdrSemKeys.map(k => sdrEvolSemanas[k].dentro);
-        const evolFora   = sdrSemKeys.map(k => sdrEvolSemanas[k].fora);
-        const evolMal    = sdrSemKeys.map(k => sdrEvolSemanas[k].mal);
-
-        content.innerHTML = `
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">${kpiHTML}</div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div class="glass-card p-7">
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4 text-violet-400"></i> Distribuição de Veredictos</h4>
-                <div class="space-y-3">${distBars}</div>
-                <div class="mt-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 flex items-center gap-4">
-                    <div class="text-4xl font-black text-emerald-600">${dentroPct}%</div>
-                    <div><p class="font-black text-emerald-700 text-sm">Taxa Dentro do Portfólio</p><p class="text-[10px] text-emerald-500">Qualificados + Parciais</p></div>
-                </div>
-            </div>
-            <div class="glass-card p-7">
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="target" class="w-4 h-4 text-violet-400"></i> Visão Gráfica</h4>
-                <div class="flex items-center gap-6 justify-center">
-                    <svg viewBox="0 0 160 160" class="w-40 h-40 flex-shrink-0">
-                        ${donutSlices}
-                        <text x="80" y="75" text-anchor="middle" font-size="20" font-weight="900" fill="#1e293b">${total}</text>
-                        <text x="80" y="92" text-anchor="middle" font-size="9" font-weight="700" fill="#94a3b8">REUNIÕES</text>
-                    </svg>
-                    <div class="space-y-2 flex-1 min-w-0">${donutLegend}</div>
-                </div>
-            </div>
-        </div>
-        <div class="glass-card p-7 mb-6">
-            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-violet-400"></i> Ranking SDR por Vendedor</h4>
-            <div class="space-y-3">${rankingRows}</div>
-        </div>
-        <div class="glass-card p-7">
-            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4 text-violet-400"></i> Evolução Semanal de Qualificação</h4>
-            <canvas id="chart-sdr-evol" height="100"></canvas>
-        </div>`;
-
+        const kpiHTML = kpiData.map(k=>`<div class="glass-card p-5 flex items-center gap-4"><div class="w-12 h-12 ${k.bg} rounded-2xl flex items-center justify-center flex-shrink-0"><i data-lucide="${k.icon}" class="w-6 h-6 ${k.color}"></i></div><div><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">${k.label}</p><p class="text-3xl font-black ${k.color}">${k.val}</p>${k.pct?`<p class="text-[10px] font-bold text-slate-400">${k.pct} do total</p>`:''}</div></div>`).join('');
+        const cx=80,cy=80,r=60,stroke=22,circum=2*Math.PI*r;
+        let offset=0;
+        const slices=Object.values(cats).map(c=>{const pct=c.count/total;const dash=circum*pct;const gap=circum-dash;const sl={color:c.color,dash,gap,offset,label:c.label,count:c.count,pct:Math.round(pct*100)};offset+=dash;return sl;}).filter(s=>s.count>0);
+        const donutSlices=slices.map(s=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${stroke}" stroke-dasharray="${s.dash} ${s.gap}" stroke-dashoffset="${-s.offset+circum*0.25}" transform="rotate(-90 ${cx} ${cy})"><title>${s.label}: ${s.count} (${s.pct}%)</title></circle>`).join('');
+        const donutLegend=slices.map(s=>`<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full flex-shrink-0" style="background:${s.color}"></div><span class="text-[10px] font-bold text-slate-600">${s.label}</span><span class="ml-auto font-black text-slate-700 text-[11px]">${s.count}</span><span class="text-[9px] text-slate-400 w-8 text-right">${s.pct}%</span></div>`).join('');
+        const distBars=Object.values(cats).map(c=>{const pct=Math.round(c.count/total*100);return`<div class="flex items-center gap-3"><span class="text-[9px] font-black uppercase tracking-widest w-28 flex-shrink-0 ${c.text}">${c.label}</span><div class="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden"><div class="${c.bg} h-full rounded-full" style="width:${pct}%"></div></div><span class="text-[11px] font-black text-slate-700 w-6 text-right">${c.count}</span><span class="text-[9px] text-slate-400 w-8 text-right">${pct}%</span></div>`;}).join('');
+        const sdrByVend={};
+        reunioes.forEach(r=>{const n=r.vendedor_nome||'—';if(!sdrByVend[n])sdrByVend[n]={total:0,somaNotas:0,qualif:0,parc:0,fora:0,mal:0,sem:0};const v=(r.qual_veredicto||'').toUpperCase();sdrByVend[n].total++;if(r.qual_nota_sdr)sdrByVend[n].somaNotas+=Number(r.qual_nota_sdr);if(v.includes('FORA'))sdrByVend[n].fora++;else if(v.includes('MAL'))sdrByVend[n].mal++;else if(v.includes('PARC'))sdrByVend[n].parc++;else if(v.includes('QUAL'))sdrByVend[n].qualif++;else sdrByVend[n].sem++;});
+        const rankingRows=Object.entries(sdrByVend).map(([nome,s])=>({nome,...s,mediaSdr:s.somaNotas>0?(s.somaNotas/s.total).toFixed(1):'—',taxaDentro:Math.round(((s.qualif+s.parc)/s.total)*100)})).sort((a,b)=>(parseFloat(b.mediaSdr)||0)-(parseFloat(a.mediaSdr)||0)).map((s,i)=>{const mc=parseFloat(s.mediaSdr)>=7?'text-emerald-600':parseFloat(s.mediaSdr)>=5?'text-amber-500':'text-red-500';const taxaBar=`<div class="w-full h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden"><div class="h-full bg-emerald-400 rounded-full" style="width:${s.taxaDentro}%"></div></div>`;return`<div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:bg-violet-50/30 transition-colors"><span class="text-lg font-black text-slate-300 w-6">${i+1}</span><div class="flex-1 min-w-0"><p class="font-black text-sm text-slate-700 truncate">${s.nome}</p><p class="text-[9px] text-slate-400 mt-0.5">${s.total} RDs · <span class="text-emerald-600 font-bold">${s.qualif+s.parc} dentro</span> · <span class="text-red-500 font-bold">${s.fora+s.mal} fora/excl.</span></p><div class="flex items-center gap-1 mt-1"><span class="text-[8px] text-slate-400">${s.taxaDentro}% dentro portf.</span>${taxaBar}</div></div><div class="grid grid-cols-4 gap-2 text-center hidden md:grid"><div><p class="text-[7px] font-black text-emerald-500">QUAL</p><p class="text-xs font-black text-slate-700">${s.qualif}</p></div><div><p class="text-[7px] font-black text-amber-500">PARC</p><p class="text-xs font-black text-slate-700">${s.parc}</p></div><div><p class="text-[7px] font-black text-violet-500">FORA</p><p class="text-xs font-black text-slate-700">${s.fora}</p></div><div><p class="text-[7px] font-black text-red-500">MAL</p><p class="text-xs font-black text-slate-700">${s.mal}</p></div></div><div class="text-center ml-2"><p class="text-[8px] font-black text-slate-400 uppercase">Nota SDR</p><p class="text-2xl font-black ${mc}">${s.mediaSdr}</p></div></div>`;}).join('')||'<p class="text-center py-10 text-slate-300 font-bold">Nenhum dado disponível.</p>';
+        const sdrEvolSemanas={};
+        reunioes.forEach(r=>{const dt=new Date(r.created_at);const wk=`${dt.getFullYear()}-S${String(Math.ceil((dt.getDate()+new Date(dt.getFullYear(),dt.getMonth(),1).getDay())/7)).padStart(2,'0')}-${dt.getMonth()+1}`;if(!sdrEvolSemanas[wk])sdrEvolSemanas[wk]={label:'Sem '+Math.ceil((dt.getDate()+new Date(dt.getFullYear(),dt.getMonth(),1).getDay())/7)+'/'+String(dt.getMonth()+1).padStart(2,'0'),dentro:0,fora:0,mal:0};const v=(r.qual_veredicto||'').toUpperCase();if(v.includes('FORA'))sdrEvolSemanas[wk].fora++;else if(v.includes('MAL'))sdrEvolSemanas[wk].mal++;else if(v.includes('QUAL')||v.includes('PARC'))sdrEvolSemanas[wk].dentro++;});
+        const sdrSemKeys=Object.keys(sdrEvolSemanas).sort().slice(-8);
+        content.innerHTML=`<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">${kpiHTML}</div><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"><div class="glass-card p-7"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4 text-violet-400"></i> Distribuição de Veredictos</h4><div class="space-y-3">${distBars}</div><div class="mt-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 flex items-center gap-4"><div class="text-4xl font-black text-emerald-600">${dentroPct}%</div><div><p class="font-black text-emerald-700 text-sm">Taxa Dentro do Portfólio</p><p class="text-[10px] text-emerald-500">Qualificados + Parciais</p></div></div></div><div class="glass-card p-7"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="target" class="w-4 h-4 text-violet-400"></i> Visão Gráfica</h4><div class="flex items-center gap-6 justify-center"><svg viewBox="0 0 160 160" class="w-40 h-40 flex-shrink-0">${donutSlices}<text x="80" y="75" text-anchor="middle" font-size="20" font-weight="900" fill="#1e293b">${total}</text><text x="80" y="92" text-anchor="middle" font-size="9" font-weight="700" fill="#94a3b8">REUNIÕES</text></svg><div class="space-y-2 flex-1 min-w-0">${donutLegend}</div></div></div></div><div class="glass-card p-7 mb-6"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-violet-400"></i> Ranking SDR por Vendedor</h4><div class="space-y-3">${rankingRows}</div></div><div class="glass-card p-7"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4 text-violet-400"></i> Evolução Semanal de Qualificação</h4><canvas id="chart-sdr-evol" height="100"></canvas></div>`;
         lucide.createIcons();
-
-        const ctx = document.getElementById('chart-sdr-evol')?.getContext('2d');
-        if (ctx && sdrSemKeys.length) {
-            new Chart(ctx, {
-                type:'bar',
-                data:{
-                    labels: sdrSemKeys.map(k => sdrEvolSemanas[k].label),
-                    datasets:[
-                        { label:'Dentro do Portfólio', data:evolDentro, backgroundColor:'#10b981', borderRadius:6, stack:'s' },
-                        { label:'Fora do Portfólio',   data:evolFora,   backgroundColor:'#8b5cf6', borderRadius:6, stack:'s' },
-                        { label:'Mal Qualificado',     data:evolMal,    backgroundColor:'#ef4444', borderRadius:6, stack:'s' }
-                    ]
-                },
-                options:{
-                    responsive:true, maintainAspectRatio:true,
-                    plugins:{ legend:{ position:'bottom', labels:{ font:{size:10,weight:'bold'}, boxWidth:12, padding:16 } } },
-                    scales:{
-                        x:{ stacked:true, grid:{display:false}, ticks:{font:{size:10,weight:'bold'}} },
-                        y:{ stacked:true, beginAtZero:true, ticks:{stepSize:1,font:{size:10,weight:'bold'}}, grid:{color:'#f1f5f9'} }
-                    }
-                }
-            });
-        }
-
-    } catch(err) {
-        document.getElementById('dash-content').innerHTML = '<div class="text-center py-20 text-red-400 font-bold">Erro ao carregar SDR: '+err.message+'</div>';
-    }
+        const ctx=document.getElementById('chart-sdr-evol')?.getContext('2d');
+        if(ctx&&sdrSemKeys.length){new Chart(ctx,{type:'bar',data:{labels:sdrSemKeys.map(k=>sdrEvolSemanas[k].label),datasets:[{label:'Dentro do Portfólio',data:sdrSemKeys.map(k=>sdrEvolSemanas[k].dentro),backgroundColor:'#10b981',borderRadius:6,stack:'s'},{label:'Fora do Portfólio',data:sdrSemKeys.map(k=>sdrEvolSemanas[k].fora),backgroundColor:'#8b5cf6',borderRadius:6,stack:'s'},{label:'Mal Qualificado',data:sdrSemKeys.map(k=>sdrEvolSemanas[k].mal),backgroundColor:'#ef4444',borderRadius:6,stack:'s'}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{font:{size:10,weight:'bold'},boxWidth:12,padding:16}}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:10,weight:'bold'}}},y:{stacked:true,beginAtZero:true,ticks:{stepSize:1,font:{size:10,weight:'bold'}},grid:{color:'#f1f5f9'}}}}});}
+    } catch(err) { content.innerHTML='<div class="text-center py-20 text-red-400 font-bold">Erro ao carregar SDR: '+err.message+'</div>'; }
 }
 
-// init
 document.addEventListener('DOMContentLoaded', () => { lucide.createIcons(); });
 </script>
 </body>
