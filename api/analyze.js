@@ -28,6 +28,9 @@
 //  REGRA MAL QUALIFICADO:
 //    Se qual_veredicto contém "MAL" ou "FORA", a reunião não contabiliza
 //    na média do vendedor (tratado em api/dashboard.js e api/save.js).
+//
+//  auditoria_objecoes: lista de até 10 objeções identificadas na transcrição,
+//    com flag se foram contornadas e sugestão de abordagem quando não foram.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { GoogleGenAI, Type } from '@google/genai';
@@ -117,7 +120,7 @@ export default async function handler(req, res) {
                         melhoria_etapa2:        { type: Type.STRING },
 
                         // ── ETAPA 3 — Negociação ─────────────────────────────
-                        nota_pre_fechamento_sub:   { type: Type.NUMBER },   // 1-5  (sub-critério — não confundir com coluna DB)
+                        nota_pre_fechamento_sub:   { type: Type.NUMBER },   // 1-5
                         porque_pre_fechamento_sub: { type: Type.STRING },
                         melhoria_pre_fechamento_sub:{ type: Type.STRING },
 
@@ -145,15 +148,20 @@ export default async function handler(req, res) {
                         tempo_fala_consultor:   { type: Type.NUMBER },
                         tempo_fala_cliente:     { type: Type.NUMBER },
 
-                        checklist_fechamento: {
-                            type: Type.OBJECT,
-                            properties: {
-                                resolveu_pontos_iniciais:             { type: Type.BOOLEAN },
-                                pediu_feedback_ferramenta:            { type: Type.BOOLEAN },
-                                pediu_voto_confianca:                 { type: Type.BOOLEAN },
-                                tratou_objecao_socio:                 { type: Type.BOOLEAN },
-                                validou_mensalidade_vs_setup:         { type: Type.BOOLEAN },
-                                mencionou_gestao_financeira_gratuita: { type: Type.BOOLEAN }
+                        // ── AUDITORIA DE OBJEÇÕES ─────────────────────────────
+                        // Identifica até 10 objeções reais do cliente na transcrição.
+                        // Considera objeção: dúvida, resistência, comparação com
+                        // concorrente, preço, falta de urgência/interesse, barreiras
+                        // técnicas ou operacionais. Não inventa — só o que está na call.
+                        auditoria_objecoes: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    objecao:            { type: Type.STRING },  // fala/resumo da objeção do cliente
+                                    contornada:         { type: Type.BOOLEAN }, // true = bem contornada, false = mal/ignorada
+                                    abordagem_sugerida: { type: Type.STRING }   // preenchido apenas quando contornada=false
+                                }
                             }
                         },
 
@@ -225,7 +233,8 @@ export default async function handler(req, res) {
                         "nota_etapa3", "porque_etapa3", "melhoria_etapa3",
 
                         "tempo_fala_consultor", "tempo_fala_cliente",
-                        "checklist_fechamento", "pontos_fortes", "pontos_atencao",
+                        "auditoria_objecoes",
+                        "pontos_fortes", "pontos_atencao",
                         "justificativa_detalhada",
 
                         "qual_produto_identificado", "qual_produto_no_portfolio", "qual_produto_alerta",
@@ -302,14 +311,6 @@ export default async function handler(req, res) {
                 'WHATSAPP WEB':     { color: 'bg-emerald-100 text-emerald-800 border-emerald-300', icon: 'message-circle' },
                 'EMISSOR DE NOTAS': { color: 'bg-orange-100 text-orange-800 border-orange-300',    icon: 'file-plus' },
                 'FORA':             { color: 'bg-red-100 text-red-800 border-red-300',             icon: 'alert-triangle' }
-            },
-            ckLabels: {
-                resolveu_pontos_iniciais:             'Retomou problemas',
-                pediu_feedback_ferramenta:            'Pediu Feedback',
-                pediu_voto_confianca:                 'Voto de Confiança',
-                tratou_objecao_socio:                 'Alinhou Sócios',
-                validou_mensalidade_vs_setup:         'Isolou Objeção',
-                mencionou_gestao_financeira_gratuita: 'Cereja do Bolo'
             }
         };
 
