@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido' });
     if (!getSession(req)) return res.status(401).json({ error: 'Não autorizado' });
 
-    const { coordenador, periodo, inicio, fim, vendedor } = req.query;
+    const { coordenador, periodo, inicio, fim, vendedor, produto } = req.query;
 
     let filter = '';
 
@@ -35,6 +35,10 @@ export default async function handler(req, res) {
     }
     if (vendedor && vendedor !== 'todos') {
         filter += `&vendedor_nome=eq.${encodeURIComponent(vendedor)}`;
+    }
+    // ── Filtro por produto ────────────────────────────────────────────────────
+    if (produto && produto !== 'todos') {
+        filter += `&produto=ilike.*${encodeURIComponent(produto)}*`;
     }
 
     // Filtro de período
@@ -50,6 +54,12 @@ export default async function handler(req, res) {
         } else if (desde) {
             filter += `&created_at=gte.${desde.toISOString()}`;
         }
+    }
+    // suporte a periodo numérico (ex: "30", "7", "90") vindo dos filtros de histórico
+    if (periodo && !isNaN(parseInt(periodo, 10))) {
+        const dias = parseInt(periodo, 10);
+        const desde = new Date(Date.now() - dias * 86400000).toISOString();
+        filter += `&created_at=gte.${desde}`;
     }
 
     try {
@@ -106,7 +116,6 @@ function calcStats(reunioes) {
         c.total++;
         if (isMalQualificado(r)) {
             c.mal_qualificados++;
-            // NÃO inclui na média de vendas do coordenador
         } else {
             if (r.media_final) c.medias.push(r.media_final);
         }
@@ -125,15 +134,11 @@ function calcStats(reunioes) {
             porVendedor[r.vendedor_nome] = {
                 nome:              r.vendedor_nome,
                 coordenador:       r.coordenador,
-                total:             0,   // todas as RDs (incluindo mal qualif.)
-                total_validas:     0,   // RDs que contam na média
-                total_mal_qualif:  0,   // RDs que NÃO contam na média
+                total:             0,
+                total_validas:     0,
+                total_mal_qualif:  0,
                 medias: [],
-                // ── NOVO: 3 etapas (colunas: rapport=etapa1, produto=etapa2, apresentacao=etapa3)
-                etapa1: [],
-                etapa2: [],
-                etapa3: [],
-                // ── LEGADO: 5 pilares (para registros antigos sem novo formato)
+                etapa1: [], etapa2: [], etapa3: [],
                 rapport: [], produto: [], apresentacao: [],
                 pre_fechamento: [], fechamento: []
             };
@@ -143,20 +148,16 @@ function calcStats(reunioes) {
 
         if (isMalQualificado(r)) {
             v.total_mal_qualif++;
-            // ❌ NÃO adiciona nas médias — conforme regra de negócio
         } else {
             v.total_validas++;
-            if (r.media_final)         v.medias.push(r.media_final);
+            if (r.media_final) v.medias.push(r.media_final);
 
-            // Detectar formato e usar colunas corretas
             const temEtapas = r.nota_pre_fechamento === null && r.nota_fechamento === null;
             if (temEtapas) {
-                // Novo formato: rapport=etapa1, produto=etapa2, apresentacao=etapa3
                 if (r.nota_rapport)      v.etapa1.push(r.nota_rapport);
                 if (r.nota_produto)      v.etapa2.push(r.nota_produto);
                 if (r.nota_apresentacao) v.etapa3.push(r.nota_apresentacao);
             } else {
-                // Legado: 5 pilares
                 if (r.nota_rapport)        v.rapport.push(r.nota_rapport);
                 if (r.nota_produto)        v.produto.push(r.nota_produto);
                 if (r.nota_apresentacao)   v.apresentacao.push(r.nota_apresentacao);
@@ -168,20 +169,18 @@ function calcStats(reunioes) {
 
     const ranking = Object.values(porVendedor).map(v => ({
         ...v,
-        media:             +avg(v.medias).toFixed(1),
-        // Novo formato
-        avg_etapa1:        +avg(v.etapa1).toFixed(1),
-        avg_etapa2:        +avg(v.etapa2).toFixed(1),
-        avg_etapa3:        +avg(v.etapa3).toFixed(1),
-        // Legado (para backward compat)
-        avg_rapport:       +avg(v.rapport).toFixed(1),
-        avg_produto:       +avg(v.produto).toFixed(1),
-        avg_apresentacao:  +avg(v.apresentacao).toFixed(1),
-        avg_pre_fechamento:+avg(v.pre_fechamento).toFixed(1),
-        avg_fechamento:    +avg(v.fechamento).toFixed(1),
+        media:              +avg(v.medias).toFixed(1),
+        avg_etapa1:         +avg(v.etapa1).toFixed(1),
+        avg_etapa2:         +avg(v.etapa2).toFixed(1),
+        avg_etapa3:         +avg(v.etapa3).toFixed(1),
+        avg_rapport:        +avg(v.rapport).toFixed(1),
+        avg_produto:        +avg(v.produto).toFixed(1),
+        avg_apresentacao:   +avg(v.apresentacao).toFixed(1),
+        avg_pre_fechamento: +avg(v.pre_fechamento).toFixed(1),
+        avg_fechamento:     +avg(v.fechamento).toFixed(1),
     })).sort((a, b) => b.media - a.media);
 
-    // ── Evolução temporal (por semana) — só conta RDs válidas ───────────────
+    // ── Evolução temporal (por semana) ───────────────────────────────────────
     const porSemana = {};
     for (const r of reunioesBoas) {
         const d   = new Date(r.created_at);
@@ -196,7 +195,7 @@ function calcStats(reunioes) {
         .map(s => ({ semana: s.semana, media: +avg(s.medias).toFixed(1), total: s.total }))
         .sort((a, b) => a.semana.localeCompare(b.semana));
 
-    // ── SDR stats (todos, incluindo mal qualificados — para donut/barras) ────
+    // ── SDR stats ────────────────────────────────────────────────────────────
     const veredictos = { QUALIFICADO: 0, PARCIALMENTE: 0, MAL: 0, FORA: 0, SEM: 0 };
     for (const r of reunioes) {
         const v = (r.qual_veredicto || '').toUpperCase();
@@ -209,23 +208,22 @@ function calcStats(reunioes) {
 
     return {
         total,
-        total_validas:   reunioesBoas.length,
+        total_validas:    reunioesBoas.length,
         total_mal_qualif: reunioesMalQ.length,
-        media_geral:     +avg(medias).toFixed(1),
+        media_geral:      +avg(medias).toFixed(1),
         porCoordenador,
         ranking,
         evolucao,
         veredictos,
-        // ── Relatório separado de leads mal qualificados ───────────────────
         reunioes_mal_qualificadas: reunioesMalQ.map(r => ({
-            id:            r.id,
-            coordenador:   r.coordenador,
-            vendedor_nome: r.vendedor_nome,
-            produto:       r.produto,
+            id:             r.id,
+            coordenador:    r.coordenador,
+            vendedor_nome:  r.vendedor_nome,
+            produto:        r.produto,
             qual_veredicto: r.qual_veredicto,
             qual_nota_sdr:  r.qual_nota_sdr,
             chance_fechamento: r.chance_fechamento,
-            created_at:    r.created_at
+            created_at:     r.created_at
         }))
     };
 }
