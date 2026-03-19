@@ -34,8 +34,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { GoogleGenAI, Type } from '@google/genai';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 export const maxDuration = 60;
+
+function loadSystemPrompt() {
+    const base      = readFileSync(join(process.cwd(), 'prompts/system_base.txt'), 'utf8');
+    const nibo      = readFileSync(join(process.cwd(), 'prompts/nibo_conhecimento.txt'), 'utf8');
+    const criterios = readFileSync(join(process.cwd(), 'prompts/criterios_avaliacao.txt'), 'utf8');
+    return `${base}\n\n${nibo}\n\n${criterios}`;
+}
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -59,15 +68,14 @@ export default async function handler(req, res) {
 
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        import { readFileSync } from 'fs';
-import { join } from 'path';
 
-const base     = readFileSync(join(process.cwd(), 'prompts/system_base.txt'), 'utf8');
-const nibo     = readFileSync(join(process.cwd(), 'prompts/nibo_conhecimento.txt'), 'utf8');
-const criterios = readFileSync(join(process.cwd(), 'prompts/criterios_avaliacao.txt'), 'utf8');
-    }
-const systemInstruction = loadPrompt();
-        if (!systemInstruction) return res.status(500).json({ error: "Prompt não configurado no servidor." });
+        let systemInstruction;
+        try {
+            systemInstruction = loadSystemPrompt();
+        } catch (fileError) {
+            console.error("Erro ao carregar arquivos de prompt:", fileError.message);
+            return res.status(500).json({ error: "Prompt não configurado no servidor." });
+        }
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -127,8 +135,8 @@ const systemInstruction = loadPrompt();
                         melhoria_etapa2:        { type: Type.STRING },
 
                         // ── ETAPA 3 — Negociação ─────────────────────────────
-                        nota_pre_fechamento_sub:   { type: Type.NUMBER },   // 1-5
-                        porque_pre_fechamento_sub: { type: Type.STRING },
+                        nota_pre_fechamento_sub:    { type: Type.NUMBER },   // 1-5
+                        porque_pre_fechamento_sub:  { type: Type.STRING },
                         melhoria_pre_fechamento_sub:{ type: Type.STRING },
 
                         nota_escuta_ativa:      { type: Type.NUMBER },   // 1-5
@@ -156,24 +164,20 @@ const systemInstruction = loadPrompt();
                         tempo_fala_cliente:     { type: Type.NUMBER },
 
                         // ── AUDITORIA DE OBJEÇÕES ─────────────────────────────
-                        // Identifica até 10 objeções reais do cliente na transcrição.
-                        // Considera objeção: dúvida, resistência, comparação com
-                        // concorrente, preço, falta de urgência/interesse, barreiras
-                        // técnicas ou operacionais. Não inventa — só o que está na call.
                         auditoria_objecoes: {
                             type: Type.ARRAY,
                             items: {
                                 type: Type.OBJECT,
                                 properties: {
-                                    objecao:            { type: Type.STRING },  // fala/resumo da objeção do cliente
-                                    contornada:         { type: Type.BOOLEAN }, // true = bem contornada, false = mal/ignorada
-                                    abordagem_sugerida: { type: Type.STRING }   // preenchido apenas quando contornada=false
+                                    objecao:            { type: Type.STRING },
+                                    contornada:         { type: Type.BOOLEAN },
+                                    abordagem_sugerida: { type: Type.STRING }
                                 }
                             }
                         },
 
-                        pontos_fortes:          { type: Type.ARRAY, items: { type: Type.STRING } },
-                        pontos_atencao:         { type: Type.ARRAY, items: { type: Type.STRING } },
+                        pontos_fortes:           { type: Type.ARRAY, items: { type: Type.STRING } },
+                        pontos_atencao:          { type: Type.ARRAY, items: { type: Type.STRING } },
                         justificativa_detalhada: { type: Type.STRING },
 
                         // ── QUALIFICAÇÃO SDR ─────────────────────────────────
@@ -190,12 +194,12 @@ const systemInstruction = loadPrompt();
                                 }
                             }
                         },
-                        qual_sabia_o_que_veria:   { type: Type.BOOLEAN },
-                        qual_sabia_evidencia:     { type: Type.STRING },
-                        qual_produto_correto:     { type: Type.BOOLEAN },
-                        qual_produto_evidencia:   { type: Type.STRING },
-                        qual_interesse_real:      { type: Type.BOOLEAN },
-                        qual_interesse_evidencia: { type: Type.STRING },
+                        qual_sabia_o_que_veria:     { type: Type.BOOLEAN },
+                        qual_sabia_evidencia:       { type: Type.STRING },
+                        qual_produto_correto:       { type: Type.BOOLEAN },
+                        qual_produto_evidencia:     { type: Type.STRING },
+                        qual_interesse_real:        { type: Type.BOOLEAN },
+                        qual_interesse_evidencia:   { type: Type.STRING },
                         qual_cenario_diagnosticado: { type: Type.BOOLEAN },
                         qual_cenario_evidencia:     { type: Type.STRING },
 
@@ -263,11 +267,11 @@ const systemInstruction = loadPrompt();
         let analysisData;
         try {
             const rawText = typeof response.text === 'function' ? response.text() : response.text;
-            console.log("RAW length:", rawText?.length, "| first 100:", rawText?.substring(0,100));
+            console.log("RAW length:", rawText?.length, "| first 100:", rawText?.substring(0, 100));
             analysisData = JSON.parse(rawText);
         } catch (parseError) {
             const rawText = typeof response.text === 'function' ? response.text() : response.text;
-            console.error("Parse error:", parseError.message, "| raw:", rawText?.substring(0,300));
+            console.error("Parse error:", parseError.message, "| raw:", rawText?.substring(0, 300));
             return res.status(500).json({ error: "Erro ao processar resposta da IA: " + parseError.message });
         }
 
@@ -280,9 +284,9 @@ const systemInstruction = loadPrompt();
                     icon: 'search',
                     color: 'blue',
                     criterios: [
-                        { l: 'Rapport',            k: 'rapport',      desc: 'Criou conexão genuína e estabeleceu confiança com o lead?' },
-                        { l: 'SPIN',               k: 'spin',         desc: 'Realizou perguntas de Situação, Problema, Implicação e Necessidade?' },
-                        { l: 'Comunicação Eficaz', k: 'comunicacao',  desc: 'Demonstrou capacidade de ouvir as dores e o cenário do cliente?' }
+                        { l: 'Rapport',            k: 'rapport',     desc: 'Criou conexão genuína e estabeleceu confiança com o lead?' },
+                        { l: 'SPIN',               k: 'spin',        desc: 'Realizou perguntas de Situação, Problema, Implicação e Necessidade?' },
+                        { l: 'Comunicação Eficaz', k: 'comunicacao', desc: 'Demonstrou capacidade de ouvir as dores e o cenário do cliente?' }
                     ]
                 },
                 {
@@ -291,10 +295,10 @@ const systemInstruction = loadPrompt();
                     icon: 'presentation',
                     color: 'violet',
                     criterios: [
-                        { l: 'Produto',                      k: 'produto',       desc: 'Apresentou o produto com clareza, domínio e adequação ao cenário?' },
-                        { l: 'Objeções',                     k: 'objecoes',      desc: 'Conseguiu contornar objeções de maneira amistosa e convincente?' },
-                        { l: 'Solução da Dor',               k: 'solucao_dor',   desc: 'Utilizou a dor identificada no diagnóstico para mostrar a solução?' },
-                        { l: 'Encantamento e Emoção',        k: 'encantamento',  desc: 'Gerou emoção comercial, entusiasmo e encantou o lead com a ferramenta?' }
+                        { l: 'Produto',               k: 'produto',      desc: 'Apresentou o produto com clareza, domínio e adequação ao cenário?' },
+                        { l: 'Objeções',              k: 'objecoes',     desc: 'Conseguiu contornar objeções de maneira amistosa e convincente?' },
+                        { l: 'Solução da Dor',        k: 'solucao_dor',  desc: 'Utilizou a dor identificada no diagnóstico para mostrar a solução?' },
+                        { l: 'Encantamento e Emoção', k: 'encantamento', desc: 'Gerou emoção comercial, entusiasmo e encantou o lead com a ferramenta?' }
                     ]
                 },
                 {
@@ -303,11 +307,11 @@ const systemInstruction = loadPrompt();
                     icon: 'handshake',
                     color: 'emerald',
                     criterios: [
-                        { l: 'Pré-Fechamento',   k: 'pre_fechamento_sub',  desc: 'Preparou o terreno para o fechamento com ancoragem e comprometimento do lead?' },
-                        { l: 'Escuta Ativa',     k: 'escuta_ativa',        desc: 'Exerceu escuta ativa com pausas necessárias para feedback do lead?' },
-                        { l: 'Resiliência',      k: 'resiliencia',         desc: 'Demonstrou firmeza com bons argumentos para fechamento ou próximo contato?' },
-                        { l: 'Gestão do Tempo',  k: 'gestao_tempo',        desc: 'Conseguiu boa gestão do tempo garantindo call de qualidade em 60 min?' },
-                        { l: 'Regras de Fech.',  k: 'regras_fechamento',   desc: 'Aplicou corretamente as regras e técnicas de fechamento Nibo?' }
+                        { l: 'Pré-Fechamento',  k: 'pre_fechamento_sub', desc: 'Preparou o terreno para o fechamento com ancoragem e comprometimento do lead?' },
+                        { l: 'Escuta Ativa',    k: 'escuta_ativa',       desc: 'Exerceu escuta ativa com pausas necessárias para feedback do lead?' },
+                        { l: 'Resiliência',     k: 'resiliencia',        desc: 'Demonstrou firmeza com bons argumentos para fechamento ou próximo contato?' },
+                        { l: 'Gestão do Tempo', k: 'gestao_tempo',       desc: 'Conseguiu boa gestão do tempo garantindo call de qualidade em 60 min?' },
+                        { l: 'Regras de Fech.', k: 'regras_fechamento',  desc: 'Aplicou corretamente as regras e técnicas de fechamento Nibo?' }
                     ]
                 }
             ],
