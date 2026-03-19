@@ -40,9 +40,14 @@ import { join } from 'path';
 export const maxDuration = 60;
 
 function loadSystemPrompt() {
-    const base      = readFileSync(join(process.cwd(), 'prompts/system_base.txt'), 'utf8');
-    const nibo      = readFileSync(join(process.cwd(), 'prompts/nibo_conhecimento.txt'), 'utf8');
-    const criterios = readFileSync(join(process.cwd(), 'prompts/criterios_avaliacao.txt'), 'utf8');
+    const base      = process.env.PROMPT_BASE;
+    const nibo      = process.env.PROMPT_NIBO;
+    const criterios = process.env.PROMPT_CRITERIOS;
+    
+    if (!base || !nibo || !criterios) {
+        throw new Error(`Variáveis faltando: ${!base?'PROMPT_BASE ':''} ${!nibo?'PROMPT_NIBO ':''} ${!criterios?'PROMPT_CRITERIOS':''}`);
+    }
+    
     return `${base}\n\n${nibo}\n\n${criterios}`;
 }
 
