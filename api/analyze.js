@@ -59,7 +59,14 @@ export default async function handler(req, res) {
 
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const systemInstruction = process.env.SYSTEM_PROMPT;
+        import { readFileSync } from 'fs';
+import { join } from 'path';
+
+const base     = readFileSync(join(process.cwd(), 'prompts/system_base.txt'), 'utf8');
+const nibo     = readFileSync(join(process.cwd(), 'prompts/nibo_conhecimento.txt'), 'utf8');
+const criterios = readFileSync(join(process.cwd(), 'prompts/criterios_avaliacao.txt'), 'utf8');
+    }
+const systemInstruction = loadPrompt();
         if (!systemInstruction) return res.status(500).json({ error: "Prompt não configurado no servidor." });
 
         const response = await ai.models.generateContent({
