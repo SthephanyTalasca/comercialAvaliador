@@ -1084,6 +1084,36 @@ async function loadSdrDash(){
     }catch(err){content.innerHTML=`<div class="text-center py-20 text-red-400 font-bold">Erro SDR: ${err.message}</div>`;}
 }
 
+async function deletarRegistro(id) {
+    if (!confirm('Excluir esta análise permanentemente?')) return;
+    try {
+        const res = await fetch('/api/records', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        const d = await res.json();
+        if (!d.ok) throw new Error(d.error);
+        const row = document.getElementById('hist-row-' + id);
+        if (row) row.remove();
+    } catch(err) { alert('Erro ao excluir: ' + err.message); }
+}
+
+async function deletarNaoIdentificados() {
+    if (!confirm('Excluir TODOS os registros sem vendedor identificado?')) return;
+    try {
+        const res = await fetch('/api/records', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ modo: 'nao_identificados' })
+        });
+        const d = await res.json();
+        if (!d.ok) throw new Error(d.error);
+        alert('Removidos: ' + d.count + ' registros.');
+        _fetchHistorico();
+    } catch(err) { alert('Erro: ' + err.message); }
+}
+
 document.addEventListener('DOMContentLoaded', () => { lucide.createIcons(); });
 </script>
 </body>
