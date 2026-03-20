@@ -839,30 +839,150 @@ async function loadHistorico(reset){
     if(sel){sel.innerHTML='<option value="todos">Todos</option>';VENDORS_CACHE.forEach(v=>{const o=document.createElement('option');o.value=v.nome;o.textContent=v.nome;sel.appendChild(o);});}
     await _fetchHistorico();
 }
-async function _fetchHistorico(){
-    const tc=document.getElementById('hist-table-container');
-    const coord=document.getElementById('hist-filter-coord')?.value||'todos';
-    const vend=document.getElementById('hist-filter-vend')?.value||'todos';
-    const search=document.getElementById('hist-search')?.value||'';
-    const periodo=document.getElementById('hist-filter-periodo')?.value||'todos';
-    const offset=histPage*HIST_PER_PAGE;
-    try{
-        const qs=`coordenador=${encodeURIComponent(coord)}&vendedor=${encodeURIComponent(vend)}&search=${encodeURIComponent(search)}&periodo=${periodo}&limit=${HIST_PER_PAGE}&offset=${offset}`;
-        const res=await fetch('/api/records?'+qs),d=await res.json();
-        if(d.error)throw new Error(d.error);
-        const sc=n=>(n||0)>=4?'text-emerald-600':(n||0)>=3?'text-blue-600':'text-red-500';
-        const rows=d.records.map(r=>{
-            const dt=new Date(r.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
-            const verd=r.qual_veredicto||'—';
-            const vc=verd.toUpperCase().includes('FORA')?'bg-purple-100 text-purple-700 border-purple-200':verd.toUpperCase().includes('MAL')?'bg-red-100 text-red-700 border-red-200':verd.toUpperCase().includes('PARC')?'bg-yellow-100 text-yellow-700 border-yellow-200':verd.toUpperCase().includes('QUAL')?'bg-emerald-100 text-emerald-700 border-emerald-200':'bg-slate-100 text-slate-500 border-slate-200';
-            return`<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition-colors"><td class="py-3 px-3 font-black text-slate-700 text-sm">${r.vendedor_nome||'—'}</td><td class="py-3 px-3 text-[10px] text-slate-500">${r.coordenador||'—'}</td><td class="py-3 px-3 text-[10px] text-slate-500">${r.produto||'—'}</td><td class="py-3 px-3 text-center font-black text-xl ${sc(r.media_final)}">${(r.media_final||0).toFixed(1)}</td><td class="py-3 px-3"><span class="px-2 py-1 rounded-lg border text-[9px] font-black ${vc}">${verd}</span></td><td class="py-3 px-3 text-[10px] text-slate-400">${dt}</td><td class="py-3 px-3"><div class="flex items-center gap-2"><select onchange="handleReassignHistorico(event,'${r.id}')" class="text-[10px] font-bold border border-slate-200 rounded-xl px-2 py-1 bg-white focus:outline-none max-w-[150px]"><option value="">— reatribuir —</option>${VENDORS_CACHE.map(v=>`<option value="${v.nome}" ${v.nome===r.vendedor_nome?'selected':''}>${v.nome}</option>`).join('')}</select><button onclick="abrirAnaliseCompleta('${r.id}')" class="text-blue-500 hover:text-blue-700 font-black text-[9px] underline flex-shrink-0">ver</button><button onclick="deletarRegistro('${r.id}')" class="text-red-400 hover:text-red-600 font-black text-[9px] underline flex-shrink-0">excluir</button></div></td></tr>`;
+// ── SUBSTITUIR _fetchHistorico no index.html ─────────────────────────────────
+// Usa data-reuniao-id no select em vez de passar o ID no onchange inline
+
+async function _fetchHistorico() {
+    const tc = document.getElementById('hist-table-container');
+    const coord   = document.getElementById('hist-filter-coord')?.value  || 'todos';
+    const vend    = document.getElementById('hist-filter-vend')?.value   || 'todos';
+    const search  = document.getElementById('hist-search')?.value        || '';
+    const periodo = document.getElementById('hist-filter-periodo')?.value || 'todos';
+    const offset  = histPage * HIST_PER_PAGE;
+
+    try {
+        const qs = `coordenador=${encodeURIComponent(coord)}&vendedor=${encodeURIComponent(vend)}&search=${encodeURIComponent(search)}&periodo=${periodo}&limit=${HIST_PER_PAGE}&offset=${offset}`;
+        const res = await fetch('/api/records?' + qs);
+        const d   = await res.json();
+        if (d.error) throw new Error(d.error);
+
+        const sc = n => (n||0) >= 4 ? 'text-emerald-600' : (n||0) >= 3 ? 'text-blue-600' : 'text-red-500';
+
+        const rows = d.records.map(r => {
+            const dt   = new Date(r.created_at).toLocaleDateString('pt-BR', {day:'2-digit', month:'short', year:'numeric'});
+            const verd = r.qual_veredicto || '—';
+            const vc   = verd.toUpperCase().includes('FORA')  ? 'bg-purple-100 text-purple-700 border-purple-200'
+                       : verd.toUpperCase().includes('MAL')   ? 'bg-red-100 text-red-700 border-red-200'
+                       : verd.toUpperCase().includes('PARC')  ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                       : verd.toUpperCase().includes('QUAL')  ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                       : 'bg-slate-100 text-slate-500 border-slate-200';
+
+            const opts = VENDORS_CACHE.map(v =>
+                `<option value="${v.nome}" ${v.nome === r.vendedor_nome ? 'selected' : ''}>${v.nome}</option>`
+            ).join('');
+
+            return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition-colors">
+                <td class="py-3 px-3 font-black text-slate-700 text-sm hist-nome-cell">${r.vendedor_nome || '—'}</td>
+                <td class="py-3 px-3 text-[10px] text-slate-500">${r.coordenador || '—'}</td>
+                <td class="py-3 px-3 text-[10px] text-slate-500">${r.produto || '—'}</td>
+                <td class="py-3 px-3 text-center font-black text-xl ${sc(r.media_final)}">${(r.media_final||0).toFixed(1)}</td>
+                <td class="py-3 px-3"><span class="px-2 py-1 rounded-lg border text-[9px] font-black ${vc}">${verd}</span></td>
+                <td class="py-3 px-3 text-[10px] text-slate-400">${dt}</td>
+                <td class="py-3 px-3">
+                    <div class="flex items-center gap-2">
+                        <select class="hist-reassign-sel text-[10px] font-bold border border-slate-200 rounded-xl px-2 py-1 bg-white focus:outline-none max-w-[150px]"
+                                data-reuniao-id="${r.id}">
+                            <option value="">— reatribuir —</option>
+                            ${opts}
+                        </select>
+                        <button class="hist-reassign-btn text-[10px] font-black text-white bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded-lg flex-shrink-0 hidden"
+                                data-reuniao-id="${r.id}">
+                            ✓ Salvar
+                        </button>
+                        <button onclick="abrirAnaliseCompleta('${r.id}')" class="text-blue-500 hover:text-blue-700 font-black text-[9px] underline flex-shrink-0">ver</button>
+                        <button onclick="deletarRegistro('${r.id}')" class="text-red-400 hover:text-red-600 font-black text-[9px] underline flex-shrink-0">excluir</button>
+                    </div>
+                </td>
+            </tr>`;
         }).join('');
-        tc.innerHTML=rows.length?`<table class="w-full text-[10px]"><thead><tr class="border-b border-slate-200"><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Vendedor</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Gestor</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Produto</th><th class="text-center py-2 px-3 font-black text-slate-500 uppercase">Média</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">SDR</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Data</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Ações</th></tr></thead><tbody>${rows}</tbody></table>`:'<p class="text-center py-12 text-slate-300 font-bold">Nenhum registro encontrado.</p>';
-        const pg=document.getElementById('hist-pagination');
-        pg.innerHTML=histPage>0?'<button onclick="histPage--;_fetchHistorico()" class="px-5 py-2 bg-slate-100 hover:bg-blue-100 text-slate-600 font-black rounded-xl text-xs uppercase transition-all">← Anterior</button>':'';
-        if(d.records.length===HIST_PER_PAGE)pg.innerHTML+='<button onclick="histPage++;_fetchHistorico()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs uppercase transition-all">Próxima →</button>';
+
+        tc.innerHTML = rows.length
+            ? `<table class="w-full text-[10px]">
+                <thead><tr class="border-b border-slate-200">
+                    <th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Vendedor</th>
+                    <th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Gestor</th>
+                    <th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Produto</th>
+                    <th class="text-center py-2 px-3 font-black text-slate-500 uppercase">Média</th>
+                    <th class="text-left py-2 px-3 font-black text-slate-500 uppercase">SDR</th>
+                    <th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Data</th>
+                    <th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Ações</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+               </table>`
+            : '<p class="text-center py-12 text-slate-300 font-bold">Nenhum registro encontrado.</p>';
+
+        // Event listeners nos selects — mostra botão ao mudar
+        tc.querySelectorAll('.hist-reassign-sel').forEach(sel => {
+            const originalValue = sel.value;
+            sel.addEventListener('change', () => {
+                const btn = sel.parentElement.querySelector('.hist-reassign-btn');
+                if (btn) btn.classList.toggle('hidden', !sel.value || sel.value === originalValue);
+            });
+        });
+
+        // Event listeners nos botões salvar
+        tc.querySelectorAll('.hist-reassign-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const reuniaoId = btn.dataset.reuniaoId;
+                const sel       = btn.parentElement.querySelector('.hist-reassign-sel');
+                const novoNome  = sel?.value;
+
+                if (!novoNome || !reuniaoId) {
+                    alert('Selecione um vendedor primeiro.');
+                    return;
+                }
+
+                btn.disabled  = true;
+                btn.textContent = '...';
+
+                try {
+                    const res = await fetch('/api/reassign', {
+                        method:  'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body:    JSON.stringify({ reuniao_id: reuniaoId, vendedor_nome: novoNome })
+                    });
+                    const data = await res.json();
+                    if (!data.ok) throw new Error(data.error || 'Erro desconhecido');
+
+                    // Atualiza nome na linha
+                    const row     = btn.closest('tr');
+                    const nomeEl  = row?.querySelector('.hist-nome-cell');
+                    if (nomeEl) nomeEl.textContent = novoNome;
+
+                    // Feedback visual
+                    sel.style.borderColor = '#10b981';
+                    btn.textContent = '✓ Salvo';
+                    btn.className   = btn.className.replace('bg-blue-600 hover:bg-blue-700', 'bg-emerald-500');
+                    setTimeout(() => {
+                        sel.style.borderColor = '';
+                        btn.classList.add('hidden');
+                        btn.disabled    = false;
+                        btn.textContent = '✓ Salvar';
+                        btn.className   = btn.className.replace('bg-emerald-500', 'bg-blue-600 hover:bg-blue-700');
+                    }, 2000);
+
+                } catch (err) {
+                    alert('Erro ao reatribuir: ' + err.message);
+                    btn.disabled    = false;
+                    btn.textContent = '✓ Salvar';
+                    sel.value       = '';
+                    btn.classList.add('hidden');
+                }
+            });
+        });
+
+        const pg = document.getElementById('hist-pagination');
+        pg.innerHTML = histPage > 0
+            ? '<button onclick="histPage--;_fetchHistorico()" class="px-5 py-2 bg-slate-100 hover:bg-blue-100 text-slate-600 font-black rounded-xl text-xs uppercase transition-all">← Anterior</button>'
+            : '';
+        if (d.records.length === HIST_PER_PAGE)
+            pg.innerHTML += '<button onclick="histPage++;_fetchHistorico()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs uppercase transition-all">Próxima →</button>';
+
         lucide.createIcons();
-    }catch(err){tc.innerHTML=`<p class="text-center py-12 text-red-400 font-bold">Erro: ${err.message}</p>`;}
+
+    } catch(err) {
+        tc.innerHTML = `<p class="text-center py-12 text-red-400 font-bold">Erro: ${err.message}</p>`;
+    }
 }
 async function handleReassignHistorico(event,reuniaoId){
     const novoNome=event.target.value;if(!novoNome)return;
