@@ -27,39 +27,43 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'coordenador e analise são obrigatórios' });
     }
 
+    // Aceita qualquer coordenador não vazio — não bloqueia pelo nome
+    // (validação de domínio já foi feita pela sessão)
+
     // ── Detecta mal qualificado ─────────────────────────────────────────────
     const veredicto = (analise.qual_veredicto || '').toUpperCase();
-    const mal_qualificado = analise._mal_qualificado === true
-        || veredicto.includes('MAL')
-        || veredicto.includes('FORA');
+    const mal_qualificado =
+        analise._mal_qualificado === true ||
+        veredicto.includes('MAL') ||
+        veredicto.includes('FORA');
 
     // ── Monta o registro ────────────────────────────────────────────────────
-    // Etapas salvas nas colunas existentes:
-    //   nota_rapport     → nota_etapa1
-    //   nota_produto     → nota_etapa2
-    //   nota_apresentacao → nota_etapa3
-    // nota_pre_fechamento e nota_fechamento ficam null (novo formato)
+    // Colunas do banco:
+    //   nota_rapport     → recebe nota_etapa1 (média Consultividade)
+    //   nota_produto     → recebe nota_etapa2 (média Apresentação)
+    //   nota_apresentacao → recebe nota_etapa3 (média Negociação)
+    //   nota_pre_fechamento e nota_fechamento ficam null (formato legado)
     const registro = {
         coordenador,
-        vendedor_nome:      analise.vendedor_nome     || 'Não identificado',
-        produto:            analise.qual_produto_identificado || null,
-        media_final:        analise.media_final        || 0,
+        vendedor_nome:       analise.vendedor_nome              || 'Não identificado',
+        produto:             analise.qual_produto_identificado  || null,
+        media_final:         analise.media_final                || 0,
 
-        // Etapas (novo formato — 3 etapas)
-        nota_rapport:       analise.nota_etapa1        || null,
-        nota_produto:       analise.nota_etapa2        || null,
-        nota_apresentacao:  analise.nota_etapa3        || null,
+        // Etapas mapeadas para colunas existentes
+        nota_rapport:        analise.nota_etapa1                || null,
+        nota_produto:        analise.nota_etapa2                || null,
+        nota_apresentacao:   analise.nota_etapa3                || null,
         nota_pre_fechamento: null,
-        nota_fechamento:    null,
+        nota_fechamento:     null,
 
         // SDR
-        qual_veredicto:     analise.qual_veredicto     || null,
-        qual_nota_sdr:      analise.qual_nota_sdr      || null,
+        qual_veredicto:      analise.qual_veredicto             || null,
+        qual_nota_sdr:       analise.qual_nota_sdr              || null,
 
         // Flag mal qualificado
         mal_qualificado,
 
-        // JSON completo da análise (para consulta posterior)
+        // JSON completo para consulta posterior
         analise_json: analise
     };
 
@@ -67,8 +71,8 @@ export default async function handler(req, res) {
         const r = await fetch(`${SUPABASE_URL}/rest/v1/reunioes`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'apikey':        SUPABASE_KEY,
+                'Content-Type':  'application/json',
+                'apikey':         SUPABASE_KEY,
                 'Authorization': `Bearer ${SUPABASE_KEY}`,
                 'Prefer':        'return=representation'
             },
