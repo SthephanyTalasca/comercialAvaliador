@@ -23,12 +23,12 @@ export default async function handler(req, res) {
 
     const { coordenador, analise } = req.body;
 
-    if (!coordenador || !analise) {
-        return res.status(400).json({ error: 'coordenador e analise são obrigatórios' });
+    if (!analise) {
+        return res.status(400).json({ error: 'analise é obrigatório' });
     }
 
-    // Aceita qualquer coordenador não vazio — não bloqueia pelo nome
-    // (validação de domínio já foi feita pela sessão)
+    // coordenador é opcional — salva vazio se não vier
+    const coordenadorFinal = coordenador?.trim() || '';
 
     // ── Detecta mal qualificado ─────────────────────────────────────────────
     const veredicto = (analise.qual_veredicto || '').toUpperCase();
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     //   nota_apresentacao → recebe nota_etapa3 (média Negociação)
     //   nota_pre_fechamento e nota_fechamento ficam null (formato legado)
     const registro = {
-        coordenador,
+        coordenador:         coordenadorFinal,
         vendedor_nome:       analise.vendedor_nome              || 'Não identificado',
         produto:             analise.qual_produto_identificado  || null,
         media_final:         analise.media_final                || 0,
