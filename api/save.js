@@ -14,6 +14,13 @@ function getSession(req) {
     } catch { return null; }
 }
 
+// Converte para inteiro — colunas nota_* são smallint no Supabase
+function toInt(v) {
+    if (v === null || v === undefined) return null;
+    const n = Math.round(Number(v));
+    return isNaN(n) ? null : n;
+}
+
 async function detectarCoordenador(vendedorNome) {
     if (!vendedorNome || vendedorNome === 'Não identificado') return '';
     try {
@@ -50,26 +57,26 @@ export default async function handler(req, res) {
         coordenadorFinal = session.name || session.email;
     }
 
-    // Salva email do auditor dentro do JSON (não precisa de coluna extra)
+    // Salva auditor dentro do JSON (sem precisar de coluna extra)
     const analiseComAuditor = {
         ...analise,
-        _auditado_por: session.email,
+        _auditado_por:  session.email,
         _auditado_nome: session.name
     };
 
-    // Apenas colunas que existem na tabela reunioes
+    // Colunas smallint precisam ser inteiros — arredonda tudo
     const registro = {
         coordenador:         coordenadorFinal,
         vendedor_nome:       analise.vendedor_nome             || 'Não identificado',
         produto:             analise.qual_produto_identificado || null,
         media_final:         analise.media_final               || 0,
-        nota_rapport:        analise.nota_etapa1               || null,
-        nota_produto:        analise.nota_etapa2               || null,
-        nota_apresentacao:   analise.nota_etapa3               || null,
+        nota_rapport:        toInt(analise.nota_etapa1),
+        nota_produto:        toInt(analise.nota_etapa2),
+        nota_apresentacao:   toInt(analise.nota_etapa3),
         nota_pre_fechamento: null,
         nota_fechamento:     null,
         qual_veredicto:      analise.qual_veredicto            || null,
-        qual_nota_sdr:       analise.qual_nota_sdr             || null,
+        qual_nota_sdr:       toInt(analise.qual_nota_sdr),
         mal_qualificado,
         analise_json:        analiseComAuditor
     };
