@@ -1512,8 +1512,7 @@ async function loadSdrDash() {
         const distBars=Object.values(cats).map(c=>{const pct=Math.round(c.count/total*100);return`<div class="flex items-center gap-3"><span class="text-[9px] font-black uppercase tracking-widest w-28 flex-shrink-0 ${c.text}">${c.label}</span><div class="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden"><div class="${c.bg} h-full rounded-full" style="width:${pct}%"></div></div><span class="text-[11px] font-black text-slate-700 w-6 text-right">${c.count}</span><span class="text-[9px] text-slate-400 w-8 text-right">${pct}%</span></div>`;}).join('');
         const sdrByVend={};
         reunioes.forEach(r=>{const n=r.vendedor_nome||'—';if(!sdrByVend[n])sdrByVend[n]={total:0,somaNotas:0,qualif:0,parc:0,fora:0,mal:0,sem:0};const v=(r.qual_veredicto||'').toUpperCase();sdrByVend[n].total++;if(r.qual_nota_sdr)sdrByVend[n].somaNotas+=Number(r.qual_nota_sdr);if(v.includes('FORA'))sdrByVend[n].fora++;else if(v.includes('MAL'))sdrByVend[n].mal++;else if(v.includes('PARC'))sdrByVend[n].parc++;else if(v.includes('QUAL'))sdrByVend[n].qualif++;else sdrByVend[n].sem++;});
-        const rankingRows=Object.entries(sdrByVend).map(([nome,s])=>({nome,...s,mediaSdr:s.somaNotas>0?(s.somaNotas/s.total).toFixed(1):'—',taxaDentro:Math.round(((s.qualif+s.parc)/s.total)*100)})).sort((a,b)=>(parseFloat(b.mediaSdr)||0)-(parseFloat(a.mediaSdr)||0)).map((s,i)=>{const mc=parseFloat(s.mediaSdr)>=7?'text-emerald-600':parseFloat(s.mediaSdr)>=5?'text-amber-500':'text-red-500';const taxaBar=`<div class="w-full h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden"><div class="h-full bg-emerald-400 rounded-full" style="width:${s.taxaDentro}%"></div></div>`;return`<div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:bg-violet-50/30 transition-colors"><span class="text-lg font-black text-slate-300 w-6">${i+1}</span><div class="flex-1 min-w-0"><p class="font-black text-sm text-slate-700 truncate">${s.nome}</p><p class="text-[9px] text-slate-400 mt-0.5">${s.total} RDs · <span class="text-emerald-600 font-bold">${s.qualif+s.parc} dentro</span> · <span class="text-red-500 font-bold">${s.fora+s.mal} fora/excl.</span></p><div class="flex items-center gap-1 mt-1"><span class="text-[8px] text-slate-400">${s.taxaDentro}% dentro portf.</span>${taxaBar}</div></div><div class="grid grid-cols-4 gap-2 text-center hidden md:grid"><div><p class="text-[7px] font-black text-emerald-500">QUAL</p><p class="text-xs font-black text-slate-700">${s.qualif}</p></div><div><p class="text-[7px] font-black text-amber-500">PARC</p><p class="text-xs font-black text-slate-700">${s.parc}</p></div><div><p class="text-[7px] font-black text-violet-500">FORA</p><p class="text-xs font-black text-slate-700">${s.fora}</p></div><div><p class="text-[7px] font-black text-red-500">MAL</p><p class="text-xs font-black text-slate-700">${s.mal}</p></div></div><div class="text-center ml-2"><p class="text-[8px] font-black text-slate-400 uppercase">Nota SDR</p><p class="text-2xl font-black ${mc}">${s.mediaSdr}</p></div></div>`;}).join('')||'<p class="text-center py-10 text-slate-300 font-bold">Nenhum dado disponível.</p>';
-        const sdrEvolSemanas={};
+        const rankingRows=Object.entries(sdrByVend).map(([nome,s])=>({nome,...s,mediaSdr:s.somaNotas>0?(s.somaNotas/s.total).toFixed(1):'—',taxaDentro:Math.round(((s.qualif+s.parc)/s.total)*100)})).sort((a,b)=>(parseFloat(b.mediaSdr)||0)-(parseFloat(a.mediaSdr)||0)).map((s,i)=>{const mc=parseFloat(s.mediaSdr)>=7?'text-emerald-600':parseFloat(s.mediaSdr)>=5?'text-amber-500':'text-red-500';const taxaBar=`<div class="w-full h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden"><div class="h-full bg-emerald-400 rounded-full" style="width:${s.taxaDentro}%"></div></div>`;return`<div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:bg-violet-50/30 transition-colors"><span class="text-lg font-black text-slate-300 w-6">${i+1}</span><div class="flex-1 min-w-0"><p class="font-black text-sm text-slate-700 truncate">${s.nome}</p><p class="text-[9px] text-slate-400 mt-0.5">${s.total} RDs · <span class="text-emerald-600 font-bold">${s.qualif+s.parc} dentro</span> · <span class="text-red-500 font-bold">${s.fora+s.mal} fora/excl.</span></p><div class="flex items-center gap-1 mt-1"><span class="text-[8px] text-slate-400">${s.taxaDentro}% dentro portf.</span>${taxaBar}</div></div><div class="grid grid-cols-4 gap-2 text-center hidden md:grid"><div><p class="text-[7px] font-black text-emerald-500">QUAL</p><p class="text-xs font-black text-slate-700">${s.qualif}</p></div><div><p class="text-[7px] font-black text-amber-500">PARC</p><p class="text-xs font-black text-slate-700">${s.parc}</p></div><div><p class="text-[7px] font-black text-violet-500">FORA</p><p class="text-xs font-black text-slate-700">${s.fora}</p></div><div><p class="text-[7px] font-black text-red-500">MAL</p><p class="text-xs font-black text-slate-700">${s.mal}</p></div></div><div class="text-center ml-2"><p class="text-[8px] font-black text-slate-400 uppercase">Nota SDR</p><p class="text-2xl font-black ${mc}">${s.mediaSdr}</p></div><button onclick="abrirAnalisesSdr('${s.nome.replace(/'/g,"\\'")}',reunioes)" class="ml-2 flex-shrink-0 flex items-center gap-1 bg-violet-100 hover:bg-violet-200 text-violet-700 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"><i data-lucide="eye" class="w-3 h-3"></i> Ver</button></div>`;}).join('')||'<p class="text-center py-10 text-slate-300 font-bold">Nenhum dado disponível.</p>';        const sdrEvolSemanas={};
         reunioes.forEach(r=>{const dt=new Date(r.created_at);const wk=`${dt.getFullYear()}-S${String(Math.ceil((dt.getDate()+new Date(dt.getFullYear(),dt.getMonth(),1).getDay())/7)).padStart(2,'0')}-${dt.getMonth()+1}`;if(!sdrEvolSemanas[wk])sdrEvolSemanas[wk]={label:'Sem '+Math.ceil((dt.getDate()+new Date(dt.getFullYear(),dt.getMonth(),1).getDay())/7)+'/'+String(dt.getMonth()+1).padStart(2,'0'),dentro:0,fora:0,mal:0};const v=(r.qual_veredicto||'').toUpperCase();if(v.includes('FORA'))sdrEvolSemanas[wk].fora++;else if(v.includes('MAL'))sdrEvolSemanas[wk].mal++;else if(v.includes('QUAL')||v.includes('PARC'))sdrEvolSemanas[wk].dentro++;});
         const sdrSemKeys=Object.keys(sdrEvolSemanas).sort().slice(-8);
         content.innerHTML=`<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">${kpiHTML}</div><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"><div class="glass-card p-7"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4 text-violet-400"></i> Distribuição de Veredictos</h4><div class="space-y-3">${distBars}</div><div class="mt-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 flex items-center gap-4"><div class="text-4xl font-black text-emerald-600">${dentroPct}%</div><div><p class="font-black text-emerald-700 text-sm">Taxa Dentro do Portfólio</p><p class="text-[10px] text-emerald-500">Qualificados + Parciais</p></div></div></div><div class="glass-card p-7"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="target" class="w-4 h-4 text-violet-400"></i> Visão Gráfica</h4><div class="flex items-center gap-6 justify-center"><svg viewBox="0 0 160 160" class="w-40 h-40 flex-shrink-0">${donutSlices}<text x="80" y="75" text-anchor="middle" font-size="20" font-weight="900" fill="#1e293b">${total}</text><text x="80" y="92" text-anchor="middle" font-size="9" font-weight="700" fill="#94a3b8">REUNIÕES</text></svg><div class="space-y-2 flex-1 min-w-0">${donutLegend}</div></div></div></div><div class="glass-card p-7 mb-6"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-violet-400"></i> Ranking SDR por Vendedor</h4><div class="space-y-3">${rankingRows}</div></div><div class="glass-card p-7"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5 flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4 text-violet-400"></i> Evolução Semanal de Qualificação</h4><canvas id="chart-sdr-evol" height="100"></canvas></div>`;
@@ -1522,7 +1521,88 @@ async function loadSdrDash() {
         if(ctx&&sdrSemKeys.length){new Chart(ctx,{type:'bar',data:{labels:sdrSemKeys.map(k=>sdrEvolSemanas[k].label),datasets:[{label:'Dentro do Portfólio',data:sdrSemKeys.map(k=>sdrEvolSemanas[k].dentro),backgroundColor:'#10b981',borderRadius:6,stack:'s'},{label:'Fora do Portfólio',data:sdrSemKeys.map(k=>sdrEvolSemanas[k].fora),backgroundColor:'#8b5cf6',borderRadius:6,stack:'s'},{label:'Mal Qualificado',data:sdrSemKeys.map(k=>sdrEvolSemanas[k].mal),backgroundColor:'#ef4444',borderRadius:6,stack:'s'}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{font:{size:10,weight:'bold'},boxWidth:12,padding:16}}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:10,weight:'bold'}}},y:{stacked:true,beginAtZero:true,ticks:{stepSize:1,font:{size:10,weight:'bold'}},grid:{color:'#f1f5f9'}}}}});}
     } catch(err) { content.innerHTML='<div class="text-center py-20 text-red-400 font-bold">Erro ao carregar SDR: '+err.message+'</div>'; }
 }
+// ── Análises SDR por vendedor ─────────────────────────────────────────────────
+async function abrirAnalisesSdr(nomeVendedor, reunioes) {
+    const rds = reunioes.filter(r => r.vendedor_nome === nomeVendedor);
+    const modal = document.createElement('div');
+    const modalId = 'sdr-modal-' + Date.now();
+    modal.id = modalId;
+    modal.className = 'fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm overflow-y-auto p-4';
 
+    const vColors = { QUALIFICADO:'bg-emerald-100 text-emerald-800 border-emerald-200', PARCIALMENTE:'bg-yellow-100 text-yellow-800 border-yellow-200', MAL:'bg-red-100 text-red-700 border-red-200', FORA:'bg-purple-100 text-purple-700 border-purple-200' };
+    const getVc = v => { const u=(v||'').toUpperCase(); return u.includes('FORA')?vColors.FORA:u.includes('MAL')?vColors.MAL:u.includes('PARC')?vColors.PARCIALMENTE:vColors.QUALIFICADO; };
+
+    const rows = rds.map(r => {
+        const dt = new Date(r.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+        const vc = getVc(r.qual_veredicto);
+        const sc = (r.media_final||0)>=4?'text-emerald-600':(r.media_final||0)>=3?'text-blue-600':'text-red-500';
+        const sdrCol = (r.qual_nota_sdr||0)>=7?'text-emerald-600':(r.qual_nota_sdr||0)>=5?'text-amber-500':'text-red-500';
+        return `<tr class="border-b border-slate-50 hover:bg-violet-50/30 transition-colors">
+            <td class="py-3 px-3 text-[10px] text-slate-500">${r.produto||'—'}</td>
+            <td class="py-3 px-3"><span class="px-2 py-1 rounded-lg border text-[9px] font-black ${vc} uppercase">${r.qual_veredicto||'—'}</span></td>
+            <td class="py-3 px-3 text-center font-black text-sm ${sdrCol}">${r.qual_nota_sdr||'—'}</td>
+            <td class="py-3 px-3 text-center font-black text-sm ${sc}">${(r.media_final||0).toFixed(1)}</td>
+            <td class="py-3 px-3 text-[10px] text-slate-400">${dt}</td>
+            <td class="py-3 px-3 text-center">
+                <button onclick="abrirAnaliseCompleta('${r.id}')" class="text-blue-500 hover:text-blue-700 font-black text-[9px] underline">ver →</button>
+            </td>
+        </tr>`;
+    }).join('');
+
+    modal.innerHTML = `
+        <div class="max-w-4xl mx-auto mt-8 mb-16 bg-white rounded-[2.5rem] shadow-2xl overflow-hidden" id="${modalId}-box">
+            <div class="bg-violet-700 p-6 flex items-center justify-between">
+                <div>
+                    <p class="text-violet-300 text-[9px] font-black uppercase tracking-widest mb-1">Análises SDR</p>
+                    <h3 class="font-black text-white text-lg uppercase">${nomeVendedor}</h3>
+                    <p class="text-violet-300 text-[10px] mt-1">${rds.length} reunião(ões) analisada(s)</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="exportarPDFSdrVendedor('${modalId}-box','${nomeVendedor}')" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                        <i data-lucide="file-down" class="w-3 h-3"></i> PDF
+                    </button>
+                    <button onclick="document.getElementById('${modalId}').remove()" class="bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-2xl transition-all">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-8">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-[10px]">
+                        <thead><tr class="border-b border-slate-200">
+                            <th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Produto</th>
+                            <th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Veredicto SDR</th>
+                            <th class="text-center py-2 px-3 font-black text-slate-500 uppercase">Nota SDR</th>
+                            <th class="text-center py-2 px-3 font-black text-slate-500 uppercase">Média Vendas</th>
+                            <th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Data</th>
+                            <th class="text-center py-2 px-3 font-black text-slate-500 uppercase">Ver</th>
+                        </tr></thead>
+                        <tbody>${rows || '<tr><td colspan="6" class="text-center py-12 text-slate-300 font-bold">Nenhuma análise encontrada.</td></tr>'}</tbody>
+                    </table>
+                </div>
+            </div>
+        </div>`;
+
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    lucide.createIcons();
+}
+
+async function exportarPDFSdrVendedor(boxId, nomeVendedor) {
+    const box = document.getElementById(boxId);
+    if (!box) return;
+    const btns = box.querySelectorAll('button');
+    btns.forEach(el => el.style.display = 'none');
+    const safeName = nomeVendedor.replace(/[^a-zA-Z0-9À-ſ]/g, '-');
+    await html2pdf().set({
+        margin: [8,8,8,8],
+        filename: 'sdr-analises-' + safeName + '.pdf',
+        image: { type:'jpeg', quality:0.97 },
+        html2canvas: { scale:2, useCORS:true, backgroundColor:'#ffffff' },
+        jsPDF: { unit:'mm', format:'a4', orientation:'portrait' }
+    }).from(box).save();
+    btns.forEach(el => el.style.display = '');
+}
 document.addEventListener('DOMContentLoaded', () => { lucide.createIcons(); });
 </script>
 </body>
