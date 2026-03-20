@@ -14,12 +14,12 @@ function getSession(req) {
     } catch { return null; }
 }
 
-async function detectarCoordenador(vendedorNome, supabaseUrl, supabaseKey) {
+async function detectarCoordenador(vendedorNome) {
     if (!vendedorNome || vendedorNome === 'Não identificado') return '';
     try {
         const r = await fetch(
-            `${supabaseUrl}/rest/v1/vendedores?nome=ilike.${encodeURIComponent(vendedorNome)}&select=coordenador&limit=1`,
-            { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
+            `${SUPABASE_URL}/rest/v1/vendedores?nome=ilike.${encodeURIComponent(vendedorNome)}&select=coordenador&limit=1`,
+            { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
         );
         const rows = await r.json();
         return rows[0]?.coordenador || '';
@@ -35,25 +35,29 @@ export default async function handler(req, res) {
     const { coordenador, analise } = req.body;
     if (!analise) return res.status(400).json({ error: 'analise é obrigatório' });
 
-    // Detecta mal qualificado
     const veredicto = (analise.qual_veredicto || '').toUpperCase();
     const mal_qualificado =
         analise._mal_qualificado === true ||
         veredicto.includes('MAL') ||
         veredicto.includes('FORA');
 
-    // Coordenador: usa o informado, ou detecta pelo vendedor, ou usa quem está logado
+    // Resolve coordenador em cascata
     let coordenadorFinal = (coordenador || '').trim();
     if (!coordenadorFinal) {
-        coordenadorFinal = await detectarCoordenador(
-            analise.vendedor_nome, SUPABASE_URL, SUPABASE_KEY
-        );
+        coordenadorFinal = await detectarCoordenador(analise.vendedor_nome);
     }
-    // Se ainda vazio, registra o próprio email logado como referência
     if (!coordenadorFinal) {
         coordenadorFinal = session.name || session.email;
     }
 
+    // Salva email do auditor dentro do JSON (não precisa de coluna extra)
+    const analiseComAuditor = {
+        ...analise,
+        _auditado_por: session.email,
+        _auditado_nome: session.name
+    };
+
+    // Apenas colunas que existem na tabela reunioes
     const registro = {
         coordenador:         coordenadorFinal,
         vendedor_nome:       analise.vendedor_nome             || 'Não identificado',
@@ -67,9 +71,7 @@ export default async function handler(req, res) {
         qual_veredicto:      analise.qual_veredicto            || null,
         qual_nota_sdr:       analise.qual_nota_sdr             || null,
         mal_qualificado,
-        analise_json:        analise,
-        // Registra quem fez a auditoria
-        auditado_por:        session.email
+        analise_json:        analiseComAuditor
     };
 
     try {
@@ -86,18 +88,6 @@ export default async function handler(req, res) {
 
         if (!r.ok) {
             const err = await r.text();
-            // Se a coluna auditado_por não existir, tenta sem ela
-            if (err.includes('auditado_por')) {
-                delete registro.auditado_por;
-                const r2 = await fetch(`${SUPABASE_URL}/rest/v1/reunioes`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' },
-                    body: JSON.stringify(registro)
-                });
-                if (!r2.ok) return res.status(500).json({ error: 'Erro ao salvar: ' + await r2.text() });
-                const saved2 = await r2.json();
-                return res.status(200).json({ ok: true, id: saved2[0]?.id });
-            }
             console.error('Supabase save error:', err);
             return res.status(500).json({ error: 'Erro ao salvar: ' + err });
         }
