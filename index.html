@@ -503,19 +503,47 @@ async function exportarPDFSdr() {
 }
 
 // ── Analysis ──────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH 1 — Substituir a função handleAnalysis no index.html
+// Detecta coordenador automaticamente pelo email logado
+// ═══════════════════════════════════════════════════════════════════════════
+
 async function handleAnalysis() {
     const prompt = transcriptInput.value.trim();
     if (!prompt) return;
-    const coordRadio = document.querySelector('input[name="coordenador"]:checked');
-    if (!coordRadio) { alert("Selecione o coordenador responsável."); return; }
-    const coordenador = coordRadio.value;
+
+    // ── Detecta coordenador pelo email logado ──────────────────────────────
+    const emailEl = document.getElementById('user-email');
+    const emailLogado = emailEl ? emailEl.textContent.trim().toLowerCase() : '';
+
+    // Mapa email → coordenador (adicione mais conforme necessário)
+    const COORD_MAP = {
+        'simone.rangel@nibo.com.br':   'Simone Rangel',
+        'jonathan.dornelas@nibo.com.br': 'Jonathan Dornelas',
+    };
+
+    let coordenador = COORD_MAP[emailLogado] || '';
+
+    // Fallback: se o radio ainda estiver selecionado, usa ele
+    if (!coordenador) {
+        const coordRadio = document.querySelector('input[name="coordenador"]:checked');
+        coordenador = coordRadio ? coordRadio.value : '';
+    }
+
+    // Se ainda vazio, tenta pegar pelo nome exibido no header
+    if (!coordenador) {
+        const nomeEl = document.getElementById('user-name');
+        const nomeLogado = nomeEl ? nomeEl.textContent.trim() : '';
+        if (nomeLogado.toLowerCase().includes('simone'))   coordenador = 'Simone Rangel';
+        if (nomeLogado.toLowerCase().includes('jonathan')) coordenador = 'Jonathan Dornelas';
+    }
 
     resultsSection.classList.remove('hidden');
     loadingSpinner.classList.remove('hidden');
     analysisContent.classList.add('hidden');
-    analyzeBtn.disabled = true; btnText.textContent = "Analisando...";
+    analyzeBtn.disabled = true;
+    btnText.textContent = 'Analisando...';
 
-    // Reset save state
     window._currentReuniaoId = null;
     window._savePending = false;
 
@@ -523,16 +551,19 @@ async function handleAnalysis() {
     document.getElementById('vendedor-salvo-tag').classList.add('hidden');
 
     try {
-        const response = await fetch('/api/analyze', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({prompt}) });
+        const response = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+        });
         const text = await response.text();
         let data;
-        try { data = JSON.parse(text); } catch(e) { throw new Error("Erro de comunicação com o servidor."); }
+        try { data = JSON.parse(text); } catch { throw new Error('Erro de comunicação com o servidor.'); }
         if (data.error) throw new Error(data.error);
 
         renderDashboard(data);
         window._currentCoordenador = coordenador;
 
-        // Marca save como pendente ANTES de disparar o save
         window._savePending = true;
         _showSavePending(true);
 
@@ -541,13 +572,9 @@ async function handleAnalysis() {
             window._savePending = false;
             _showSavePending(false);
 
-            console.log('Save retornou id:', id);
-
-            // Habilita os controles do banner agora que o id chegou
             const sel = document.getElementById('vendedor-corrigir-sel');
             const btn = document.getElementById('vendedor-corrigir-btn');
             if (sel) sel.disabled = false;
-            // Só mostra o botão salvar se o usuário já tiver mudado o select
             if (sel && btn && sel.value && sel.value !== document.getElementById('vendedor-nome-display')?.textContent?.trim()) {
                 btn.classList.remove('hidden');
             }
@@ -557,387 +584,55 @@ async function handleAnalysis() {
             _showSavePending(false);
         });
 
-    } catch(err) {
-        alert("Erro na análise: " + err.message);
+    } catch (err) {
+        alert('Erro na análise: ' + err.message);
         resultsSection.classList.add('hidden');
     } finally {
-        analyzeBtn.disabled = false; btnText.textContent = "Gerar Auditoria Completa";
+        analyzeBtn.disabled = false;
+        btnText.textContent = 'Gerar Auditoria Completa';
     }
 }
 
-// Mostra/esconde o indicador "Salvando..." no banner
-function _showSavePending(isPending) {
-    const pendingEl = document.getElementById('vendedor-save-pending');
-    if (!pendingEl) return;
-    if (isPending) {
-        pendingEl.classList.remove('hidden');
-    } else {
-        pendingEl.classList.add('hidden');
-    }
-}
 
-function renderDashboard(data) {
-    loadingSpinner.classList.add('hidden');
-    analysisContent.classList.remove('hidden');
-    if (data._config) {
-        fields = data._config.fields || [];
-        prodConfig = data._config.prodConfig || {};
-    }
-    _novoFormato = fields.length === 3 && fields[0] && (fields[0].criterios||[]).length > 0;
-    const media = data.media_final || 0;
-    document.getElementById('media-final').textContent = media.toFixed(1);
-    document.getElementById('resumo-text').textContent = data.resumo_executivo || "—";
-    document.getElementById('chance-text').textContent = data.chance_fechamento || "N/A";
-    document.getElementById('alerta-text').textContent = data.alerta_cancelamento || "Sem alertas críticos.";
-    renderVendedorBanner(data);
-    document.getElementById('concorrentes-tags').innerHTML = (data.concorrentes_detectados||[]).map(c =>
-        `<span class="px-3 py-1 bg-red-600 text-white text-[9px] font-black rounded-lg shadow uppercase tracking-widest flex items-center gap-1.5 tag-concorrente"><i data-lucide="alert-circle" class="w-3 h-3"></i> ${c}</span>`
-    ).join('');
-    const status = document.getElementById('status-tag');
-    if (media >= 4.5) { status.textContent = "Elite Sales"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-lg"; }
-    else if (media >= 3.5) { status.textContent = "Alta Performance"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700"; }
-    else { status.textContent = "Acompanhamento"; status.className = "px-5 py-2 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700"; }
-
-    pilarData = fields.map(f => ({
-        label: f.l, icon: f.icon, color: f.color || 'blue',
-        score: data[`nota_${f.k}`] || 0,
-        porque: data[`porque_${f.k}`] || "Sem justificativa disponível.",
-        melhoria: data[`melhoria_${f.k}`] || "Critério de excelência atingido.",
-        criterios: (f.criterios||[]).map(c => ({
-            label: c.l, desc: c.desc || '',
-            score: data[`nota_${c.k}`] || 0,
-            porque: data[`porque_${c.k}`] || '',
-            melhoria: data[`melhoria_${c.k}`] || ''
-        }))
-    }));
-
-    const colorMap = {
-        blue:    { border:'border-blue-500',    light:'bg-blue-50',    text:'text-blue-700'    },
-        violet:  { border:'border-violet-500',  light:'bg-violet-50',  text:'text-violet-700'  },
-        emerald: { border:'border-emerald-500', light:'bg-emerald-50', text:'text-emerald-700' }
-    };
-
-    document.getElementById('notas-grid').innerHTML = pilarData.map((p, idx) => {
-        const col = getScoreColor(p.score);
-        const cm = colorMap[p.color] || colorMap.blue;
-        const criteriosHTML = (p.criterios||[]).map(c => {
-            const cc = getScoreColor(c.score);
-            return `<div class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-100 hover:border-slate-200 transition-all">
-                <div class="flex-shrink-0 w-8 h-8 rounded-lg ${cm.light} flex items-center justify-center">
-                    <span class="text-xs font-black ${cm.text}">${c.score||'—'}</span>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-[9px] font-black text-slate-600 uppercase tracking-wide truncate">${c.label}</p>
-                    <p class="text-[8px] text-slate-400 truncate italic">${c.desc}</p>
-                </div>
-                <div class="flex-shrink-0 flex gap-px">${buildStars(c.score, true)}</div>
-            </div>`;
-        }).join('');
-        return `<div onclick="openModal(${idx})" class="pilar-card bg-white rounded-[2rem] p-6 flex flex-col cursor-pointer border-t-4 ${cm.border} shadow-sm hover:shadow-md transition-all">
-            <div class="zoom-icon"><i data-lucide="zoom-in" class="w-3 h-3 text-blue-400"></i></div>
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-xl ${cm.light} flex items-center justify-center flex-shrink-0">
-                    <i data-lucide="${p.icon}" class="w-5 h-5 ${cm.text}"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Etapa ${idx+1}</span>
-                    <p class="text-[11px] font-black text-slate-700 leading-tight">${p.label}</p>
-                </div>
-                <div class="text-center flex-shrink-0">
-                    <div class="text-4xl font-black ${col.text} leading-none">${p.score}</div>
-                    <div class="flex gap-px mt-1">${buildStars(p.score, true)}</div>
-                </div>
-            </div>
-            <div class="space-y-1.5 mb-3">${criteriosHTML}</div>
-            <span class="click-hint mt-auto">ver detalhes →</span>
-        </div>`;
-    }).join('');
-
-    const tc = parseFloat(data.tempo_fala_consultor||0);
-    const tl = parseFloat(data.tempo_fala_cliente||0);
-    document.getElementById('talk-time-container').innerHTML = `
-        <div><div class="flex justify-between text-[11px] font-bold mb-2"><span>Consultor</span><span class="text-blue-600">${data.tempo_fala_consultor||'0%'}</span></div><div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600" style="width:${tc}%"></div></div></div>
-        <div><div class="flex justify-between text-[11px] font-bold mb-2"><span>Cliente</span><span class="text-emerald-500">${data.tempo_fala_cliente||'0%'}</span></div><div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500" style="width:${tl}%"></div></div></div>`;
-
-    renderAuditoriaObjecoes(data.auditoria_objecoes || []);
-
-    document.getElementById('pontos-fortes-list').innerHTML = (data.pontos_fortes||[]).map(i=>`<li class="flex items-start gap-2"><span>▶</span>${i}</li>`).join('');
-    document.getElementById('pontos-atencao-list').innerHTML = (data.pontos_atencao||[]).map(i=>`<li class="flex items-start gap-2"><span>▶</span>${i}</li>`).join('');
-    document.getElementById('coaching-body').innerHTML = marked.parse(data.justificativa_detalhada||'');
-    document.getElementById('qual-content').innerHTML = _buildQualSection(data, prodConfig);
-    renderRadar(data);
-    lucide.createIcons();
-}
-
-// ── Auditoria de Objeções ─────────────────────────────────────────────────────
-function renderAuditoriaObjecoes(objecoes) {
-    const container = document.getElementById('objecoes-container');
-    if (!container) return;
-
-    if (!objecoes || objecoes.length === 0) {
-        container.innerHTML = `
-            <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 text-slate-400">
-                <i data-lucide="info" class="w-4 h-4 flex-shrink-0"></i>
-                <p class="text-[11px] font-semibold">Nenhuma objeção identificada na transcrição.</p>
-            </div>`;
-        lucide.createIcons();
-        return;
-    }
-
-    const totalBem = objecoes.filter(o => o.contornada).length;
-    const totalMal = objecoes.length - totalBem;
-    const scorePct = Math.round((totalBem / objecoes.length) * 100);
-
-    const scoreColor = scorePct >= 70
-        ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
-        : scorePct >= 40
-            ? 'text-amber-600 bg-amber-50 border-amber-200'
-            : 'text-red-600 bg-red-50 border-red-200';
-
-    const rows = objecoes.map((o, i) => {
-        const bem = o.contornada;
-        const bordaCor = bem ? 'border-emerald-100' : 'border-red-100';
-        const bgCor    = bem ? 'bg-emerald-50/60'  : 'bg-red-50/60';
-        const iconCor  = bem ? 'bg-emerald-500'    : 'bg-red-400';
-        const iconName = bem ? 'check'             : 'x';
-        const labelCor = bem ? 'text-emerald-600'  : 'text-red-600';
-        const labelTxt = bem ? 'Contornada'        : 'Não contornada';
-
-        return `
-            <div class="rounded-2xl border ${bordaCor} ${bgCor} p-4 flex flex-col gap-2">
-                <div class="flex items-start gap-3">
-                    <div class="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5 ${iconCor}">
-                        <i data-lucide="${iconName}" class="text-white w-3 h-3"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-[8px] font-black uppercase tracking-widest text-slate-400">Objeção ${i + 1}</span>
-                            <span class="text-[8px] font-black uppercase tracking-widest ${labelCor}">${labelTxt}</span>
-                        </div>
-                        <p class="text-[12px] font-bold text-slate-700 leading-relaxed">${o.objecao}</p>
-                    </div>
-                </div>
-                ${!bem && o.abordagem_sugerida ? `
-                <div class="ml-9 flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 rounded-xl">
-                    <i data-lucide="lightbulb" class="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5"></i>
-                    <p class="text-[11px] text-amber-800 font-medium leading-relaxed">${o.abordagem_sugerida}</p>
-                </div>` : ''}
-            </div>`;
-    }).join('');
-
-    container.innerHTML = `
-        <div class="flex items-center gap-4 mb-4 p-4 rounded-2xl border ${scoreColor}">
-            <div class="text-3xl font-black">${scorePct}%</div>
-            <div class="flex-1">
-                <p class="font-black text-sm">Taxa de contorno</p>
-                <p class="text-[10px] font-bold opacity-70">${totalBem} de ${objecoes.length} objeções bem contornadas</p>
-            </div>
-            <div class="flex gap-2 flex-shrink-0">
-                <div class="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-xl text-center">
-                    <p class="text-xs font-black">✅ ${totalBem}</p>
-                    <p class="text-[8px] font-bold uppercase">Contornadas</p>
-                </div>
-                <div class="px-3 py-1.5 bg-red-100 text-red-700 rounded-xl text-center">
-                    <p class="text-xs font-black">❌ ${totalMal}</p>
-                    <p class="text-[8px] font-bold uppercase">Perdidas</p>
-                </div>
-            </div>
-        </div>
-        ${rows}`;
-
-    lucide.createIcons();
-}
-
-function renderRadar(data) {
-    const ctx = document.getElementById('radarChart').getContext('2d');
-    if (radarChartInstance) radarChartInstance.destroy();
-
-    const allCriterios = [];
-    fields.forEach(f => {
-        (f.criterios || []).forEach(c => {
-            allCriterios.push({ label: c.l, key: c.k });
-        });
-    });
-
-    const labels = allCriterios.length > 0 ? allCriterios.map(c => c.label) : fields.map(f => f.l);
-    const values = allCriterios.length > 0 ? allCriterios.map(c => data[`nota_${c.key}`] || 0) : fields.map(f => data[`nota_${f.k}`] || 0);
-
-    radarChartInstance = new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels,
-            datasets: [{ label: 'Desempenho', data: values,
-                backgroundColor: 'rgba(37,99,235,0.12)', borderColor: '#2563eb', borderWidth: 2,
-                pointRadius: 4, pointBackgroundColor: '#1e3a8a', pointBorderColor: '#fff', pointBorderWidth: 1.5 }]
-        },
-        options: {
-            scales: { r: { min:0, max:5, ticks:{stepSize:1,display:false}, grid:{color:'#e2e8f0'}, angleLines:{color:'#e2e8f0'}, pointLabels:{font:{size:9,weight:'800'},color:'#475569'} } },
-            plugins: { legend: { display: false } }, maintainAspectRatio: true
-        }
-    });
-}
-
-function openModal(idx) {
-    const p = pilarData[idx];
-    const col = getScoreColor(p.score);
-    document.getElementById('modal-title').textContent = `Etapa ${idx+1} — ${p.label}`;
-    document.getElementById('modal-score').textContent = p.score;
-    const ring = document.getElementById('modal-score-ring');
-    ring.style.borderColor = col.border; ring.style.background = col.bg; ring.style.color = col.border;
-    document.getElementById('modal-stars').innerHTML = buildStars(p.score);
-    document.getElementById('modal-text').textContent = p.porque;
-    const isMax = p.score >= 5;
-    const ic = document.getElementById('modal-improvement-container');
-    const ii = document.getElementById('modal-improvement-icon');
-    const il = document.getElementById('modal-improvement-label');
-    const it = document.getElementById('modal-improvement-text');
-    if (isMax) {
-        ic.className = "rounded-2xl p-4 border bg-emerald-50 border-emerald-100";
-        ii.setAttribute('data-lucide','award'); ii.className = "w-4 h-4 text-emerald-600";
-        il.className = "text-[9px] font-bold uppercase tracking-widest block text-emerald-700"; il.textContent = "Excelência atingida!";
-        it.className = "text-[13px] leading-relaxed font-medium text-emerald-900";
-    } else {
-        ic.className = "rounded-2xl p-4 border bg-amber-50 border-amber-100";
-        ii.setAttribute('data-lucide','target'); ii.className = "w-4 h-4 text-amber-600";
-        il.className = "text-[9px] font-bold uppercase tracking-widest block text-amber-700"; il.textContent = "O que faltou para o 5?";
-        it.className = "text-[13px] leading-relaxed font-medium text-amber-900";
-    }
-    it.textContent = p.melhoria;
-    const subEl = document.getElementById('modal-subcriterios');
-    if (p.criterios && p.criterios.length > 0) {
-        subEl.innerHTML = `<div class="mt-2">
-            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="list-checks" class="w-4 h-4 text-blue-400"></i> Critérios desta etapa</h4>
-            <div class="space-y-4">${p.criterios.map(c => {
-                const cc = getScoreColor(c.score);
-                const bg = c.score >= 4 ? 'border-emerald-100 bg-emerald-50' : c.score >= 3 ? 'border-blue-100 bg-blue-50' : 'border-red-100 bg-red-50';
-                return `<div class="p-4 rounded-2xl border ${bg}">
-                    <div class="flex items-center justify-between mb-1">
-                        <p class="text-[11px] font-black ${cc.text} uppercase tracking-wide">${c.label}</p>
-                        <div class="flex items-center gap-1"><span class="text-2xl font-black ${cc.text}">${c.score}</span><span class="text-[10px] text-slate-400 font-bold">/5</span></div>
-                    </div>
-                    <p class="text-[9px] text-slate-500 italic mb-2">${c.desc}</p>
-                    <p class="text-[11px] text-slate-700 font-medium leading-relaxed mb-2">${c.porque||''}</p>
-                    ${c.melhoria && c.score < 5 ? `<p class="text-[10px] text-amber-700 font-bold flex items-start gap-1"><i data-lucide="lightbulb" class="w-3 h-3 mt-0.5 flex-shrink-0"></i>${c.melhoria}</p>` : ''}
-                </div>`;
-            }).join('')}</div></div>`;
-    } else { subEl.innerHTML = ''; }
-    const modal = document.getElementById('justification-modal');
-    modal.classList.remove('hidden');
-    setTimeout(() => {
-        modal.classList.remove('opacity-0');
-        document.getElementById('modal-content-box').classList.remove('scale-95');
-        document.getElementById('modal-content-box').classList.add('scale-100');
-        lucide.createIcons();
-    }, 10);
-}
-
-function closeModal() {
-    const modal = document.getElementById('justification-modal');
-    const box = document.getElementById('modal-content-box');
-    modal.classList.add('opacity-0'); box.classList.remove('scale-100'); box.classList.add('scale-95');
-    setTimeout(() => { modal.classList.add('hidden'); }, 300);
-}
-document.getElementById('justification-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-
-function _buildQualSection(data, pCfg) {
-    const foraPortfolio = !data.qual_produto_no_portfolio;
-    const verd = data.qual_veredicto || '';
-    let vc = 'bg-slate-100 text-slate-600 border-slate-200';
-    if (verd.includes('FORA'))      vc = 'bg-purple-100 text-purple-800 border-purple-300';
-    else if (verd.includes('MAL'))  vc = 'bg-red-100 text-red-800 border-red-300';
-    else if (verd.includes('PARC')) vc = 'bg-yellow-100 text-yellow-800 border-yellow-300';
-    else if (verd.includes('QUAL')) vc = 'bg-emerald-100 text-emerald-800 border-emerald-300';
-    const prodCfg = pCfg[data.qual_produto_identificado] || pCfg['FORA'] || { color:'bg-slate-100 text-slate-700 border-slate-200', icon:'box' };
-    const slaGrid = [
-        [data.qual_sla_1_label, data.qual_sla_1_ok, data.qual_sla_1_ev],
-        [data.qual_sla_2_label, data.qual_sla_2_ok, data.qual_sla_2_ev],
-        [data.qual_sla_3_label, data.qual_sla_3_ok, data.qual_sla_3_ev]
-    ].map(([l,ok,ev]) =>
-        `<div class="rounded-2xl p-5 border flex flex-col gap-3 ${ok?'bg-emerald-50 border-emerald-100':'bg-red-50 border-red-100'}">
-            <div class="flex items-center justify-between">
-                <span class="text-[9px] font-black uppercase tracking-widest ${ok?'text-emerald-700':'text-red-700'}">${l||'—'}</span>
-                <div class="w-6 h-6 rounded-full flex items-center justify-center ${ok?'bg-emerald-500':'bg-red-400'}"><i data-lucide="${ok?'check':'x'}" class="text-white w-3 h-3"></i></div>
-            </div>
-            <p class="text-[11px] italic leading-relaxed ${ok?'text-emerald-700':'text-red-600'}">${ev||'Sem evidência.'}</p>
-        </div>`
-    ).join('');
-    const criteriosRows = [
-        [data.qual_sabia_o_que_veria,'Lead sabia o que veria na demo',data.qual_sabia_evidencia],
-        [data.qual_produto_correto,'Produto correto para o cenário',data.qual_produto_evidencia],
-        [data.qual_interesse_real,'Interesse real identificado',data.qual_interesse_evidencia],
-        [data.qual_cenario_diagnosticado,'Cenário diagnosticado pelo SDR',data.qual_cenario_evidencia]
-    ].map(([ok,label,ev]) =>
-        `<div class="rounded-2xl p-5 border flex flex-col gap-2 ${ok?'bg-emerald-50 border-emerald-100':'bg-red-50 border-red-100'}">
-            <div class="flex items-center justify-between">
-                <span class="text-[10px] font-black uppercase tracking-widest ${ok?'text-emerald-700':'text-red-700'}">${label}</span>
-                <div class="w-6 h-6 rounded-full flex items-center justify-center ${ok?'bg-emerald-500':'bg-red-400'}"><i data-lucide="${ok?'check':'x'}" class="text-white w-3 h-3"></i></div>
-            </div>
-            <p class="text-[11px] italic leading-relaxed ${ok?'text-emerald-700':'text-red-600'}">${ev||'Sem evidência.'}</p>
-        </div>`
-    ).join('');
-    const ctxRows = (data.qual_contexto||[]).map(c =>
-        `<div class="flex items-start gap-4 py-3 border-b border-slate-50 last:border-0">
-            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest w-36 flex-shrink-0 mt-0.5">${c.label}</span>
-            <span class="text-[12px] font-bold text-slate-700 flex-1">${c.valor||'—'}</span>
-        </div>`
-    ).join('');
-    return `
-        ${foraPortfolio ? `<div class="bg-red-600 text-white p-6 rounded-[2rem] flex items-start gap-4"><i data-lucide="alert-triangle" class="w-8 h-8 flex-shrink-0"></i><div><p class="font-black text-lg uppercase mb-1">⚠️ Produto fora do portfólio Nibo!</p><p class="text-sm font-medium text-red-100">${data.qual_produto_alerta||''}</p></div></div>` : ''}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="glass-card p-6 flex flex-col gap-3">
-                <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Produto</h4>
-                <span class="px-4 py-2 rounded-full text-sm font-black border inline-flex items-center gap-2 ${foraPortfolio?'bg-red-100 text-red-800 border-red-300':prodCfg.color}">
-                    <i data-lucide="${prodCfg.icon||'box'}" class="w-4 h-4"></i> ${data.qual_produto_identificado||'—'}
-                </span>
-                <p class="text-[11px] text-slate-500 italic leading-relaxed">${data.qual_produto_alerta||''}</p>
-            </div>
-            <div class="glass-card p-6 flex flex-col gap-4">
-                <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Veredicto</h4>
-                <div class="px-5 py-3 rounded-2xl border-2 text-sm font-black text-center tracking-wide ${vc}">${verd||'—'}</div>
-            </div>
-            <div class="glass-card p-6 flex flex-col items-center justify-center text-center border-b-[8px] border-violet-500">
-                <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Nota do SDR</span>
-                <div class="text-6xl font-black text-violet-600 mb-1">${data.qual_nota_sdr||'—'}</div>
-                <span class="text-[9px] text-slate-400 font-bold">/ 10</span>
-                <p class="text-[10px] text-slate-500 mt-3 leading-relaxed font-medium text-center">${data.qual_nota_sdr_justificativa||''}</p>
-            </div>
-        </div>
-        <div class="glass-card p-8">
-            <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2"><i data-lucide="info" class="w-4 h-4 text-blue-400"></i> Contexto Extraído</h4>
-            <div>${ctxRows}</div>
-        </div>
-        <div class="glass-card p-8">
-            <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2"><i data-lucide="search" class="w-4 h-4 text-blue-400"></i> Critérios de Qualificação</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">${criteriosRows}</div>
-        </div>
-        <div class="glass-card p-8">
-            <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-2"><i data-lucide="check-square" class="w-4 h-4 text-blue-400"></i> SLA de Qualificação</h4>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">${slaGrid}</div>
-        </div>
-        <div class="glass-card p-12 border-t-[10px] border-violet-600">
-            <h3 class="text-xl font-extrabold text-violet-800 uppercase tracking-widest mb-10 border-b pb-6 flex items-center gap-4"><i data-lucide="file-search"></i> Análise Completa da Qualificação (SDR)</h3>
-            <div class="markdown-content">${marked.parse(data.qual_analise_completa||'')}</div>
-        </div>`;
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH 2 — Substituir a função saveAnalysis no index.html
+// Mostra erro visível se o save falhar
+// ═══════════════════════════════════════════════════════════════════════════
 
 async function saveAnalysis(coordenador, analise) {
     try {
-        const res = await fetch('/api/save', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({coordenador, analise}) });
-        const data = await res.json();
-        if (data.ok) {
-            return data.id;
-        } else {
-            console.warn('Erro ao salvar:', data.error);
+        const res = await fetch('/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ coordenador, analise })
+        });
+
+        let data;
+        try { data = await res.json(); } catch { data = {}; }
+
+        if (!res.ok || !data.ok) {
+            const msg = data.error || `HTTP ${res.status}`;
+            console.error('Erro ao salvar análise:', msg);
+            const pending = document.getElementById('vendedor-save-pending');
+            if (pending) {
+                pending.innerHTML = `<span style="color:#ef4444;font-size:11px;font-weight:700">⚠️ Não salvou: ${msg}</span>`;
+                pending.classList.remove('hidden');
+            }
             return null;
         }
-    } catch(err) {
-        console.warn('Falha ao salvar:', err.message);
+
+        return data.id;
+
+    } catch (err) {
+        console.error('Falha de rede ao salvar:', err.message);
+        const pending = document.getElementById('vendedor-save-pending');
+        if (pending) {
+            pending.innerHTML = `<span style="color:#ef4444;font-size:11px;font-weight:700">⚠️ Erro de rede</span>`;
+            pending.classList.remove('hidden');
+        }
         return null;
     }
 }
-
-analyzeBtn.addEventListener('click', handleAnalysis);
 
 // ── SUBSTITUIR a função renderVendedorBanner no index.html ───────────────────
 // Encontre "async function renderVendedorBanner(data)" e substitua pelo bloco abaixo
