@@ -464,26 +464,31 @@ async function exportarPDFSdr() {
 async function handleAnalysis() {
     const prompt = transcriptInput.value.trim();
     if (!prompt) return;
-
-    // Detecta coordenador pelo email logado
+ 
+    // Pega o usuário logado
     const emailEl = document.getElementById('user-email');
+    const nomeEl  = document.getElementById('user-name');
     const emailLogado = (emailEl ? emailEl.textContent.trim() : '').toLowerCase();
+    const nomeLogado  = nomeEl  ? nomeEl.textContent.trim() : '';
+ 
+    // Mapa de coordenadores conhecidos (expandir conforme necessário)
     const COORD_MAP = {
         'simone.rangel@nibo.com.br':    'Simone Rangel',
         'jonathan.dornelas@nibo.com.br': 'Jonathan Dornelas',
     };
+ 
+    // Coordenador: detectado pelo email, pelo radio selecionado, ou pelo nome logado
     let coordenador = COORD_MAP[emailLogado] || '';
     if (!coordenador) {
         const r = document.querySelector('input[name="coordenador"]:checked');
         coordenador = r ? r.value : '';
     }
+    // Se não for coordenador conhecido, passa o nome de quem está logado
+    // O save.js vai detectar pelo vendedor ou usar esse nome como fallback
     if (!coordenador) {
-        const nomeEl = document.getElementById('user-name');
-        const n = nomeEl ? nomeEl.textContent.trim().toLowerCase() : '';
-        if (n.includes('simone'))   coordenador = 'Simone Rangel';
-        if (n.includes('jonathan')) coordenador = 'Jonathan Dornelas';
+        coordenador = nomeLogado || emailLogado;
     }
-
+ 
     resultsSection.classList.remove('hidden');
     loadingSpinner.classList.remove('hidden');
     analysisContent.classList.add('hidden');
@@ -491,19 +496,23 @@ async function handleAnalysis() {
     window._currentReuniaoId = null; window._savePending = false;
     document.getElementById('vendedor-banner').classList.add('hidden');
     document.getElementById('vendedor-salvo-tag').classList.add('hidden');
-
+ 
     try {
-        const response = await fetch('/api/analyze', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({prompt}) });
+        const response = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+        });
         const text = await response.text();
         let data;
         try { data = JSON.parse(text); } catch { throw new Error('Erro de comunicação com o servidor.'); }
         if (data.error) throw new Error(data.error);
-
+ 
         renderDashboard(data);
         window._currentCoordenador = coordenador;
         window._savePending = true;
         _showSavePending(true);
-
+ 
         saveAnalysis(coordenador, data).then(id => {
             window._currentReuniaoId = id;
             window._savePending = false;
@@ -513,7 +522,7 @@ async function handleAnalysis() {
             window._savePending = false;
             _showSavePending(false);
         });
-
+ 
     } catch(err) {
         alert('Erro na análise: ' + err.message);
         resultsSection.classList.add('hidden');
