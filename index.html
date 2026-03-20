@@ -855,7 +855,6 @@ async function _fetchHistorico() {
 
         const sc = n => (n||0) >= 4 ? 'text-emerald-600' : (n||0) >= 3 ? 'text-blue-600' : 'text-red-500';
 
-        // Monta as rows SEM onclick inline — usa só IDs
         const rows = d.records.map(r => {
             const dt   = new Date(r.created_at).toLocaleDateString('pt-BR', {day:'2-digit', month:'short', year:'numeric'});
             const verd = r.qual_veredicto || '—';
@@ -873,15 +872,15 @@ async function _fetchHistorico() {
                 <td class="py-3 px-3"><span class="px-2 py-1 rounded-lg border text-[9px] font-black ${vc}">${verd}</span></td>
                 <td class="py-3 px-3 text-[10px] text-slate-400">${dt}</td>
                 <td class="py-3 px-3">
-                    <div class="flex items-center gap-2">
-                        <select id="sel-${r.id}" class="text-[10px] font-bold border border-slate-200 rounded-xl px-2 py-1 bg-white focus:outline-none max-w-[150px]">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <select id="sel-${r.id}" style="font-size:10px;font-weight:700;border:1px solid #e2e8f0;border-radius:10px;padding:4px 8px;background:white;max-width:160px;cursor:pointer;">
                             <option value="">— reatribuir —</option>
                         </select>
-                        <button id="btn-${r.id}" class="text-[10px] font-black text-white bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded-lg flex-shrink-0 hidden">
+                        <button id="btn-${r.id}" style="display:none;font-size:10px;font-weight:900;color:white;background:#2563eb;border:none;border-radius:8px;padding:4px 10px;cursor:pointer;">
                             ✓ Salvar
                         </button>
-                        <button id="ver-${r.id}" class="text-blue-500 hover:text-blue-700 font-black text-[9px] underline flex-shrink-0">ver</button>
-                        <button id="del-${r.id}" class="text-red-400 hover:text-red-600 font-black text-[9px] underline flex-shrink-0">excluir</button>
+                        <button id="ver-${r.id}" style="font-size:10px;font-weight:900;color:#3b82f6;background:none;border:none;cursor:pointer;text-decoration:underline;">ver</button>
+                        <button id="del-${r.id}" style="font-size:10px;font-weight:900;color:#f87171;background:none;border:none;cursor:pointer;text-decoration:underline;">excluir</button>
                     </div>
                 </td>
             </tr>`;
@@ -902,14 +901,14 @@ async function _fetchHistorico() {
                </table>`
             : '<p class="text-center py-12 text-slate-300 font-bold">Nenhum registro encontrado.</p>';
 
-        // Popula selects e adiciona listeners DEPOIS de inserir no DOM
+        // Popula selects e listeners depois de inserir no DOM
         d.records.forEach(r => {
             const sel = document.getElementById('sel-' + r.id);
             const btn = document.getElementById('btn-' + r.id);
             const ver = document.getElementById('ver-' + r.id);
             const del = document.getElementById('del-' + r.id);
 
-            // Popula options dos vendedores via JS (evita problemas de aspas no HTML)
+            // Popula options via JS — sem risco de aspas quebrarem HTML
             if (sel) {
                 VENDORS_CACHE.forEach(v => {
                     const o = document.createElement('option');
@@ -920,7 +919,8 @@ async function _fetchHistorico() {
                 });
 
                 sel.addEventListener('change', () => {
-                    if (btn) btn.classList.toggle('hidden', !sel.value);
+                    // Usa style.display diretamente — não depende do Tailwind
+                    if (btn) btn.style.display = sel.value ? 'inline-block' : 'none';
                 });
             }
 
@@ -928,10 +928,12 @@ async function _fetchHistorico() {
                 btn.addEventListener('click', async () => {
                     const novoNome  = sel?.value;
                     const reuniaoId = r.id;
+
                     if (!novoNome) { alert('Selecione um vendedor.'); return; }
 
-                    btn.disabled    = true;
-                    btn.textContent = '...';
+                    btn.disabled      = true;
+                    btn.textContent   = '...';
+                    btn.style.opacity = '0.6';
 
                     try {
                         const res2 = await fetch('/api/reassign', {
@@ -942,24 +944,30 @@ async function _fetchHistorico() {
                         const data = await res2.json();
                         if (!data.ok) throw new Error(data.error || 'Erro desconhecido');
 
-                        // Atualiza nome na linha
+                        // Atualiza nome na linha sem reload
                         const row    = document.getElementById('hist-row-' + reuniaoId);
                         const nomeEl = row?.querySelector('.hist-nome-cell');
                         if (nomeEl) nomeEl.textContent = novoNome;
 
+                        // Feedback visual
                         sel.style.borderColor = '#10b981';
-                        btn.textContent = '✓ Salvo!';
+                        btn.textContent       = '✓ Salvo!';
+                        btn.style.background  = '#10b981';
+                        btn.style.opacity     = '1';
+
                         setTimeout(() => {
                             sel.style.borderColor = '';
-                            btn.classList.add('hidden');
-                            btn.disabled    = false;
-                            btn.textContent = '✓ Salvar';
+                            btn.style.display     = 'none';
+                            btn.disabled          = false;
+                            btn.textContent       = '✓ Salvar';
+                            btn.style.background  = '#2563eb';
                         }, 2000);
 
                     } catch (err) {
                         alert('Erro ao reatribuir: ' + err.message);
-                        btn.disabled    = false;
-                        btn.textContent = '✓ Salvar';
+                        btn.disabled      = false;
+                        btn.textContent   = '✓ Salvar';
+                        btn.style.opacity = '1';
                     }
                 });
             }
@@ -981,20 +989,6 @@ async function _fetchHistorico() {
         tc.innerHTML = `<p class="text-center py-12 text-red-400 font-bold">Erro: ${err.message}</p>`;
     }
 }
-async function handleReassignHistorico(event,reuniaoId){
-    const novoNome=event.target.value;if(!novoNome)return;
-    const sel=event.target;const row=sel.closest('tr')||sel.closest('.flex');
-    sel.style.borderColor='#2563eb';
-    try{
-        const res=await fetch('/api/reassign',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({reuniao_id:reuniaoId,vendedor_nome:novoNome})});
-        const d=await res.json();if(!d.ok)throw new Error(d.error||'Erro desconhecido');
-        sel.style.borderColor='#10b981';setTimeout(()=>{sel.style.borderColor='';},2500);
-        if(row){const nomeEl=row.querySelector('.font-black.text-slate-700,td.font-black');if(nomeEl)nomeEl.textContent=novoNome;}
-    }catch(err){sel.style.borderColor='#ef4444';setTimeout(()=>{sel.style.borderColor='';},2500);alert('Erro ao reatribuir: '+err.message);event.target.value='';}
-}
-async function deletarRegistro(id){if(!confirm('Excluir esta análise permanentemente?'))return;try{const res=await fetch('/api/records',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});const d=await res.json();if(!d.ok)throw new Error(d.error);_fetchHistorico();}catch(err){alert('Erro ao excluir: '+err.message);}}
-async function deletarNaoIdentificados(){if(!confirm('Excluir TODOS os registros sem vendedor identificado?'))return;try{const res=await fetch('/api/records',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'nao_identificados'})});const d=await res.json();if(!d.ok)throw new Error(d.error);alert('Removidos: '+d.count+' registros.');_fetchHistorico();}catch(err){alert('Erro: '+err.message);}}
-
 // ── Análise completa ──────────────────────────────────────────────────────────
 async function abrirAnaliseCompleta(id){
     const modal=document.createElement('div');modal.id='analise-modal-'+id;modal.className='fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm overflow-y-auto p-4';
