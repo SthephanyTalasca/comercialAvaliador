@@ -1,7 +1,4 @@
 // api/save.js
-// POST → salva análise no Supabase
-// Body: { coordenador, analise }
-
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 
@@ -19,52 +16,42 @@ function getSession(req) {
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
-    if (!getSession(req)) return res.status(401).json({ error: 'Não autorizado' });
+
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado' });
 
     const { coordenador, analise } = req.body;
 
+    // analise é obrigatório — coordenador é opcional
     if (!analise) {
         return res.status(400).json({ error: 'analise é obrigatório' });
     }
 
-    // coordenador é opcional — salva vazio se não vier
-    const coordenadorFinal = coordenador?.trim() || '';
-
-    // ── Detecta mal qualificado ─────────────────────────────────────────────
+    // Detecta mal qualificado
     const veredicto = (analise.qual_veredicto || '').toUpperCase();
     const mal_qualificado =
         analise._mal_qualificado === true ||
         veredicto.includes('MAL') ||
         veredicto.includes('FORA');
 
-    // ── Monta o registro ────────────────────────────────────────────────────
-    // Colunas do banco:
-    //   nota_rapport     → recebe nota_etapa1 (média Consultividade)
-    //   nota_produto     → recebe nota_etapa2 (média Apresentação)
-    //   nota_apresentacao → recebe nota_etapa3 (média Negociação)
-    //   nota_pre_fechamento e nota_fechamento ficam null (formato legado)
+    // coordenador: usa o que veio, ou string vazia
+    const coordenadorFinal = (coordenador || '').trim();
+
     const registro = {
         coordenador:         coordenadorFinal,
-        vendedor_nome:       analise.vendedor_nome              || 'Não identificado',
-        produto:             analise.qual_produto_identificado  || null,
-        media_final:         analise.media_final                || 0,
-
+        vendedor_nome:       analise.vendedor_nome             || 'Não identificado',
+        produto:             analise.qual_produto_identificado || null,
+        media_final:         analise.media_final               || 0,
         // Etapas mapeadas para colunas existentes
-        nota_rapport:        analise.nota_etapa1                || null,
-        nota_produto:        analise.nota_etapa2                || null,
-        nota_apresentacao:   analise.nota_etapa3                || null,
+        nota_rapport:        analise.nota_etapa1               || null,
+        nota_produto:        analise.nota_etapa2               || null,
+        nota_apresentacao:   analise.nota_etapa3               || null,
         nota_pre_fechamento: null,
         nota_fechamento:     null,
-
-        // SDR
-        qual_veredicto:      analise.qual_veredicto             || null,
-        qual_nota_sdr:       analise.qual_nota_sdr              || null,
-
-        // Flag mal qualificado
+        qual_veredicto:      analise.qual_veredicto            || null,
+        qual_nota_sdr:       analise.qual_nota_sdr             || null,
         mal_qualificado,
-
-        // JSON completo para consulta posterior
-        analise_json: analise
+        analise_json:        analise
     };
 
     try {
