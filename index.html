@@ -939,74 +939,79 @@ async function saveAnalysis(coordenador, analise) {
 
 analyzeBtn.addEventListener('click', handleAnalysis);
 
+// ── SUBSTITUIR a função renderVendedorBanner no index.html ───────────────────
+// Encontre "async function renderVendedorBanner(data)" e substitua pelo bloco abaixo
+
 async function renderVendedorBanner(data) {
-    const banner = document.getElementById('vendedor-banner');
-    const display = document.getElementById('vendedor-nome-display');
-    const avatar = document.getElementById('vendedor-avatar');
-    const sel = document.getElementById('vendedor-corrigir-sel');
-    const btn = document.getElementById('vendedor-corrigir-btn');
+    const banner   = document.getElementById('vendedor-banner');
+    const display  = document.getElementById('vendedor-nome-display');
+    const avatar   = document.getElementById('vendedor-avatar');
+    const sel      = document.getElementById('vendedor-corrigir-sel');
+    const btn      = document.getElementById('vendedor-corrigir-btn');
     const salvoTag = document.getElementById('vendedor-salvo-tag');
+    const pending  = document.getElementById('vendedor-save-pending');
+
     const nome = data.vendedor_nome || 'Não identificado';
 
-    const media = data.media_final || 0;
+    // — visual inicial
     display.textContent = nome;
-    avatar.textContent = nome.charAt(0).toUpperCase();
+    avatar.textContent  = nome.charAt(0).toUpperCase();
+    const media = data.media_final || 0;
     avatar.className = 'w-10 h-10 rounded-full flex items-center justify-center font-black text-lg flex-shrink-0 ' +
         (media >= 4 ? 'bg-emerald-100 text-emerald-700' : media >= 3 ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700');
 
     btn.classList.add('hidden');
     salvoTag.classList.add('hidden');
-
-    // Desabilita os controles enquanto o save está pendente
     sel.disabled = true;
-    btn.disabled = true;
+    sel.innerHTML = '<option value="">— Carregando vendedores... —</option>';
 
+    banner.classList.remove('hidden');
+    lucide.createIcons();
+
+    // — popula o select
     try {
-        const vRes = await fetch('/api/vendors');
-        const vends = await vRes.json();
+        if (!VENDORS_CACHE.length) await loadVendorsCache();
         sel.innerHTML = '<option value="">— Corrigir vendedor —</option>';
-        vends.forEach(v => {
+        VENDORS_CACHE.forEach(v => {
             const o = document.createElement('option');
             o.value = v.nome;
             o.textContent = v.nome;
             if (v.nome === nome) o.selected = true;
             sel.appendChild(o);
         });
-    } catch {}
-
-    // Reabilita o select assim que a lista carregou, mas só libera o botão quando o save terminar
+    } catch {
+        sel.innerHTML = '<option value="">— Erro ao carregar —</option>';
+    }
     sel.disabled = false;
 
+    // — mostra botão ao mudar seleção
     sel.onchange = () => {
-        // Só mostra botão salvar se o id já chegou
-        if (window._savePending) {
-            // Guarda a intenção, mas não mostra o botão ainda
-            // O watcher abaixo vai habilitar quando o save terminar
-            return;
-        }
-        btn.classList.toggle('hidden', !sel.value || sel.value === nome);
+        const changed = sel.value && sel.value !== display.textContent;
+        btn.classList.toggle('hidden', !changed);
+        salvoTag.classList.add('hidden');
     };
 
-    // Watcher: quando o save terminar, verifica se o usuário já escolheu um nome diferente
-    const watcherId = setInterval(() => {
-        if (!window._savePending) {
-            clearInterval(watcherId);
-            sel.disabled = false;
-            // Se o usuário já escolheu algo enquanto esperava, mostra o botão
-            if (sel.value && sel.value !== nome) {
-                btn.classList.remove('hidden');
-                btn.disabled = false;
-            }
-        }
-    }, 300);
-
+    // — salva ao clicar
     btn.onclick = async () => {
         const novoNome = sel.value;
         if (!novoNome) return;
 
-        // Dupla checagem: se ainda está salvando, avisa
-        if (window._savePending || !window._currentReuniaoId) {
-            alert('Análise ainda sendo salva. Aguarde alguns segundos e tente novamente.');
+        // Se o save inicial ainda não terminou, espera até 6s
+        if (!window._currentReuniaoId) {
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loader" style="width:12px;height:12px;border-width:2px"></div>';
+            let tentativas = 0;
+            while (!window._currentReuniaoId && tentativas < 20) {
+                await new Promise(r => setTimeout(r, 300));
+                tentativas++;
+            }
+        }
+
+        if (!window._currentReuniaoId) {
+            alert('Análise ainda não foi salva. Aguarde alguns segundos e tente novamente.');
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Salvar';
+            lucide.createIcons();
             return;
         }
 
@@ -1016,25 +1021,28 @@ async function renderVendedorBanner(data) {
         try {
             const res = await fetch('/api/reassign', {
                 method: 'PATCH',
-                headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ reuniao_id: window._currentReuniaoId, vendedor_nome: novoNome })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    reuniao_id:    window._currentReuniaoId,
+                    vendedor_nome: novoNome
+                })
             });
             const d = await res.json();
-            if (!d.ok) throw new Error(d.error);
+            if (!d.ok) throw new Error(d.error || 'Erro desconhecido');
+
+            // — atualiza UI com sucesso
             display.textContent = novoNome;
-            avatar.textContent = novoNome.charAt(0).toUpperCase();
+            avatar.textContent  = novoNome.charAt(0).toUpperCase();
             btn.classList.add('hidden');
             salvoTag.classList.remove('hidden');
-        } catch(err) {
-            alert('Erro ao corrigir: ' + err.message);
+
+        } catch (err) {
+            alert('Erro ao corrigir vendedor: ' + err.message);
             btn.disabled = false;
             btn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Salvar';
             lucide.createIcons();
         }
     };
-
-    banner.classList.remove('hidden');
-    lucide.createIcons();
 }
 
 // ══════════════════════════════════════════════════════════════════
