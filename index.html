@@ -864,6 +864,7 @@ async function _fetchHistorico() {
                        : verd.toUpperCase().includes('QUAL') ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
                        : 'bg-slate-100 text-slate-500 border-slate-200';
 
+            // Prefixo "hbtn-" e "hsel-" para evitar colisão com id="btn-text" existente no HTML
             return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition-colors" id="hist-row-${r.id}">
                 <td class="py-3 px-3 font-black text-slate-700 text-sm hist-nome-cell">${r.vendedor_nome || '—'}</td>
                 <td class="py-3 px-3 text-[10px] text-slate-500">${r.coordenador || '—'}</td>
@@ -873,14 +874,14 @@ async function _fetchHistorico() {
                 <td class="py-3 px-3 text-[10px] text-slate-400">${dt}</td>
                 <td class="py-3 px-3">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <select id="sel-${r.id}" style="font-size:10px;font-weight:700;border:1px solid #e2e8f0;border-radius:10px;padding:4px 8px;background:white;max-width:160px;cursor:pointer;">
+                        <select id="hsel-${r.id}" style="font-size:10px;font-weight:700;border:1px solid #e2e8f0;border-radius:10px;padding:4px 8px;background:white;max-width:160px;cursor:pointer;">
                             <option value="">— reatribuir —</option>
                         </select>
-                        <button id="btn-${r.id}" style="display:none;font-size:10px;font-weight:900;color:white;background:#2563eb;border:none;border-radius:8px;padding:4px 10px;cursor:pointer;">
+                        <button id="hbtn-${r.id}" style="display:none;font-size:10px;font-weight:900;color:white;background:#2563eb;border:none;border-radius:8px;padding:4px 10px;cursor:pointer;">
                             ✓ Salvar
                         </button>
-                        <button id="ver-${r.id}" style="font-size:10px;font-weight:900;color:#3b82f6;background:none;border:none;cursor:pointer;text-decoration:underline;">ver</button>
-                        <button id="del-${r.id}" style="font-size:10px;font-weight:900;color:#f87171;background:none;border:none;cursor:pointer;text-decoration:underline;">excluir</button>
+                        <button id="hver-${r.id}" style="font-size:10px;font-weight:900;color:#3b82f6;background:none;border:none;cursor:pointer;text-decoration:underline;">ver</button>
+                        <button id="hdel-${r.id}" style="font-size:10px;font-weight:900;color:#f87171;background:none;border:none;cursor:pointer;text-decoration:underline;">excluir</button>
                     </div>
                 </td>
             </tr>`;
@@ -901,14 +902,12 @@ async function _fetchHistorico() {
                </table>`
             : '<p class="text-center py-12 text-slate-300 font-bold">Nenhum registro encontrado.</p>';
 
-        // Popula selects e listeners depois de inserir no DOM
         d.records.forEach(r => {
-            const sel = document.getElementById('sel-' + r.id);
-            const btn = document.getElementById('btn-' + r.id);
-            const ver = document.getElementById('ver-' + r.id);
-            const del = document.getElementById('del-' + r.id);
+            const sel = document.getElementById('hsel-' + r.id);
+            const btn = document.getElementById('hbtn-' + r.id);
+            const ver = document.getElementById('hver-' + r.id);
+            const del = document.getElementById('hdel-' + r.id);
 
-            // Popula options via JS — sem risco de aspas quebrarem HTML
             if (sel) {
                 VENDORS_CACHE.forEach(v => {
                     const o = document.createElement('option');
@@ -917,9 +916,7 @@ async function _fetchHistorico() {
                     if (v.nome === r.vendedor_nome) o.selected = true;
                     sel.appendChild(o);
                 });
-
                 sel.addEventListener('change', () => {
-                    // Usa style.display diretamente — não depende do Tailwind
                     if (btn) btn.style.display = sel.value ? 'inline-block' : 'none';
                 });
             }
@@ -928,7 +925,6 @@ async function _fetchHistorico() {
                 btn.addEventListener('click', async () => {
                     const novoNome  = sel?.value;
                     const reuniaoId = r.id;
-
                     if (!novoNome) { alert('Selecione um vendedor.'); return; }
 
                     btn.disabled      = true;
@@ -944,12 +940,10 @@ async function _fetchHistorico() {
                         const data = await res2.json();
                         if (!data.ok) throw new Error(data.error || 'Erro desconhecido');
 
-                        // Atualiza nome na linha sem reload
                         const row    = document.getElementById('hist-row-' + reuniaoId);
                         const nomeEl = row?.querySelector('.hist-nome-cell');
                         if (nomeEl) nomeEl.textContent = novoNome;
 
-                        // Feedback visual
                         sel.style.borderColor = '#10b981';
                         btn.textContent       = '✓ Salvo!';
                         btn.style.background  = '#10b981';
