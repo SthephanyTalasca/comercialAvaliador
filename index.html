@@ -839,39 +839,33 @@ async function loadHistorico(reset){
     if(sel){sel.innerHTML='<option value="todos">Todos</option>';VENDORS_CACHE.forEach(v=>{const o=document.createElement('option');o.value=v.nome;o.textContent=v.nome;sel.appendChild(o);});}
     await _fetchHistorico();
 }
-// ── SUBSTITUIR _fetchHistorico no index.html ─────────────────────────────────
-// Usa data-reuniao-id no select em vez de passar o ID no onchange inline
-
 async function _fetchHistorico() {
-    const tc = document.getElementById('hist-table-container');
-    const coord   = document.getElementById('hist-filter-coord')?.value  || 'todos';
-    const vend    = document.getElementById('hist-filter-vend')?.value   || 'todos';
-    const search  = document.getElementById('hist-search')?.value        || '';
+    const tc      = document.getElementById('hist-table-container');
+    const coord   = document.getElementById('hist-filter-coord')?.value   || 'todos';
+    const vend    = document.getElementById('hist-filter-vend')?.value    || 'todos';
+    const search  = document.getElementById('hist-search')?.value         || '';
     const periodo = document.getElementById('hist-filter-periodo')?.value || 'todos';
     const offset  = histPage * HIST_PER_PAGE;
 
     try {
-        const qs = `coordenador=${encodeURIComponent(coord)}&vendedor=${encodeURIComponent(vend)}&search=${encodeURIComponent(search)}&periodo=${periodo}&limit=${HIST_PER_PAGE}&offset=${offset}`;
+        const qs  = `coordenador=${encodeURIComponent(coord)}&vendedor=${encodeURIComponent(vend)}&search=${encodeURIComponent(search)}&periodo=${periodo}&limit=${HIST_PER_PAGE}&offset=${offset}`;
         const res = await fetch('/api/records?' + qs);
         const d   = await res.json();
         if (d.error) throw new Error(d.error);
 
         const sc = n => (n||0) >= 4 ? 'text-emerald-600' : (n||0) >= 3 ? 'text-blue-600' : 'text-red-500';
 
+        // Monta as rows SEM onclick inline — usa só IDs
         const rows = d.records.map(r => {
             const dt   = new Date(r.created_at).toLocaleDateString('pt-BR', {day:'2-digit', month:'short', year:'numeric'});
             const verd = r.qual_veredicto || '—';
-            const vc   = verd.toUpperCase().includes('FORA')  ? 'bg-purple-100 text-purple-700 border-purple-200'
-                       : verd.toUpperCase().includes('MAL')   ? 'bg-red-100 text-red-700 border-red-200'
-                       : verd.toUpperCase().includes('PARC')  ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
-                       : verd.toUpperCase().includes('QUAL')  ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+            const vc   = verd.toUpperCase().includes('FORA') ? 'bg-purple-100 text-purple-700 border-purple-200'
+                       : verd.toUpperCase().includes('MAL')  ? 'bg-red-100 text-red-700 border-red-200'
+                       : verd.toUpperCase().includes('PARC') ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                       : verd.toUpperCase().includes('QUAL') ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
                        : 'bg-slate-100 text-slate-500 border-slate-200';
 
-            const opts = VENDORS_CACHE.map(v =>
-                `<option value="${v.nome}" ${v.nome === r.vendedor_nome ? 'selected' : ''}>${v.nome}</option>`
-            ).join('');
-
-            return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition-colors">
+            return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition-colors" id="hist-row-${r.id}">
                 <td class="py-3 px-3 font-black text-slate-700 text-sm hist-nome-cell">${r.vendedor_nome || '—'}</td>
                 <td class="py-3 px-3 text-[10px] text-slate-500">${r.coordenador || '—'}</td>
                 <td class="py-3 px-3 text-[10px] text-slate-500">${r.produto || '—'}</td>
@@ -880,17 +874,14 @@ async function _fetchHistorico() {
                 <td class="py-3 px-3 text-[10px] text-slate-400">${dt}</td>
                 <td class="py-3 px-3">
                     <div class="flex items-center gap-2">
-                        <select class="hist-reassign-sel text-[10px] font-bold border border-slate-200 rounded-xl px-2 py-1 bg-white focus:outline-none max-w-[150px]"
-                                data-reuniao-id="${r.id}">
+                        <select id="sel-${r.id}" class="text-[10px] font-bold border border-slate-200 rounded-xl px-2 py-1 bg-white focus:outline-none max-w-[150px]">
                             <option value="">— reatribuir —</option>
-                            ${opts}
                         </select>
-                        <button class="hist-reassign-btn text-[10px] font-black text-white bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded-lg flex-shrink-0 hidden"
-                                data-reuniao-id="${r.id}">
+                        <button id="btn-${r.id}" class="text-[10px] font-black text-white bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded-lg flex-shrink-0 hidden">
                             ✓ Salvar
                         </button>
-                        <button onclick="abrirAnaliseCompleta('${r.id}')" class="text-blue-500 hover:text-blue-700 font-black text-[9px] underline flex-shrink-0">ver</button>
-                        <button onclick="deletarRegistro('${r.id}')" class="text-red-400 hover:text-red-600 font-black text-[9px] underline flex-shrink-0">excluir</button>
+                        <button id="ver-${r.id}" class="text-blue-500 hover:text-blue-700 font-black text-[9px] underline flex-shrink-0">ver</button>
+                        <button id="del-${r.id}" class="text-red-400 hover:text-red-600 font-black text-[9px] underline flex-shrink-0">excluir</button>
                     </div>
                 </td>
             </tr>`;
@@ -911,64 +902,70 @@ async function _fetchHistorico() {
                </table>`
             : '<p class="text-center py-12 text-slate-300 font-bold">Nenhum registro encontrado.</p>';
 
-        // Event listeners nos selects — mostra botão ao mudar
-        tc.querySelectorAll('.hist-reassign-sel').forEach(sel => {
-            const originalValue = sel.value;
-            sel.addEventListener('change', () => {
-                const btn = sel.parentElement.querySelector('.hist-reassign-btn');
-                if (btn) btn.classList.toggle('hidden', !sel.value || sel.value === originalValue);
-            });
-        });
+        // Popula selects e adiciona listeners DEPOIS de inserir no DOM
+        d.records.forEach(r => {
+            const sel = document.getElementById('sel-' + r.id);
+            const btn = document.getElementById('btn-' + r.id);
+            const ver = document.getElementById('ver-' + r.id);
+            const del = document.getElementById('del-' + r.id);
 
-        // Event listeners nos botões salvar
-        tc.querySelectorAll('.hist-reassign-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const reuniaoId = btn.dataset.reuniaoId;
-                const sel       = btn.parentElement.querySelector('.hist-reassign-sel');
-                const novoNome  = sel?.value;
+            // Popula options dos vendedores via JS (evita problemas de aspas no HTML)
+            if (sel) {
+                VENDORS_CACHE.forEach(v => {
+                    const o = document.createElement('option');
+                    o.value       = v.nome;
+                    o.textContent = v.nome;
+                    if (v.nome === r.vendedor_nome) o.selected = true;
+                    sel.appendChild(o);
+                });
 
-                if (!novoNome || !reuniaoId) {
-                    alert('Selecione um vendedor primeiro.');
-                    return;
-                }
+                sel.addEventListener('change', () => {
+                    if (btn) btn.classList.toggle('hidden', !sel.value);
+                });
+            }
 
-                btn.disabled  = true;
-                btn.textContent = '...';
+            if (btn) {
+                btn.addEventListener('click', async () => {
+                    const novoNome  = sel?.value;
+                    const reuniaoId = r.id;
+                    if (!novoNome) { alert('Selecione um vendedor.'); return; }
 
-                try {
-                    const res = await fetch('/api/reassign', {
-                        method:  'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body:    JSON.stringify({ reuniao_id: reuniaoId, vendedor_nome: novoNome })
-                    });
-                    const data = await res.json();
-                    if (!data.ok) throw new Error(data.error || 'Erro desconhecido');
+                    btn.disabled    = true;
+                    btn.textContent = '...';
 
-                    // Atualiza nome na linha
-                    const row     = btn.closest('tr');
-                    const nomeEl  = row?.querySelector('.hist-nome-cell');
-                    if (nomeEl) nomeEl.textContent = novoNome;
+                    try {
+                        const res2 = await fetch('/api/reassign', {
+                            method:  'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body:    JSON.stringify({ reuniao_id: reuniaoId, vendedor_nome: novoNome })
+                        });
+                        const data = await res2.json();
+                        if (!data.ok) throw new Error(data.error || 'Erro desconhecido');
 
-                    // Feedback visual
-                    sel.style.borderColor = '#10b981';
-                    btn.textContent = '✓ Salvo';
-                    btn.className   = btn.className.replace('bg-blue-600 hover:bg-blue-700', 'bg-emerald-500');
-                    setTimeout(() => {
-                        sel.style.borderColor = '';
-                        btn.classList.add('hidden');
+                        // Atualiza nome na linha
+                        const row    = document.getElementById('hist-row-' + reuniaoId);
+                        const nomeEl = row?.querySelector('.hist-nome-cell');
+                        if (nomeEl) nomeEl.textContent = novoNome;
+
+                        sel.style.borderColor = '#10b981';
+                        btn.textContent = '✓ Salvo!';
+                        setTimeout(() => {
+                            sel.style.borderColor = '';
+                            btn.classList.add('hidden');
+                            btn.disabled    = false;
+                            btn.textContent = '✓ Salvar';
+                        }, 2000);
+
+                    } catch (err) {
+                        alert('Erro ao reatribuir: ' + err.message);
                         btn.disabled    = false;
                         btn.textContent = '✓ Salvar';
-                        btn.className   = btn.className.replace('bg-emerald-500', 'bg-blue-600 hover:bg-blue-700');
-                    }, 2000);
+                    }
+                });
+            }
 
-                } catch (err) {
-                    alert('Erro ao reatribuir: ' + err.message);
-                    btn.disabled    = false;
-                    btn.textContent = '✓ Salvar';
-                    sel.value       = '';
-                    btn.classList.add('hidden');
-                }
-            });
+            if (ver) ver.addEventListener('click', () => abrirAnaliseCompleta(r.id));
+            if (del) del.addEventListener('click', () => deletarRegistro(r.id));
         });
 
         const pg = document.getElementById('hist-pagination');
