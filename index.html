@@ -1457,18 +1457,46 @@ async function _fetchHistorico() {
         lucide.createIcons();
     } catch(err) { tc.innerHTML = '<p class="text-center py-12 text-red-400 font-bold">Erro: '+err.message+'</p>'; }
 }
+// ── SUBSTITUIR a função handleReassignHistorico no index.html ────────────────
+// Encontre "async function handleReassignHistorico" e substitua pelo bloco abaixo
 
 async function handleReassignHistorico(event, reuniaoId) {
-    const novoNome = event.target.value; if (!novoNome) return;
-    try {
-        const res = await fetch('/api/reassign', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({reuniao_id:reuniaoId, vendedor_nome:novoNome}) });
-        const d = await res.json();
-        if (!d.ok) throw new Error(d.error);
-        event.target.style.borderColor = '#10b981';
-        setTimeout(() => { event.target.style.borderColor = ''; }, 2000);
-    } catch(err) { alert('Erro ao reatribuir: '+err.message); event.target.value = ''; }
-}
+    const novoNome = event.target.value;
+    if (!novoNome) return;
 
+    const sel = event.target;
+    const row = sel.closest('tr') || sel.closest('.flex');
+
+    // feedback visual imediato — borda azul no select
+    sel.style.borderColor = '#2563eb';
+
+    try {
+        const res = await fetch('/api/reassign', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reuniao_id: reuniaoId, vendedor_nome: novoNome })
+        });
+        const d = await res.json();
+        if (!d.ok) throw new Error(d.error || 'Erro desconhecido');
+
+        // sucesso — borda verde e atualiza o nome na linha se existir
+        sel.style.borderColor = '#10b981';
+        setTimeout(() => { sel.style.borderColor = ''; }, 2500);
+
+        // atualiza o nome exibido na linha (coluna vendedor_nome)
+        if (row) {
+            const nomeEl = row.querySelector('.font-black.text-slate-700, td.font-black');
+            if (nomeEl) nomeEl.textContent = novoNome;
+        }
+
+    } catch (err) {
+        sel.style.borderColor = '#ef4444';
+        setTimeout(() => { sel.style.borderColor = ''; }, 2500);
+        alert('Erro ao reatribuir: ' + err.message);
+        // reverte o select para o valor anterior
+        event.target.value = '';
+    }
+}
 async function deletarRegistro(id) {
     if (!confirm('Excluir esta análise permanentemente?')) return;
     try {
