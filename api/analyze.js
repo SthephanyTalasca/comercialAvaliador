@@ -1,53 +1,71 @@
 // api/analyze.js
 // ─────────────────────────────────────────────────────────────────────────────
-// ESTRUTURA DE AVALIAÇÃO (3 etapas, 12 critérios)
+// ESTRUTURA DE AVALIAÇÃO (4 etapas, 14 critérios)
 //
-//  Etapa 1 – Consultividade / Diagnóstico - SPIN
+//  Etapa 1 – Rapport & Comunicação
 //    • Rapport          (nota_rapport)
-//    • SPIN             (nota_spin)
 //    • Comunicação      (nota_comunicacao)
 //    → nota_etapa1      salva em: nota_rapport (coluna existente)
 //
-//  Etapa 2 – Apresentação da Ferramenta
+//  Etapa 2 – SPIN Selling
+//    • Situação         (nota_spin_s)
+//    • Problema         (nota_spin_p)
+//    • Implicação       (nota_spin_i)
+//    • Necessidade      (nota_spin_n)
+//    → nota_etapa_spin
+//
+//  Etapa 3 – Apresentação da Ferramenta
 //    • Produto          (nota_produto)
 //    • Objeções         (nota_objecoes)
 //    • Solução da dor   (nota_solucao_dor)
 //    • Encantamento     (nota_encantamento)
 //    → nota_etapa2      salva em: nota_produto (coluna existente)
 //
-//  Etapa 3 – Negociação
-//    • Pré-fechamento   (nota_pre_fechamento)
+//  Etapa 4 – Negociação
+//    • Pré-fechamento   (nota_pre_fechamento_sub)
 //    • Escuta ativa     (nota_escuta_ativa)
 //    • Resiliência      (nota_resiliencia)
 //    • Gestão do tempo  (nota_gestao_tempo)
 //    • Regras de fech.  (nota_regras_fechamento)
 //    → nota_etapa3      salva em: nota_apresentacao (coluna existente)
 //
-//  media_final = média dos 12 critérios
+//  media_final = média dos 14 critérios
 //
 //  REGRA MAL QUALIFICADO:
 //    Se qual_veredicto contém "MAL" ou "FORA", a reunião não contabiliza
-//    na média do vendedor (tratado em api/dashboard.js e api/save.js).
-//
-//  auditoria_objecoes: lista de até 10 objeções identificadas na transcrição,
-//    com flag se foram contornadas e sugestão de abordagem quando não foram.
+//    na média do vendedor nem no ranking.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { GoogleGenAI, Type } from '@google/genai';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 
 export const maxDuration = 60;
 
-function loadSystemPrompt() {
-    const base      = process.env.PROMPT_BASE;
-    const nibo      = process.env.PROMPT_NIBO;
-    const criterios = process.env.PROMPT_CRITERIOS;
-    
-    if (!base || !nibo || !criterios) {
-        throw new Error(`Variáveis faltando: ${!base?'PROMPT_BASE ':''} ${!nibo?'PROMPT_NIBO ':''} ${!criterios?'PROMPT_CRITERIOS':''}`);
+async function loadSystemPrompt() {
+    const url = `${process.env.SUPABASE_URL}/rest/v1/prompts?select=chave,valor`;
+    const res = await fetch(url, {
+        headers: {
+            'apikey':        process.env.SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`
+        }
+    });
+
+    if (!res.ok) {
+        throw new Error(`Erro ao buscar prompts do Supabase: ${res.status}`);
     }
-    
+
+    const rows = await res.json();
+    const map  = Object.fromEntries(rows.map(r => [r.chave, r.valor]));
+
+    const base      = map['PROMPT_BASE'];
+    const nibo      = map['PROMPT_NIBO'];
+    const criterios = map['PROMPT_CRITERIOS'];
+
+    if (!base || !nibo || !criterios) {
+        const faltando = ['PROMPT_BASE', 'PROMPT_NIBO', 'PROMPT_CRITERIOS']
+            .filter(k => !map[k]).join(', ');
+        throw new Error(`Prompts faltando no Supabase: ${faltando}`);
+    }
+
     return `${base}\n\n${nibo}\n\n${criterios}`;
 }
 
@@ -76,10 +94,10 @@ export default async function handler(req, res) {
 
         let systemInstruction;
         try {
-            systemInstruction = loadSystemPrompt();
-        } catch (fileError) {
-            console.error("Erro ao carregar arquivos de prompt:", fileError.message);
-            return res.status(500).json({ error: "Prompt não configurado no servidor." });
+            systemInstruction = await loadSystemPrompt();
+        } catch (promptError) {
+            console.error("Erro ao carregar prompts:", promptError.message);
+            return res.status(500).json({ error: "Erro ao carregar prompts: " + promptError.message });
         }
 
         const response = await ai.models.generateContent({
@@ -101,24 +119,41 @@ export default async function handler(req, res) {
                         alerta_cancelamento:     { type: Type.STRING },
                         concorrentes_detectados: { type: Type.ARRAY, items: { type: Type.STRING } },
 
-                        // ── ETAPA 1 — Consultividade / Diagnóstico - SPIN ────
+                        // ── ETAPA 1 — Rapport & Comunicação ─────────────────
                         nota_rapport:           { type: Type.NUMBER },   // 1-5
                         porque_rapport:         { type: Type.STRING },
                         melhoria_rapport:       { type: Type.STRING },
-
-                        nota_spin:              { type: Type.NUMBER },   // 1-5
-                        porque_spin:            { type: Type.STRING },
-                        melhoria_spin:          { type: Type.STRING },
 
                         nota_comunicacao:       { type: Type.NUMBER },   // 1-5
                         porque_comunicacao:     { type: Type.STRING },
                         melhoria_comunicacao:   { type: Type.STRING },
 
-                        nota_etapa1:            { type: Type.NUMBER },   // avg(rapport+spin+com)
+                        nota_etapa1:            { type: Type.NUMBER },   // avg(rapport+comunicacao)
                         porque_etapa1:          { type: Type.STRING },
                         melhoria_etapa1:        { type: Type.STRING },
 
-                        // ── ETAPA 2 — Apresentação da Ferramenta ─────────────
+                        // ── ETAPA 2 — SPIN Selling ───────────────────────────
+                        nota_spin_s:            { type: Type.NUMBER },   // 1-5 Situação
+                        porque_spin_s:          { type: Type.STRING },
+                        melhoria_spin_s:        { type: Type.STRING },
+
+                        nota_spin_p:            { type: Type.NUMBER },   // 1-5 Problema
+                        porque_spin_p:          { type: Type.STRING },
+                        melhoria_spin_p:        { type: Type.STRING },
+
+                        nota_spin_i:            { type: Type.NUMBER },   // 1-5 Implicação
+                        porque_spin_i:          { type: Type.STRING },
+                        melhoria_spin_i:        { type: Type.STRING },
+
+                        nota_spin_n:            { type: Type.NUMBER },   // 1-5 Necessidade
+                        porque_spin_n:          { type: Type.STRING },
+                        melhoria_spin_n:        { type: Type.STRING },
+
+                        nota_etapa_spin:        { type: Type.NUMBER },   // avg(s+p+i+n)
+                        porque_etapa_spin:      { type: Type.STRING },
+                        melhoria_etapa_spin:    { type: Type.STRING },
+
+                        // ── ETAPA 3 — Apresentação da Ferramenta ─────────────
                         nota_produto:           { type: Type.NUMBER },   // 1-5
                         porque_produto:         { type: Type.STRING },
                         melhoria_produto:       { type: Type.STRING },
@@ -139,7 +174,7 @@ export default async function handler(req, res) {
                         porque_etapa2:          { type: Type.STRING },
                         melhoria_etapa2:        { type: Type.STRING },
 
-                        // ── ETAPA 3 — Negociação ─────────────────────────────
+                        // ── ETAPA 4 — Negociação ─────────────────────────────
                         nota_pre_fechamento_sub:    { type: Type.NUMBER },   // 1-5
                         porque_pre_fechamento_sub:  { type: Type.STRING },
                         melhoria_pre_fechamento_sub:{ type: Type.STRING },
@@ -227,20 +262,26 @@ export default async function handler(req, res) {
                         "vendedor_nome", "media_final", "resumo_executivo", "chance_fechamento", "alerta_cancelamento",
                         "concorrentes_detectados",
 
-                        // Etapa 1
+                        // Etapa 1 — Rapport & Comunicação
                         "nota_rapport", "porque_rapport", "melhoria_rapport",
-                        "nota_spin", "porque_spin", "melhoria_spin",
                         "nota_comunicacao", "porque_comunicacao", "melhoria_comunicacao",
                         "nota_etapa1", "porque_etapa1", "melhoria_etapa1",
 
-                        // Etapa 2
+                        // Etapa 2 — SPIN
+                        "nota_spin_s", "porque_spin_s", "melhoria_spin_s",
+                        "nota_spin_p", "porque_spin_p", "melhoria_spin_p",
+                        "nota_spin_i", "porque_spin_i", "melhoria_spin_i",
+                        "nota_spin_n", "porque_spin_n", "melhoria_spin_n",
+                        "nota_etapa_spin", "porque_etapa_spin", "melhoria_etapa_spin",
+
+                        // Etapa 3 — Apresentação da Ferramenta
                         "nota_produto", "porque_produto", "melhoria_produto",
                         "nota_objecoes", "porque_objecoes", "melhoria_objecoes",
                         "nota_solucao_dor", "porque_solucao_dor", "melhoria_solucao_dor",
                         "nota_encantamento", "porque_encantamento", "melhoria_encantamento",
                         "nota_etapa2", "porque_etapa2", "melhoria_etapa2",
 
-                        // Etapa 3
+                        // Etapa 4 — Negociação
                         "nota_pre_fechamento_sub", "porque_pre_fechamento_sub", "melhoria_pre_fechamento_sub",
                         "nota_escuta_ativa", "porque_escuta_ativa", "melhoria_escuta_ativa",
                         "nota_resiliencia", "porque_resiliencia", "melhoria_resiliencia",
@@ -284,14 +325,25 @@ export default async function handler(req, res) {
         analysisData._config = {
             fields: [
                 {
-                    l: 'Consultividade / SPIN',
+                    l: 'Rapport & Comunicação',
                     k: 'etapa1',
-                    icon: 'search',
+                    icon: 'heart-handshake',
                     color: 'blue',
                     criterios: [
                         { l: 'Rapport',            k: 'rapport',     desc: 'Criou conexão genuína e estabeleceu confiança com o lead?' },
-                        { l: 'SPIN',               k: 'spin',        desc: 'Realizou perguntas de Situação, Problema, Implicação e Necessidade?' },
                         { l: 'Comunicação Eficaz', k: 'comunicacao', desc: 'Demonstrou capacidade de ouvir as dores e o cenário do cliente?' }
+                    ]
+                },
+                {
+                    l: 'SPIN Selling',
+                    k: 'etapa_spin',
+                    icon: 'search',
+                    color: 'indigo',
+                    criterios: [
+                        { l: 'Situação',    k: 'spin_s', desc: 'Fez perguntas de contexto sem interrogar — entendeu o cenário atual do lead?' },
+                        { l: 'Problema',    k: 'spin_p', desc: 'Investigou e fez o cliente confessar suas dores e insatisfações?' },
+                        { l: 'Implicação',  k: 'spin_i', desc: 'Aprofundou o problema mostrando os impactos de não resolver?' },
+                        { l: 'Necessidade', k: 'spin_n', desc: 'Fez o cliente declarar o valor da solução com suas próprias palavras?' }
                     ]
                 },
                 {
