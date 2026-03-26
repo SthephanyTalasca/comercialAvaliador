@@ -14,7 +14,15 @@ function getSession(req) {
     } catch { return null; }
 }
 
-// Converte para inteiro — colunas nota_* são smallint no Supabase
+// Converte para inteiro na escala 1-5
+function toNota(v) {
+    if (v === null || v === undefined) return null;
+    const n = Math.round(Number(v));
+    if (isNaN(n)) return null;
+    return Math.max(1, Math.min(5, n));
+}
+
+// Converte para inteiro sem restrição de escala (ex: qual_nota_sdr é 0-10)
 function toInt(v) {
     if (v === null || v === undefined) return null;
     const n = Math.round(Number(v));
@@ -64,36 +72,25 @@ export default async function handler(req, res) {
         _auditado_nome: session.name
     };
 
- // DIFF: api/save.js
-// Dentro do objeto `registro`, após nota_apresentacao, adicionar:
-
-nota_spin_s:         toInt(analise.nota_spin_s),
-nota_spin_p:         toInt(analise.nota_spin_p),
-nota_spin_i:         toInt(analise.nota_spin_i),
-nota_spin_n:         toInt(analise.nota_spin_n),
-nota_etapa_spin:     analise.nota_etapa_spin    || null,
-
-
-const registro = {
-    coordenador:         coordenadorFinal,
-    vendedor_nome:       analise.vendedor_nome             || 'Não identificado',
-    produto:             analise.qual_produto_identificado || null,
-    media_final:         analise.media_final               || 0,
-    nota_rapport:        toInt(analise.nota_etapa1),
-    nota_produto:        toInt(analise.nota_etapa2),
-    nota_apresentacao:   toInt(analise.nota_etapa3),
-    nota_spin_s:         toInt(analise.nota_spin_s),
-    nota_spin_p:         toInt(analise.nota_spin_p),
-    nota_spin_i:         toInt(analise.nota_spin_i),
-    nota_spin_n:         toInt(analise.nota_spin_n),
-    nota_etapa_spin:     analise.nota_etapa_spin            || null,
-    nota_pre_fechamento: null,
-    nota_fechamento:     null,
-    qual_veredicto:      analise.qual_veredicto            || null,
-    qual_nota_sdr:       toInt(analise.qual_nota_sdr),
-    mal_qualificado,
-    analise_json:        analiseComAuditor
-};
+    const registro = {
+        coordenador:         coordenadorFinal,
+        vendedor_nome:       analise.vendedor_nome             || 'Não identificado',
+        produto:             analise.qual_produto_identificado || null,
+        media_final:         analise.media_final               || 0,
+        nota_rapport:        toNota(analise.nota_etapa1),
+        nota_produto:        toNota(analise.nota_etapa2),
+        nota_apresentacao:   toNota(analise.nota_etapa3),
+        nota_spin_s:         toNota(analise.nota_spin_s),
+        nota_spin_p:         toNota(analise.nota_spin_p),
+        nota_spin_i:         toNota(analise.nota_spin_i),
+        nota_spin_n:         toNota(analise.nota_spin_n),
+        nota_etapa_spin:     analise.nota_etapa_spin            || null,
+        nota_pre_fechamento: null,
+        nota_fechamento:     null,
+        qual_veredicto:      analise.qual_veredicto            || null,
+        qual_nota_sdr:       toInt(analise.qual_nota_sdr),
+        mal_qualificado,
+        analise_json:        analiseComAuditor
     };
 
     try {
