@@ -113,89 +113,89 @@ export default async function handler(req, res) {
 
                         // ── IDENTIFICAÇÃO ────────────────────────────────────
                         vendedor_nome:           { type: Type.STRING },
-                        media_final:             { type: Type.NUMBER },
+                        media_final:             { type: Type.NUMBER, minimum: 1, maximum: 5 },
                         resumo_executivo:        { type: Type.STRING },
                         chance_fechamento:       { type: Type.STRING },
                         alerta_cancelamento:     { type: Type.STRING },
                         concorrentes_detectados: { type: Type.ARRAY, items: { type: Type.STRING } },
 
                         // ── ETAPA 1 — Rapport & Comunicação ─────────────────
-                        nota_rapport:           { type: Type.NUMBER },   // 1-5
+                        nota_rapport:           { type: Type.NUMBER, minimum: 1, maximum: 5 },   // 1-5
                         porque_rapport:         { type: Type.STRING },
                         melhoria_rapport:       { type: Type.STRING },
 
-                        nota_comunicacao:       { type: Type.NUMBER },   // 1-5
+                        nota_comunicacao:       { type: Type.NUMBER, minimum: 1, maximum: 5 },   // 1-5
                         porque_comunicacao:     { type: Type.STRING },
                         melhoria_comunicacao:   { type: Type.STRING },
 
-                        nota_etapa1:            { type: Type.NUMBER },   // avg(rapport+comunicacao)
+                        nota_etapa1:            { type: Type.NUMBER, minimum: 1, maximum: 5 },   // avg(rapport+comunicacao)
                         porque_etapa1:          { type: Type.STRING },
                         melhoria_etapa1:        { type: Type.STRING },
 
                         // ── ETAPA 2 — SPIN Selling ───────────────────────────
-                        nota_spin_s:            { type: Type.NUMBER },   // 1-5 Situação
+                        nota_spin_s:            { type: Type.NUMBER, minimum: 1, maximum: 5 },   // 1-5 Situação
                         porque_spin_s:          { type: Type.STRING },
                         melhoria_spin_s:        { type: Type.STRING },
 
-                        nota_spin_p:            { type: Type.NUMBER },   // 1-5 Problema
+                        nota_spin_p:            { type: Type.NUMBER, minimum: 1, maximum: 5 },   // 1-5 Problema
                         porque_spin_p:          { type: Type.STRING },
                         melhoria_spin_p:        { type: Type.STRING },
 
-                        nota_spin_i:            { type: Type.NUMBER },   // 1-5 Implicação
+                        nota_spin_i:            { type: Type.NUMBER, minimum: 1, maximum: 5 },   // 1-5 Implicação
                         porque_spin_i:          { type: Type.STRING },
                         melhoria_spin_i:        { type: Type.STRING },
 
-                        nota_spin_n:            { type: Type.NUMBER },   // 1-5 Necessidade
+                        nota_spin_n:            { type: Type.NUMBER, minimum: 1, maximum: 5 },   // 1-5 Necessidade
                         porque_spin_n:          { type: Type.STRING },
                         melhoria_spin_n:        { type: Type.STRING },
 
-                        nota_etapa_spin:        { type: Type.NUMBER },   // avg(s+p+i+n)
+                        nota_etapa_spin:        { type: Type.NUMBER, minimum: 1, maximum: 5 },   // avg(s+p+i+n)
                         porque_etapa_spin:      { type: Type.STRING },
                         melhoria_etapa_spin:    { type: Type.STRING },
 
                         // ── ETAPA 3 — Apresentação da Ferramenta ─────────────
-                        nota_produto:           { type: Type.NUMBER },   // 1-5
+                        nota_produto:           { type: Type.NUMBER, minimum: 1, maximum: 5 },   // 1-5
                         porque_produto:         { type: Type.STRING },
                         melhoria_produto:       { type: Type.STRING },
 
-                        nota_objecoes:          { type: Type.NUMBER },   // 1-5
+                        nota_objecoes:          { type: Type.NUMBER, minimum: 1, maximum: 5 },   // 1-5
                         porque_objecoes:        { type: Type.STRING },
                         melhoria_objecoes:      { type: Type.STRING },
 
-                        nota_solucao_dor:       { type: Type.NUMBER },   // 1-5
+                        nota_solucao_dor:       { type: Type.NUMBER, minimum: 1, maximum: 5 },   // 1-5
                         porque_solucao_dor:     { type: Type.STRING },
                         melhoria_solucao_dor:   { type: Type.STRING },
 
-                        nota_encantamento:      { type: Type.NUMBER },   // 1-5
+                        nota_encantamento:      { type: Type.NUMBER, minimum: 1, maximum: 5 },   // 1-5
                         porque_encantamento:    { type: Type.STRING },
                         melhoria_encantamento:  { type: Type.STRING },
 
-                        nota_etapa2:            { type: Type.NUMBER },   // avg(prod+obj+sol+enc)
+                        nota_etapa2:            { type: Type.NUMBER, minimum: 1, maximum: 5 },   // avg(prod+obj+sol+enc)
                         porque_etapa2:          { type: Type.STRING },
                         melhoria_etapa2:        { type: Type.STRING },
 
                         // ── ETAPA 4 — Negociação ─────────────────────────────
-                        nota_pre_fechamento_sub:    { type: Type.NUMBER },   // 1-5
+                        nota_pre_fechamento_sub:    { type: Type.NUMBER, minimum: 1, maximum: 5 },   // 1-5
                         porque_pre_fechamento_sub:  { type: Type.STRING },
                         melhoria_pre_fechamento_sub:{ type: Type.STRING },
 
-                        nota_escuta_ativa:      { type: Type.NUMBER },   // 1-5
+                        nota_escuta_ativa:      { type: Type.NUMBER, minimum: 1, maximum: 5 },   // 1-5
                         porque_escuta_ativa:    { type: Type.STRING },
                         melhoria_escuta_ativa:  { type: Type.STRING },
 
-                        nota_resiliencia:       { type: Type.NUMBER },   // 1-5
+                        nota_resiliencia:       { type: Type.NUMBER, minimum: 1, maximum: 5 },   // 1-5
                         porque_resiliencia:     { type: Type.STRING },
                         melhoria_resiliencia:   { type: Type.STRING },
 
-                        nota_gestao_tempo:      { type: Type.NUMBER },   // 1-5
+                        nota_gestao_tempo:      { type: Type.NUMBER, minimum: 1, maximum: 5 },   // 1-5
                         porque_gestao_tempo:    { type: Type.STRING },
                         melhoria_gestao_tempo:  { type: Type.STRING },
 
-                        nota_regras_fechamento:      { type: Type.NUMBER },   // 1-5
+                        nota_regras_fechamento:      { type: Type.NUMBER, minimum: 1, maximum: 5 },   // 1-5
                         porque_regras_fechamento:    { type: Type.STRING },
                         melhoria_regras_fechamento:  { type: Type.STRING },
 
-                        nota_etapa3:            { type: Type.NUMBER },   // avg(pre+esc+res+ges+reg)
+                        nota_etapa3:            { type: Type.NUMBER, minimum: 1, maximum: 5 },   // avg(pre+esc+res+ges+reg)
                         porque_etapa3:          { type: Type.STRING },
                         melhoria_etapa3:        { type: Type.STRING },
 
