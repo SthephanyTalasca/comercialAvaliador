@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         nota_spin_p:         toNota(analise.nota_spin_p),
         nota_spin_i:         toNota(analise.nota_spin_i),
         nota_spin_n:         toNota(analise.nota_spin_n),
-        nota_etapa_spin:     analise.nota_etapa_spin            || null,
+        nota_etapa_spin:     toNota(analise.nota_etapa_spin),
         nota_pre_fechamento: null,
         nota_fechamento:     null,
         qual_veredicto:      analise.qual_veredicto            || null,
