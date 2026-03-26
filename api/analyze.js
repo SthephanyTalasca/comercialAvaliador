@@ -195,7 +195,7 @@ export default async function handler(req, res) {
                         porque_regras_fechamento:    { type: Type.STRING },
                         melhoria_regras_fechamento:  { type: Type.STRING },
 
-                        nota_etapa3:            { type: Type.NUMBER, minimum: 1, maximum: 5 }
+                        nota_etapa3:            { type: Type.NUMBER, minimum: 1, maximum: 5 },
                         porque_etapa3:          { type: Type.STRING },
                         melhoria_etapa3:        { type: Type.STRING },
 
