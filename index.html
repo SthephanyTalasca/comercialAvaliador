@@ -931,6 +931,18 @@ async function abrirModalAddVendedor(coord){
 
 // ── Histórico ─────────────────────────────────────────────────────────────────
 let histPage=0;const HIST_PER_PAGE=20;
+function normalizarVeredicto(v) {
+    if (!v) return { label: 'Indefinido', css: 'bg-slate-100 text-slate-500 border-slate-200' };
+    const u = v.toUpperCase();
+    if (u.includes('PARC'))
+        return { label: 'Parcialmente Qualificado', css: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
+    if (u.includes('NAO') || u.includes('NÃO') || u.includes('MAL') || u.includes('FORA') || u.includes('DESQ'))
+        return { label: 'Não Qualificado', css: 'bg-red-100 text-red-700 border-red-200' };
+    if (u.includes('QUAL'))
+        return { label: 'Qualificado', css: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+    return { label: v, css: 'bg-slate-100 text-slate-500 border-slate-200' };
+}
+
 async function loadHistorico(reset){
     if(reset)histPage=0;
     const content=document.getElementById('dash-content');
@@ -963,19 +975,15 @@ async function _fetchHistorico() {
 
         const rows = d.records.map(r => {
             const dt   = new Date(r.created_at).toLocaleDateString('pt-BR', {day:'2-digit', month:'short', year:'numeric'});
-            const verd = r.qual_veredicto || '—';
-            const vc   = verd.toUpperCase().includes('FORA') ? 'bg-purple-100 text-purple-700 border-purple-200'
-                       : verd.toUpperCase().includes('MAL')  ? 'bg-red-100 text-red-700 border-red-200'
-                       : verd.toUpperCase().includes('PARC') ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
-                       : verd.toUpperCase().includes('QUAL') ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                       : 'bg-slate-100 text-slate-500 border-slate-200';
+            const vn   = normalizarVeredicto(r.qual_veredicto);
+            const sdrNome = r.nome_sdr || 'Indefinido';
 
-            // Coluna de ações: reatribuição e excluir apenas para admin
+            // Coluna de ações: admin pode reatribuir vendedor, editar SDR e excluir
             const acoesAdmin = isAdmin() ? `
-                <select id="hsel-${r.id}" style="font-size:10px;font-weight:700;border:1px solid #e2e8f0;border-radius:10px;padding:4px 8px;background:white;max-width:160px;cursor:pointer;">
-                    <option value="">— reatribuir —</option>
+                <select id="hsel-${r.id}" style="font-size:10px;font-weight:700;border:1px solid #e2e8f0;border-radius:10px;padding:4px 8px;background:white;max-width:130px;cursor:pointer;">
+                    <option value="">— vendedor —</option>
                 </select>
-                <button id="hbtn-${r.id}" style="display:none;font-size:10px;font-weight:900;color:white;background:#2563eb;border:none;border-radius:8px;padding:4px 10px;cursor:pointer;">✓ Salvar</button>
+                <button id="hbtn-${r.id}" style="display:none;font-size:10px;font-weight:900;color:white;background:#2563eb;border:none;border-radius:8px;padding:4px 10px;cursor:pointer;">✓</button>
                 <button id="hdel-${r.id}" style="font-size:10px;font-weight:900;color:#f87171;background:none;border:none;cursor:pointer;text-decoration:underline;">excluir</button>
             ` : '';
 
@@ -984,11 +992,13 @@ async function _fetchHistorico() {
                 <td class="py-3 px-3 text-[10px] text-slate-500">${r.coordenador || '—'}</td>
                 <td class="py-3 px-3 text-[10px] text-slate-500">${r.produto || '—'}</td>
                 <td class="py-3 px-3 text-center font-black text-xl ${sc(r.media_final)}">${(r.media_final||0).toFixed(1)}</td>
-                <td class="py-3 px-3"><span class="px-2 py-1 rounded-lg border text-[9px] font-black ${vc}">${verd}</span></td>
+                <td class="py-3 px-3"><span class="px-2 py-1 rounded-lg border text-[9px] font-black ${vn.css}">${vn.label}</span></td>
+                <td class="py-3 px-3 text-[10px] text-violet-700 font-bold hist-sdr-cell" id="hist-sdr-${r.id}">${sdrNome}</td>
                 <td class="py-3 px-3 text-[10px] text-slate-400">${dt}</td>
                 <td class="py-3 px-3">
-                    <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                         ${acoesAdmin}
+                        <button id="hsdr-${r.id}" style="font-size:10px;font-weight:900;color:#7c3aed;background:none;border:none;cursor:pointer;text-decoration:underline;">✏ sdr</button>
                         <button id="hver-${r.id}" style="font-size:10px;font-weight:900;color:#3b82f6;background:none;border:none;cursor:pointer;text-decoration:underline;">ver</button>
                     </div>
                 </td>
@@ -1002,6 +1012,7 @@ async function _fetchHistorico() {
                     <th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Gestor</th>
                     <th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Produto</th>
                     <th class="text-center py-2 px-3 font-black text-slate-500 uppercase">Média</th>
+                    <th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Veredicto</th>
                     <th class="text-left py-2 px-3 font-black text-slate-500 uppercase">SDR</th>
                     <th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Data</th>
                     <th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Ações</th>
@@ -1053,6 +1064,63 @@ async function _fetchHistorico() {
             }
 
             if (ver) ver.addEventListener('click', () => abrirAnaliseCompleta(r.id));
+
+            // Botão editar SDR — qualquer usuário logado pode corrigir
+            const sdrBtn  = document.getElementById('hsdr-' + r.id);
+            const sdrCell = document.getElementById('hist-sdr-' + r.id);
+            if (sdrBtn && sdrCell) {
+                sdrBtn.addEventListener('click', () => {
+                    const atual = r.nome_sdr || '';
+                    // Inline edit: transforma a célula em input
+                    const input = document.createElement('input');
+                    input.type        = 'text';
+                    input.value       = atual;
+                    input.placeholder = 'Nome do SDR (ou vazio)';
+                    input.style.cssText = 'font-size:11px;font-weight:700;border:1px solid #7c3aed;border-radius:8px;padding:3px 8px;width:130px;outline:none;color:#4c1d95;';
+
+                    const salvar = document.createElement('button');
+                    salvar.textContent = '✓';
+                    salvar.style.cssText = 'font-size:11px;font-weight:900;color:white;background:#7c3aed;border:none;border-radius:6px;padding:3px 8px;cursor:pointer;margin-left:4px;';
+
+                    const cancelar = document.createElement('button');
+                    cancelar.textContent = '✕';
+                    cancelar.style.cssText = 'font-size:11px;font-weight:900;color:#94a3b8;background:none;border:none;cursor:pointer;margin-left:2px;';
+
+                    sdrCell.innerHTML = '';
+                    sdrCell.appendChild(input);
+                    sdrCell.appendChild(salvar);
+                    sdrCell.appendChild(cancelar);
+                    input.focus();
+
+                    cancelar.addEventListener('click', () => {
+                        sdrCell.textContent = r.nome_sdr || 'Indefinido';
+                    });
+
+                    const doSave = async () => {
+                        const novoSdr = input.value.trim();
+                        salvar.disabled = true; salvar.textContent = '...';
+                        try {
+                            const res2 = await fetch('/api/reassign', {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ reuniao_id: r.id, nome_sdr: novoSdr || null })
+                            });
+                            const data = await res2.json();
+                            if (!data.ok) throw new Error(data.error || 'Erro');
+                            r.nome_sdr = novoSdr || null;
+                            sdrCell.textContent = novoSdr || 'Indefinido';
+                            sdrCell.style.color = '#10b981';
+                            setTimeout(() => { sdrCell.style.color = ''; }, 2000);
+                        } catch (err) {
+                            alert('Erro ao salvar SDR: ' + err.message);
+                            sdrCell.textContent = r.nome_sdr || 'Indefinido';
+                        }
+                    };
+
+                    salvar.addEventListener('click', doSave);
+                    input.addEventListener('keydown', e => { if (e.key === 'Enter') doSave(); if (e.key === 'Escape') cancelar.click(); });
+                });
+            }
 
             // Botão excluir: só admin
             if (del && isAdmin()) del.addEventListener('click', () => deletarRegistro(r.id));
@@ -1317,12 +1385,9 @@ async function abrirAnaliseCompleta(id){
         </div>`;
 
         // ── SDR ───────────────────────────────────────────────────────────
-        const verd = r.qual_veredicto || '—';
-        const vc   = verd.toUpperCase().includes('FORA')  ? 'bg-purple-100 text-purple-800 border-purple-300'
-                   : verd.toUpperCase().includes('MAL')   ? 'bg-red-100 text-red-800 border-red-300'
-                   : verd.toUpperCase().includes('PARC')  ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                   : verd.toUpperCase().includes('QUAL')  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                   : 'bg-slate-100 text-slate-600 border-slate-200';
+        const _vn  = normalizarVeredicto(r.qual_veredicto);
+        const verd = _vn.label;
+        const vc   = _vn.css.replace('text-', 'border-2 text-').replace('bg-', 'bg-');
 
         const sdColor = n => n >= 7 ? 'text-emerald-600' : n >= 5 ? 'text-amber-500' : 'text-red-500';
 
@@ -1514,7 +1579,9 @@ async function abrirAnaliseCompleta(id){
               <div class="px-5 py-3 rounded-2xl border-2 text-sm font-black text-center tracking-wide ${vc}">${verd}</div>
             </div>
             <div class="glass-card p-6 flex flex-col items-center justify-center text-center border-b-[8px] border-violet-500">
-              <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Nota do SDR</span>
+              <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">SDR Responsável</span>
+              <p class="text-sm font-black text-violet-700 mb-4">${r.nome_sdr || j.nome_sdr || 'Não identificado'}</p>
+              <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Nota</span>
               <div class="text-6xl font-black ${sdColor(j.qual_nota_sdr || 0)} mb-1">${j.qual_nota_sdr !== null && j.qual_nota_sdr !== undefined ? j.qual_nota_sdr : '—'}</div>
               <span class="text-[9px] text-slate-400 font-bold">/ 10</span>
               <p class="text-[10px] text-slate-500 mt-3 leading-relaxed font-medium text-center">${j.qual_nota_sdr_justificativa || ''}</p>
