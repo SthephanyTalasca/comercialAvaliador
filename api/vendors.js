@@ -1,8 +1,8 @@
 // api/vendors.js
-// GET    → lista vendedores
-// POST   → cadastra/reativa
-// PATCH  → edita nome e/ou coordenador
-// DELETE → soft-delete (excluir)
+// GET    → lista vendedores        (admin + viewer)
+// POST   → cadastra/reativa        (apenas admin)
+// PATCH  → edita nome/coordenador  (apenas admin)
+// DELETE → soft-delete             (apenas admin)
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
@@ -19,10 +19,15 @@ function getSession(req) {
     } catch { return null; }
 }
 
-export default async function handler(req, res) {
-    if (!getSession(req)) return res.status(401).json({ error: 'Não autorizado' });
+function isAdmin(session) {
+    return session?.role === 'admin';
+}
 
-    // GET
+export default async function handler(req, res) {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado' });
+
+    // GET — liberado para todos os usuários Nibo
     if (req.method === 'GET') {
         const { incluir_inativos } = req.query;
         const filter = incluir_inativos === '1' ? '' : '&ativo=eq.true';
@@ -31,6 +36,15 @@ export default async function handler(req, res) {
             { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
         );
         return res.status(200).json(await r.json());
+    }
+
+    // POST, PATCH, DELETE — apenas admins
+    if (['POST', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!isAdmin(session)) {
+            return res.status(403).json({
+                error: 'Permissão negada. Apenas coordenadores podem gerenciar vendedores.'
+            });
+        }
     }
 
     // POST — criar ou reativar
