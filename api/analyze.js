@@ -31,9 +31,7 @@
 //
 //  media_final = média dos 14 critérios
 //
-//  REGRA MAL QUALIFICADO:
-//    Se qual_veredicto contém "MAL" ou "FORA", a reunião não contabiliza
-//    na média do vendedor nem no ranking.
+//  PERMISSÃO: apenas admin (coordenadores) podem submeter transcrições
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { GoogleGenAI, Type } from '@google/genai';
@@ -78,12 +76,20 @@ export default async function handler(req, res) {
     const cookie = req.headers.cookie || '';
     const match  = cookie.match(/nibo_session=([^;]+)/);
     if (!match) return res.status(401).json({ error: "Não autorizado." });
+    let session;
     try {
-        const session = JSON.parse(Buffer.from(match[1], 'base64').toString('utf8'));
+        session = JSON.parse(Buffer.from(match[1], 'base64').toString('utf8'));
         if (!session.exp || Date.now() > session.exp) return res.status(401).json({ error: "Sessão expirada." });
         const domain = session.email.toLowerCase().split('@')[1];
         if (domain !== 'nibo.com.br') return res.status(403).json({ error: "Acesso negado." });
     } catch { return res.status(401).json({ error: "Sessão inválida." }); }
+
+    // 🔒 Apenas admins podem submeter transcrições para análise
+    if (session.role !== 'admin') {
+        return res.status(403).json({
+            error: "Permissão negada. Apenas coordenadores podem submeter transcrições para análise."
+        });
+    }
     // ────────────────────────────────────────────────────────────────────────
 
     const { prompt } = req.body;
@@ -261,39 +267,29 @@ export default async function handler(req, res) {
                     required: [
                         "vendedor_nome", "media_final", "resumo_executivo", "chance_fechamento", "alerta_cancelamento",
                         "concorrentes_detectados",
-
-                        // Etapa 1 — Rapport & Comunicação
                         "nota_rapport", "porque_rapport", "melhoria_rapport",
                         "nota_comunicacao", "porque_comunicacao", "melhoria_comunicacao",
                         "nota_etapa1", "porque_etapa1", "melhoria_etapa1",
-
-                        // Etapa 2 — SPIN
                         "nota_spin_s", "porque_spin_s", "melhoria_spin_s",
                         "nota_spin_p", "porque_spin_p", "melhoria_spin_p",
                         "nota_spin_i", "porque_spin_i", "melhoria_spin_i",
                         "nota_spin_n", "porque_spin_n", "melhoria_spin_n",
                         "nota_etapa_spin", "porque_etapa_spin", "melhoria_etapa_spin",
-
-                        // Etapa 3 — Apresentação da Ferramenta
                         "nota_produto", "porque_produto", "melhoria_produto",
                         "nota_objecoes", "porque_objecoes", "melhoria_objecoes",
                         "nota_solucao_dor", "porque_solucao_dor", "melhoria_solucao_dor",
                         "nota_encantamento", "porque_encantamento", "melhoria_encantamento",
                         "nota_etapa2", "porque_etapa2", "melhoria_etapa2",
-
-                        // Etapa 4 — Negociação
                         "nota_pre_fechamento_sub", "porque_pre_fechamento_sub", "melhoria_pre_fechamento_sub",
                         "nota_escuta_ativa", "porque_escuta_ativa", "melhoria_escuta_ativa",
                         "nota_resiliencia", "porque_resiliencia", "melhoria_resiliencia",
                         "nota_gestao_tempo", "porque_gestao_tempo", "melhoria_gestao_tempo",
                         "nota_regras_fechamento", "porque_regras_fechamento", "melhoria_regras_fechamento",
                         "nota_etapa3", "porque_etapa3", "melhoria_etapa3",
-
                         "tempo_fala_consultor", "tempo_fala_cliente",
                         "auditoria_objecoes",
                         "pontos_fortes", "pontos_atencao",
                         "justificativa_detalhada",
-
                         "qual_produto_identificado", "qual_produto_no_portfolio", "qual_produto_alerta",
                         "qual_contexto",
                         "qual_sabia_o_que_veria", "qual_sabia_evidencia",
@@ -382,7 +378,6 @@ export default async function handler(req, res) {
             }
         };
 
-        // ── Flag de mal qualificado para uso no save ──────────────────────
         const veredicto = (analysisData.qual_veredicto || '').toUpperCase();
         analysisData._mal_qualificado = veredicto.includes('MAL') || veredicto.includes('FORA');
 
