@@ -8,6 +8,7 @@
 const ADMIN_EMAILS = [
     'simone.rangel@nibo.com.br',
     'jonathan.dornelas@nibo.com.br',
+    'sthephany.talasca@nibo.com.br',
     // adicione outros admins aqui se necessário
 ];
 
