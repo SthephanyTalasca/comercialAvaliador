@@ -1,7 +1,9 @@
 // api/reassign.js
+// PATCH → corrige o vendedor de uma análise já salva
+// PERMISSÃO: apenas admin (coordenadores)
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
-// Service role key bypassa RLS — necessário para UPDATE
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
 function getSession(req) {
@@ -22,13 +24,19 @@ export default async function handler(req, res) {
     const session = getSession(req);
     if (!session) return res.status(401).json({ error: 'Não autorizado' });
 
+    // 🔒 Apenas admins podem reatribuir
+    if (session.role !== 'admin') {
+        return res.status(403).json({
+            error: 'Permissão negada. Apenas coordenadores podem reatribuir análises.'
+        });
+    }
+
     const { reuniao_id, vendedor_nome } = req.body;
     if (!reuniao_id || !vendedor_nome?.trim()) {
         return res.status(400).json({ error: 'reuniao_id e vendedor_nome são obrigatórios' });
     }
 
     try {
-        // Usa service role key para bypasár RLS no UPDATE
         const r = await fetch(`${SUPABASE_URL}/rest/v1/reunioes?id=eq.${reuniao_id}`, {
             method: 'PATCH',
             headers: {
@@ -51,7 +59,6 @@ export default async function handler(req, res) {
         try { updated = JSON.parse(text); } catch { updated = []; }
 
         if (!updated.length) {
-            // Retornou ok mas array vazio — RLS bloqueou silenciosamente
             return res.status(500).json({ error: 'Registro não encontrado ou sem permissão de atualização. Verifique as políticas RLS no Supabase.' });
         }
 
