@@ -6,6 +6,10 @@
 // DELETE body: { modo: 'nao_id' }                 → alias acima (compat)
 // DELETE body: { modo: 'vendedor', nome: '...' }  → exclui registros de um vendedor
 // DELETE body: { modo: 'single', id: 'uuid' }     → exclui registro único
+//
+// PERMISSÕES:
+//   GET    → qualquer @nibo.com.br (admin + viewer)
+//   DELETE → apenas admin (coordenadores)
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
@@ -22,8 +26,13 @@ function getSession(req) {
     } catch { return null; }
 }
 
+function isAdmin(session) {
+    return session?.role === 'admin';
+}
+
 export default async function handler(req, res) {
-    if (!getSession(req)) return res.status(401).json({ error: 'Não autorizado' });
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado' });
 
     // ── GET ────────────────────────────────────────────────────────────────────
     if (req.method === 'GET') {
@@ -87,26 +96,27 @@ export default async function handler(req, res) {
         }
     }
 
-    // ── DELETE ─────────────────────────────────────────────────────────────────
+    // ── DELETE — apenas admins ─────────────────────────────────────────────────
     if (req.method === 'DELETE') {
+        // 🔒 Bloquear viewers
+        if (!isAdmin(session)) {
+            return res.status(403).json({
+                error: 'Permissão negada. Apenas coordenadores podem excluir registros.'
+            });
+        }
+
         const body = req.body || {};
         const { modo, id, nome } = body;
 
         try {
             let url;
 
-            // modo: 'nao_identificados' ou 'nao_id' (alias)
             if (modo === 'nao_identificados' || modo === 'nao_id') {
                 url = `${SUPABASE_URL}/rest/v1/reunioes?vendedor_nome=ilike.*identificado*`;
-
-            // modo: 'vendedor'
             } else if (modo === 'vendedor' && nome?.trim()) {
                 url = `${SUPABASE_URL}/rest/v1/reunioes?vendedor_nome=eq.${encodeURIComponent(nome.trim())}`;
-
-            // modo: 'single' OU id direto (compat com frontend novo e legado)
             } else if (id) {
                 url = `${SUPABASE_URL}/rest/v1/reunioes?id=eq.${id}`;
-
             } else {
                 return res.status(400).json({ error: 'Parâmetros inválidos.' });
             }
