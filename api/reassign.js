@@ -31,10 +31,20 @@ export default async function handler(req, res) {
         });
     }
 
-    const { reuniao_id, vendedor_nome } = req.body;
-    if (!reuniao_id || !vendedor_nome?.trim()) {
-        return res.status(400).json({ error: 'reuniao_id e vendedor_nome são obrigatórios' });
+    const { reuniao_id, vendedor_nome, nome_sdr } = req.body;
+
+    // Aceita atualizar vendedor_nome OU nome_sdr (ou ambos)
+    const temVendedor = vendedor_nome !== undefined;
+    const temSdr      = nome_sdr !== undefined;
+
+    if (!reuniao_id || (!temVendedor && !temSdr)) {
+        return res.status(400).json({ error: 'reuniao_id e ao menos um campo (vendedor_nome ou nome_sdr) são obrigatórios' });
     }
+
+    // Monta o patch com os campos enviados
+    const patch = {};
+    if (temVendedor) patch.vendedor_nome = vendedor_nome?.trim() || null;
+    if (temSdr)      patch.nome_sdr      = nome_sdr?.trim()      || null;
 
     try {
         const r = await fetch(`${SUPABASE_URL}/rest/v1/reunioes?id=eq.${reuniao_id}`, {
@@ -45,7 +55,7 @@ export default async function handler(req, res) {
                 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
                 'Prefer':        'return=representation'
             },
-            body: JSON.stringify({ vendedor_nome: vendedor_nome.trim() })
+            body: JSON.stringify(patch)
         });
 
         const text = await r.text();
