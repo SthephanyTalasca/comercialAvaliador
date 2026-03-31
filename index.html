@@ -1123,7 +1123,51 @@ async function abrirAnaliseCompleta(id){
     }catch(err){document.getElementById('analise-modal-body-'+id).innerHTML=`<p class="text-center py-20 text-red-400 font-bold">Erro: ${err.message}</p>`;}
     modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
 }
-async function exportarPDFModal(id){const body=document.getElementById('analise-modal-body-'+id);if(!body)return;const btns=body.querySelectorAll('button,select,input');btns.forEach(el=>el.style.display='none');const nomeEl=body.querySelector('.font-black.text-slate-700');const nomeVend=nomeEl?nomeEl.textContent.trim():id;await html2pdf().set({margin:[8,8,8,8],filename:'auditoria-completa-'+nomeVend.replace(/[^a-zA-Z0-9À-ſ]/g,'-')+'.pdf',image:{type:'jpeg',quality:.97},html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(body).save();btns.forEach(el=>el.style.display='');}
+async function exportarPDFModal(id){
+    const abaAuditoria=document.getElementById('aba-auditoria-'+id);
+    const abaSdr=document.getElementById('aba-sdr-'+id);
+    if(!abaAuditoria&&!abaSdr)return;
+    
+    // Cria container temporário com AMBAS as abas visíveis
+    const tempContainer=document.createElement('div');
+    tempContainer.style.cssText='position:absolute;left:-9999px;top:0;width:800px;background:#fff;padding:32px;';
+    
+    // Clona e exibe ambas as abas
+    const cloneAuditoria=abaAuditoria.cloneNode(true);
+    cloneAuditoria.classList.remove('hidden');
+    cloneAuditoria.style.marginBottom='40px';
+    
+    // Adiciona separador de seção
+    const separador=document.createElement('div');
+    separador.innerHTML=`<div style="page-break-before:always;margin:40px 0;padding:20px;background:#f1f5f9;border-radius:16px;text-align:center;"><h2 style="font-size:18px;font-weight:800;color:#002d72;text-transform:uppercase;letter-spacing:1px;">🎯 Qualificação do Lead (SDR)</h2></div>`;
+    
+    const cloneSdr=abaSdr.cloneNode(true);
+    cloneSdr.classList.remove('hidden');
+    
+    tempContainer.appendChild(cloneAuditoria);
+    tempContainer.appendChild(separador);
+    tempContainer.appendChild(cloneSdr);
+    document.body.appendChild(tempContainer);
+    
+    // Esconde botões
+    const btns=tempContainer.querySelectorAll('button,select,input');
+    btns.forEach(el=>el.style.display='none');
+    
+    const nomeEl=tempContainer.querySelector('.font-black.text-slate-700');
+    const nomeVend=nomeEl?nomeEl.textContent.trim():'analise';
+    
+    try{
+        await html2pdf().set({
+            margin:[12,12,12,12],
+            filename:'auditoria-completa-'+nomeVend.replace(/[^a-zA-Z0-9À-ſ]/g,'-')+'.pdf',
+            image:{type:'jpeg',quality:.95},
+            html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false},
+            jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
+        }).from(tempContainer).save();
+    }finally{
+        document.body.removeChild(tempContainer);
+    }
+}
 function trocarAbaModal(id,aba){const modal=document.getElementById('analise-modal-'+id);if(!modal)return;modal.querySelectorAll('.section-tab').forEach(t=>t.classList.remove('active'));modal.querySelector(`[onclick*="'${aba}'"]`)?.classList.add('active');document.getElementById('aba-auditoria-'+id).classList.toggle('hidden',aba!=='auditoria');document.getElementById('aba-sdr-'+id).classList.toggle('hidden',aba!=='sdr');}
 
 // ── Calendário ────────────────────────────────────────────────────────────────
