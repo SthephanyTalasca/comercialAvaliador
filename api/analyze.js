@@ -5,8 +5,8 @@
 //  Estratégia: Seleção automática de modelo por tamanho
 //
 //  CURTA  (< 12.000 chars)  → gemini-2.5-flash  (melhor qualidade)
-//  MÉDIA  (12k – 40k chars) → gemini-2.0-flash  (rápido, boa qualidade)
-//  LONGA  (> 40k chars)     → gemini-2.0-flash  + compressão inteligente
+//  MÉDIA  (12k – 40k chars) → gemini-2.5-flash-lite  (rápido, boa qualidade)
+//  LONGA  (> 40k chars)     → gemini-2.5-flash-lite  + compressão inteligente
 //
 //  Compressão inteligente:
 //    - Remove timestamps (00:01:23)
@@ -112,12 +112,12 @@ function prepararTexto(prompt) {
     }
 
     if (tamanho <= LIMITE_MEDIO) {
-        console.log(`Transcrição média (${tamanho} chars) → gemini-2.0-flash`);
-        return { texto: prompt, modelo: 'gemini-2.0-flash', comprimido: false };
+        console.log(`Transcrição média (${tamanho} chars) → gemini-2.5-flash-lite`);
+        return { texto: prompt, modelo: 'gemini-2.5-flash-lite', comprimido: false };
     }
 
     // Transcrição longa: comprime + usa modelo rápido
-    console.log(`Transcrição longa (${tamanho} chars) → comprimindo + gemini-2.0-flash`);
+    console.log(`Transcrição longa (${tamanho} chars) → comprimindo + gemini-2.5-flash-lite`);
     const textoComprimido = comprimirTranscricao(prompt);
 
     // Se mesmo após compressão ficou muito grande, trunca com aviso
@@ -126,10 +126,10 @@ function prepararTexto(prompt) {
         console.warn(`Ainda grande após compressão (${textoComprimido.length}). Truncando em ${LIMITE_ABSOLUTO} chars.`);
         const truncado = textoComprimido.substring(0, LIMITE_ABSOLUTO) +
             '\n\n[NOTA: Transcrição truncada por limite de processamento. Analise até aqui.]';
-        return { texto: truncado, modelo: 'gemini-2.0-flash', comprimido: true, truncado: true };
+        return { texto: truncado, modelo: 'gemini-2.5-flash-lite', comprimido: true, truncado: true };
     }
 
-    return { texto: textoComprimido, modelo: 'gemini-2.0-flash', comprimido: true };
+    return { texto: textoComprimido, modelo: 'gemini-2.5-flash-lite', comprimido: true };
 }
 
 // ── Schema de resposta ────────────────────────────────────────────────────────
@@ -357,7 +357,7 @@ export default async function handler(req, res) {
                     responseMimeType: 'application/json',
                     maxOutputTokens: 65536,
                     // Temperatura menor = respostas mais rápidas e consistentes
-                    temperature: modelo === 'gemini-2.0-flash' ? 0.1 : 0.2,
+                    temperature: 0.1,
                     responseSchema
                 }
             });
@@ -369,13 +369,13 @@ export default async function handler(req, res) {
             // ── Fallback: se 2.5-flash falhou, tenta com 2.0-flash ────────
             if (modelo === 'gemini-2.5-flash') {
                 console.warn(`2.5-flash falhou (${geminiError.message}), tentando 2.0-flash...`);
-                modeloUsado = 'gemini-2.0-flash';
+                modeloUsado = 'gemini-2.5-flash-lite';
 
                 // Comprime se ainda não foi comprimido
                 const textoFallback = comprimido ? textoFinal : comprimirTranscricao(textoFinal);
 
                 const response2 = await ai.models.generateContent({
-                    model: 'gemini-2.0-flash',
+                    model: 'gemini-2.5-flash-lite',
                     contents: textoFallback,
                     config: {
                         systemInstruction,
