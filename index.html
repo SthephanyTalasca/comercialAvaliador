@@ -1585,7 +1585,75 @@ async function abrirAnaliseCompleta(id){
 
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
-async function exportarPDFModal(id){const body=document.getElementById('analise-modal-body-'+id);if(!body)return;const btns=body.querySelectorAll('button,select,input');btns.forEach(el=>el.style.display='none');const nomeEl=body.querySelector('.font-black.text-slate-700');const nomeVend=nomeEl?nomeEl.textContent.trim():id;await html2pdf().set({margin:[8,8,8,8],filename:'auditoria-completa-'+nomeVend.replace(/[^a-zA-Z0-9À-ſ]/g,'-')+'.pdf',image:{type:'jpeg',quality:.97},html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(body).save();btns.forEach(el=>el.style.display='');}
+function trocarAbaModal(id, aba) {
+    // Abas do conteúdo
+    const abaAuditoria = document.getElementById('aba-auditoria-' + id);
+    const abaSdr       = document.getElementById('aba-sdr-' + id);
+    // Botões da tab bar
+    const tabAuditoria = document.getElementById('modal-tab-auditoria-' + id);
+    const tabSdr       = document.getElementById('modal-tab-sdr-' + id);
+
+    if (!abaAuditoria || !abaSdr) return;
+
+    if (aba === 'auditoria') {
+        abaAuditoria.classList.remove('hidden');
+        abaSdr.classList.add('hidden');
+        tabAuditoria.classList.add('active');
+        tabSdr.classList.remove('active');
+    } else {
+        abaAuditoria.classList.add('hidden');
+        abaSdr.classList.remove('hidden');
+        tabAuditoria.classList.remove('active');
+        tabSdr.classList.add('active');
+    }
+}
+
+async function exportarPDFModal(id) {
+    const body = document.getElementById('analise-modal-body-' + id);
+    if (!body) return;
+
+    // Esconde botões e controles
+    const btns = body.querySelectorAll('button, select, input');
+    btns.forEach(el => el.style.display = 'none');
+
+    // Nome do vendedor para o arquivo
+    const nomeEl   = body.querySelector('.font-black.text-slate-700');
+    const nomeVend = nomeEl ? nomeEl.textContent.trim() : id;
+    const fileName = 'auditoria-completa-' + nomeVend.replace(/[^a-zA-Z0-9À-ſ]/g, '-') + '.pdf';
+
+    // Mostra AMBAS as abas para o PDF
+    const abaAuditoria = document.getElementById('aba-auditoria-' + id);
+    const abaSdr       = document.getElementById('aba-sdr-' + id);
+    const eraSdrVisible = abaSdr && !abaSdr.classList.contains('hidden');
+
+    if (abaAuditoria) abaAuditoria.classList.remove('hidden');
+    if (abaSdr)       abaSdr.classList.remove('hidden');
+
+    // Adiciona separador visual entre as seções
+    let separador = null;
+    if (abaAuditoria && abaSdr) {
+        separador = document.createElement('div');
+        separador.style.cssText = 'page-break-before:always;height:2px;background:#002d72;margin:40px 0;';
+        abaAuditoria.insertAdjacentElement('afterend', separador);
+    }
+
+    try {
+        await html2pdf().set({
+            margin: [8, 8, 8, 8],
+            filename: fileName,
+            image: { type: 'jpeg', quality: 0.97 },
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        }).from(body).save();
+    } finally {
+        // Restaura estado original
+        btns.forEach(el => el.style.display = '');
+        if (separador) separador.remove();
+        if (!eraSdrVisible && abaSdr) abaSdr.classList.add('hidden');
+        if (eraSdrVisible && abaAuditoria) abaAuditoria.classList.add('hidden');
+    }
+}
 
 // ── Calendário ────────────────────────────────────────────────────────────────
 async function loadCalendario(){
