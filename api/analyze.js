@@ -306,14 +306,29 @@ export default async function handler(req, res) {
             }
         });
 
+        // Check if the response was truncated due to token limit
+        const finishReason = response.candidates?.[0]?.finishReason;
+        if (finishReason === 'MAX_TOKENS') {
+            console.error("Resposta truncada por MAX_TOKENS. Tamanho da transcrição pode ser muito grande.");
+            return res.status(500).json({
+                error: "A transcrição é longa demais para ser analisada de uma vez. Tente reduzir o tamanho da transcrição ou dividi-la em partes menores."
+            });
+        }
+
         let analysisData;
         try {
             const rawText = typeof response.text === 'function' ? response.text() : response.text;
-            console.log("RAW length:", rawText?.length, "| first 100:", rawText?.substring(0, 100));
+            console.log("RAW length:", rawText?.length, "| finishReason:", finishReason, "| first 100:", rawText?.substring(0, 100));
             analysisData = JSON.parse(rawText);
         } catch (parseError) {
             const rawText = typeof response.text === 'function' ? response.text() : response.text;
-            console.error("Parse error:", parseError.message, "| raw:", rawText?.substring(0, 300));
+            const truncated = rawText && rawText.length > 0 && !rawText.trimEnd().endsWith('}');
+            console.error("Parse error:", parseError.message, "| truncated:", truncated, "| finishReason:", finishReason, "| raw tail:", rawText?.slice(-200));
+            if (truncated) {
+                return res.status(500).json({
+                    error: "A resposta da IA foi truncada. A transcrição pode ser muito longa — tente reduzi-la ou dividi-la em partes menores."
+                });
+            }
             return res.status(500).json({ error: "Erro ao processar resposta da IA: " + parseError.message });
         }
 
