@@ -1,6 +1,6 @@
 // api/me.js
 // Retorna os dados do usuário logado a partir do cookie de sessão
-// O frontend chama este endpoint ao carregar para saber se está autenticado
+// Inclui o campo `role` (admin | viewer) para o frontend controlar permissões
 
 export default function handler(req, res) {
     const cookie = req.headers.cookie || '';
@@ -29,7 +29,8 @@ export default function handler(req, res) {
         return res.status(200).json({
             email:   session.email,
             name:    session.name,
-            picture: session.picture
+            picture: session.picture,
+            role:    session.role || 'viewer'   // ← NOVO: fallback seguro para sessões antigas
         });
 
     } catch {
