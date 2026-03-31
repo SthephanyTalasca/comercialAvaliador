@@ -40,6 +40,11 @@
         .section-tab { display:flex;align-items:center;gap:.5rem;padding:.75rem .25rem;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-bottom:3px solid transparent;color:#94a3b8;transition:all .2s;cursor:pointer;background:none;border-top:none;border-left:none;border-right:none; }
         .section-tab.active { color:#2563eb;border-bottom-color:#2563eb; }
         .section-tab:hover:not(.active) { color:#475569; }
+        /* Badge de role do usuário */
+        .role-badge-admin  { background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd; }
+        .role-badge-viewer { background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db; }
+        /* Banner de acesso somente leitura */
+        .viewer-banner { background: linear-gradient(135deg,#f8fafc,#f1f5f9); border: 1px solid #e2e8f0; border-left: 4px solid #94a3b8; }
     </style>
 </head>
 <body class="pb-20 antialiased">
@@ -50,11 +55,11 @@
         <div class="bg-[#002d72] p-4 rounded-2xl"><i data-lucide="shield-check" class="text-white w-10 h-10"></i></div>
         <div>
             <h1 class="font-black text-[#002d72] text-2xl uppercase tracking-tight mb-1">Nibo Auditor</h1>
-            <p class="text-slate-400 text-sm font-medium">Acesso restrito — apenas Heads</p>
+            <p class="text-slate-400 text-sm font-medium">Acesso restrito — equipe Nibo</p>
         </div>
         <div id="login-error" class="hidden w-full bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-700 font-medium"></div>
         <a href="/api/auth" class="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-200 hover:border-blue-400 text-slate-700 font-bold px-6 py-4 rounded-2xl transition-all shadow-sm hover:shadow-md">
-            <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 2.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
             Entrar com Google Nibo
         </a>
         <p class="text-[10px] text-slate-300 font-medium">Somente emails @nibo.com.br têm acesso</p>
@@ -75,9 +80,14 @@
         <div class="flex items-center gap-3">
             <img id="user-avatar" src="" class="w-8 h-8 rounded-full border-2 border-blue-300 hidden" />
             <div id="user-info" class="text-right hidden">
-                <p id="user-name" class="text-sm font-bold leading-none"></p>
+                <div class="flex items-center gap-2 justify-end">
+                    <p id="user-name" class="text-sm font-bold leading-none"></p>
+                    <!-- Badge de role: admin = azul, viewer = cinza -->
+                    <span id="user-role-badge" class="hidden px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest"></span>
+                </div>
                 <p id="user-email" class="text-[10px] text-blue-300 font-medium mt-0.5"></p>
             </div>
+            <!-- Botão Dashboard: visível para todos -->
             <button onclick="showDashboard()" class="ml-2 flex items-center gap-1.5 bg-blue-800/40 hover:bg-blue-600 border border-blue-400/30 text-blue-200 hover:text-white px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all">
                 <i data-lucide="layout-dashboard" class="w-3 h-3"></i> Dashboard
             </button>
@@ -89,7 +99,20 @@
 </nav>
 
 <main class="max-w-7xl mx-auto px-4 mt-8">
-    <section class="mb-10">
+
+    <!-- ── BANNER VIEWER (aparece apenas para não-admins) ── -->
+    <div id="viewer-banner" class="hidden viewer-banner rounded-[2rem] p-5 mb-6 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="eye" class="w-5 h-5 text-slate-500"></i>
+        </div>
+        <div class="flex-1">
+            <p class="font-black text-slate-700 text-sm">Modo Visualização</p>
+            <p class="text-[11px] text-slate-500 font-medium mt-0.5">Você pode ver todas as análises e dashboards, mas não pode submeter transcrições, editar ou excluir registros. Fale com um coordenador para obter acesso completo.</p>
+        </div>
+    </div>
+
+    <!-- ── SEÇÃO DE TRANSCRIÇÃO (apenas admin vê) ── -->
+    <section id="transcricao-section" class="mb-10 hidden">
         <div class="glass-card p-8 md:p-10">
             <div class="flex items-center gap-3 mb-6">
                 <i data-lucide="message-square" class="text-blue-600"></i>
@@ -136,7 +159,8 @@
                     <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Consultor identificado pela IA</p>
                     <p id="vendedor-nome-display" class="font-black text-slate-800 text-base truncate"></p>
                 </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
+                <!-- Controles de reatribuição: apenas admin vê -->
+                <div id="vendedor-admin-controls" class="hidden flex items-center gap-2 flex-shrink-0">
                     <select id="vendedor-corrigir-sel" class="text-xs font-bold border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 ring-blue-300 max-w-[180px]">
                         <option value="">— Corrigir vendedor —</option>
                     </select>
@@ -270,7 +294,8 @@
                 <div class="flex gap-2 mb-4">
                     <button onclick="setDashMode('gestor')" id="dash-mode-gestor" class="flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all bg-[#002d72] text-white shadow-md"><i data-lucide="layout-dashboard" class="w-3 h-3 inline mr-1"></i> Gestor</button>
                     <button onclick="setDashMode('vendedor')" id="dash-mode-vendedor" class="flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all bg-slate-200 text-slate-500"><i data-lucide="user" class="w-3 h-3 inline mr-1"></i> Meu Desempenho</button>
-                    <button onclick="setDashMode('gestao')" id="dash-mode-gestao" class="flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all bg-slate-200 text-slate-500"><i data-lucide="settings" class="w-3 h-3 inline mr-1"></i> Gestão</button>
+                    <!-- Gestão: apenas admin vê -->
+                    <button onclick="setDashMode('gestao')" id="dash-mode-gestao" class="admin-only hidden flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all bg-slate-200 text-slate-500"><i data-lucide="settings" class="w-3 h-3 inline mr-1"></i> Gestão</button>
                     <button onclick="setDashMode('sdr')" id="dash-mode-sdr" class="flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all bg-slate-200 text-slate-500"><i data-lucide="user-check" class="w-3 h-3 inline mr-1"></i> SDRs</button>
                     <button onclick="setDashMode('historico')" id="dash-mode-historico" class="flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all bg-slate-200 text-slate-500"><i data-lucide="clock" class="w-3 h-3 inline mr-1"></i> Histórico</button>
                 </div>
@@ -355,6 +380,55 @@
 <script>
 lucide.createIcons();
 
+// ── ROLE GLOBAL ───────────────────────────────────────────────────────────────
+// Guardamos o role do usuário logado para controlar a UI
+window._userRole = 'viewer'; // padrão seguro
+
+function isAdmin() { return window._userRole === 'admin'; }
+
+// Aplica visibilidade baseada em role: esconde elementos .admin-only para viewers
+function applyRoleUI() {
+    const adminEls = document.querySelectorAll('.admin-only');
+    adminEls.forEach(el => {
+        if (isAdmin()) el.classList.remove('hidden');
+        else el.classList.add('hidden');
+    });
+
+    // Seção de transcrição: só admin vê
+    const transcricaoSection = document.getElementById('transcricao-section');
+    if (transcricaoSection) {
+        if (isAdmin()) transcricaoSection.classList.remove('hidden');
+        else transcricaoSection.classList.add('hidden');
+    }
+
+    // Banner de viewer: só viewer vê
+    const viewerBanner = document.getElementById('viewer-banner');
+    if (viewerBanner) {
+        if (isAdmin()) viewerBanner.classList.add('hidden');
+        else viewerBanner.classList.remove('hidden');
+    }
+
+    // Badge de role na navbar
+    const badge = document.getElementById('user-role-badge');
+    if (badge) {
+        badge.classList.remove('hidden');
+        if (isAdmin()) {
+            badge.textContent = 'Admin';
+            badge.className = 'px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest role-badge-admin';
+        } else {
+            badge.textContent = 'Visualizador';
+            badge.className = 'px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest role-badge-viewer';
+        }
+    }
+
+    // Controles admin no banner de vendedor: apenas admin vê
+    const adminControls = document.getElementById('vendedor-admin-controls');
+    if (adminControls) {
+        if (isAdmin()) adminControls.classList.remove('hidden');
+        else adminControls.classList.add('hidden');
+    }
+}
+
 // ── Auth ──────────────────────────────────────────────────────────────────────
 async function initAuth() {
     const params = new URLSearchParams(window.location.search);
@@ -373,11 +447,18 @@ async function initAuth() {
         const res = await fetch('/api/me');
         if (!res.ok) throw new Error('not authenticated');
         const user = await res.json();
+
+        // ← Guardar role globalmente
+        window._userRole = user.role || 'viewer';
+
         document.getElementById('app-screen').classList.remove('hidden');
         document.getElementById('user-info').classList.remove('hidden');
         document.getElementById('user-name').textContent = user.name;
         document.getElementById('user-email').textContent = user.email;
         if (user.picture) { const av = document.getElementById('user-avatar'); av.src = user.picture; av.classList.remove('hidden'); }
+
+        // Aplicar UI baseada em role
+        applyRoleUI();
         lucide.createIcons();
     } catch {
         document.getElementById('login-screen').classList.remove('hidden');
@@ -460,35 +541,36 @@ async function exportarPDFSdr() {
     finally { btn.innerHTML = orig; btn.disabled = false; lucide.createIcons(); }
 }
 
-// ── handleAnalysis ────────────────────────────────────────────────────────────
+// ── handleAnalysis — protegido no frontend também ────────────────────────────
 async function handleAnalysis() {
+    // Guarda dupla: backend também bloqueia, mas melhor UX assim
+    if (!isAdmin()) {
+        alert('Você não tem permissão para submeter transcrições. Fale com um coordenador.');
+        return;
+    }
+
     const prompt = transcriptInput.value.trim();
     if (!prompt) return;
- 
-    // Pega o usuário logado
+
     const emailEl = document.getElementById('user-email');
     const nomeEl  = document.getElementById('user-name');
     const emailLogado = (emailEl ? emailEl.textContent.trim() : '').toLowerCase();
     const nomeLogado  = nomeEl  ? nomeEl.textContent.trim() : '';
- 
-    // Mapa de coordenadores conhecidos (expandir conforme necessário)
+
     const COORD_MAP = {
         'simone.rangel@nibo.com.br':    'Simone Rangel',
         'jonathan.dornelas@nibo.com.br': 'Jonathan Dornelas',
     };
- 
-    // Coordenador: detectado pelo email, pelo radio selecionado, ou pelo nome logado
+
     let coordenador = COORD_MAP[emailLogado] || '';
     if (!coordenador) {
         const r = document.querySelector('input[name="coordenador"]:checked');
         coordenador = r ? r.value : '';
     }
-    // Se não for coordenador conhecido, passa o nome de quem está logado
-    // O save.js vai detectar pelo vendedor ou usar esse nome como fallback
     if (!coordenador) {
         coordenador = nomeLogado || emailLogado;
     }
- 
+
     resultsSection.classList.remove('hidden');
     loadingSpinner.classList.remove('hidden');
     analysisContent.classList.add('hidden');
@@ -496,7 +578,7 @@ async function handleAnalysis() {
     window._currentReuniaoId = null; window._savePending = false;
     document.getElementById('vendedor-banner').classList.add('hidden');
     document.getElementById('vendedor-salvo-tag').classList.add('hidden');
- 
+
     try {
         const response = await fetch('/api/analyze', {
             method: 'POST',
@@ -507,12 +589,12 @@ async function handleAnalysis() {
         let data;
         try { data = JSON.parse(text); } catch { throw new Error('Erro de comunicação com o servidor.'); }
         if (data.error) throw new Error(data.error);
- 
+
         renderDashboard(data);
         window._currentCoordenador = coordenador;
         window._savePending = true;
         _showSavePending(true);
- 
+
         saveAnalysis(coordenador, data).then(id => {
             window._currentReuniaoId = id;
             window._savePending = false;
@@ -522,7 +604,7 @@ async function handleAnalysis() {
             window._savePending = false;
             _showSavePending(false);
         });
- 
+
     } catch(err) {
         alert('Erro na análise: ' + err.message);
         resultsSection.classList.add('hidden');
@@ -567,17 +649,26 @@ async function renderVendedorBanner(data) {
     const media = data.media_final || 0;
     avatar.className = 'w-10 h-10 rounded-full flex items-center justify-center font-black text-lg flex-shrink-0 ' +
         (media >= 4 ? 'bg-emerald-100 text-emerald-700' : media >= 3 ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700');
-    btn.classList.add('hidden'); salvoTag.classList.add('hidden');
-    sel.disabled = true; sel.innerHTML = '<option value="">— Carregando... —</option>';
     banner.classList.remove('hidden'); lucide.createIcons();
+
+    // Controles de reatribuição — só carrega e exibe para admin
+    if (!isAdmin()) return;
+
+    if (btn) btn.classList.add('hidden');
+    if (salvoTag) salvoTag.classList.add('hidden');
+    if (sel) { sel.disabled = true; sel.innerHTML = '<option value="">— Carregando... —</option>'; }
+
     try {
         if (!VENDORS_CACHE.length) await loadVendorsCache();
-        sel.innerHTML = '<option value="">— Corrigir vendedor —</option>';
-        VENDORS_CACHE.forEach(v => { const o = document.createElement('option'); o.value = v.nome; o.textContent = v.nome; if (v.nome === nome) o.selected = true; sel.appendChild(o); });
-    } catch { sel.innerHTML = '<option value="">— Erro ao carregar —</option>'; }
-    sel.disabled = false;
-    sel.onchange = () => { const changed = sel.value && sel.value !== display.textContent; btn.classList.toggle('hidden', !changed); salvoTag.classList.add('hidden'); };
-    btn.onclick = async () => {
+        if (sel) {
+            sel.innerHTML = '<option value="">— Corrigir vendedor —</option>';
+            VENDORS_CACHE.forEach(v => { const o = document.createElement('option'); o.value = v.nome; o.textContent = v.nome; if (v.nome === nome) o.selected = true; sel.appendChild(o); });
+        }
+    } catch { if (sel) sel.innerHTML = '<option value="">— Erro ao carregar —</option>'; }
+    if (sel) sel.disabled = false;
+
+    if (sel) sel.onchange = () => { const changed = sel.value && sel.value !== display.textContent; if (btn) btn.classList.toggle('hidden', !changed); if (salvoTag) salvoTag.classList.add('hidden'); };
+    if (btn) btn.onclick = async () => {
         const novoNome = sel.value; if (!novoNome) return;
         if (!window._currentReuniaoId) {
             btn.disabled = true; btn.innerHTML = '<div class="loader" style="width:12px;height:12px;border-width:2px"></div>';
@@ -591,7 +682,7 @@ async function renderVendedorBanner(data) {
             const d = await res.json();
             if (!d.ok) throw new Error(d.error || 'Erro desconhecido');
             display.textContent = novoNome; avatar.textContent = novoNome.charAt(0).toUpperCase();
-            btn.classList.add('hidden'); salvoTag.classList.remove('hidden');
+            if (btn) btn.classList.add('hidden'); if (salvoTag) salvoTag.classList.remove('hidden');
         } catch(err) { alert('Erro ao corrigir: ' + err.message); btn.disabled = false; btn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Salvar'; lucide.createIcons(); }
     };
 }
@@ -617,7 +708,7 @@ function renderDashboard(data) {
         score: data[`nota_${f.k}`]||0, porque: data[`porque_${f.k}`]||'Sem justificativa.', melhoria: data[`melhoria_${f.k}`]||'Critério atingido.',
         criterios: (f.criterios||[]).map(c => ({ label:c.l, desc:c.desc||'', score:data[`nota_${c.k}`]||0, porque:data[`porque_${c.k}`]||'', melhoria:data[`melhoria_${c.k}`]||'' }))
     }));
-    const colorMap = { blue:{border:'border-blue-500',light:'bg-blue-50',text:'text-blue-700'}, violet:{border:'border-violet-500',light:'bg-violet-50',text:'text-violet-700'}, emerald:{border:'border-emerald-500',light:'bg-emerald-50',text:'text-emerald-700'} };
+    const colorMap = { blue:{border:'border-blue-500',light:'bg-blue-50',text:'text-blue-700'}, indigo:{border:'border-indigo-500',light:'bg-indigo-50',text:'text-indigo-700'}, violet:{border:'border-violet-500',light:'bg-violet-50',text:'text-violet-700'}, emerald:{border:'border-emerald-500',light:'bg-emerald-50',text:'text-emerald-700'} };
     document.getElementById('notas-grid').innerHTML = pilarData.map((p,idx) => {
         const col = getScoreColor(p.score); const cm = colorMap[p.color]||colorMap.blue;
         const cHTML = (p.criterios||[]).map(c => { const cc=getScoreColor(c.score); return `<div class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-100"><div class="flex-shrink-0 w-8 h-8 rounded-lg ${cm.light} flex items-center justify-center"><span class="text-xs font-black ${cm.text}">${c.score||'—'}</span></div><div class="flex-1 min-w-0"><p class="text-[9px] font-black text-slate-600 uppercase tracking-wide truncate">${c.label}</p><p class="text-[8px] text-slate-400 truncate italic">${c.desc}</p></div><div class="flex-shrink-0 flex gap-px">${buildStars(c.score,true)}</div></div>`; }).join('');
@@ -704,8 +795,8 @@ function _buildQualSection(data, pCfg) {
     <div class="glass-card p-12 border-t-[10px] border-violet-600"><h3 class="text-xl font-extrabold text-violet-800 uppercase tracking-widest mb-10 border-b pb-6 flex items-center gap-4"><i data-lucide="file-search"></i> Análise Completa da Qualificação (SDR)</h3><div class="markdown-content">${marked.parse(data.qual_analise_completa||'')}</div></div>`;
 }
 
-// ── Botão principal ───────────────────────────────────────────────────────────
-analyzeBtn.addEventListener('click', handleAnalysis);
+// ── Botão principal (só existe para admin, mas proteção dupla) ────────────────
+if (analyzeBtn) analyzeBtn.addEventListener('click', handleAnalysis);
 
 // ══════════════════════════════════════════════════════════════════
 // DASHBOARD
@@ -758,13 +849,13 @@ let dashMode='gestor';
 function setDashMode(mode){
     dashMode=mode;
     const btns={gestor:{id:'dash-mode-gestor',active:'bg-[#002d72] text-white shadow-md',inactive:'bg-slate-200 text-slate-500'},vendedor:{id:'dash-mode-vendedor',active:'bg-violet-600 text-white shadow-md',inactive:'bg-slate-200 text-slate-500'},gestao:{id:'dash-mode-gestao',active:'bg-emerald-600 text-white shadow-md',inactive:'bg-slate-200 text-slate-500'},sdr:{id:'dash-mode-sdr',active:'bg-violet-700 text-white shadow-md',inactive:'bg-slate-200 text-slate-500'},historico:{id:'dash-mode-historico',active:'bg-slate-700 text-white shadow-md',inactive:'bg-slate-200 text-slate-500'}};
-    Object.entries(btns).forEach(([k,b])=>{const el=document.getElementById(b.id);if(el)el.className='flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all '+(k===mode?b.active:b.inactive);});
+    Object.entries(btns).forEach(([k,b])=>{const el=document.getElementById(b.id);if(el)el.className='flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all '+(k===mode?b.active:b.inactive)+' '+(el.classList.contains('admin-only')?'admin-only':'');});
     document.getElementById('dash-filters-gestor').classList.toggle('hidden',mode!=='gestor');
     document.getElementById('dash-filters-vendedor').classList.toggle('hidden',mode!=='vendedor');
     document.getElementById('dash-content').innerHTML='<div class="flex flex-col items-center py-20 text-slate-300"><i data-lucide="bar-chart-2" class="w-12 h-12 mb-3"></i><p class="font-bold text-sm">Carregando...</p></div>';
     lucide.createIcons();
     if(mode==='gestor')loadDashboard();
-    if(mode==='gestao')loadGestaoPanel();
+    if(mode==='gestao')isAdmin()?loadGestaoPanel():null;
     if(mode==='vendedor')populateEuSelect();
     if(mode==='sdr')loadSdrDash();
     if(mode==='historico')loadHistorico();
@@ -806,18 +897,24 @@ function renderVendedorDash(nome,obj){
     if(rCtx)new Chart(rCtx,{type:'radar',data:{labels:radarLabels,datasets:[{label:nome,data:radarVals,backgroundColor:'rgba(37,99,235,0.12)',borderColor:'#2563eb',borderWidth:2,pointRadius:4,pointBackgroundColor:'#1e3a8a',pointBorderColor:'#fff',pointBorderWidth:1.5}]},options:{scales:{r:{min:0,max:5,ticks:{stepSize:1,display:false},grid:{color:'#e2e8f0'},angleLines:{color:'#e2e8f0'},pointLabels:{font:{size:9,weight:'800'},color:'#475569'}}},plugins:{legend:{display:false}},maintainAspectRatio:true}});
 }
 
-// ── Gestão ────────────────────────────────────────────────────────────────────
+// ── Gestão (apenas admin) ─────────────────────────────────────────────────────
 async function loadGestaoPanel(){
+    if (!isAdmin()) {
+        document.getElementById('dash-content').innerHTML = '<div class="text-center py-20 text-slate-300 font-bold">Acesso restrito a coordenadores.</div>';
+        return;
+    }
     const content=document.getElementById('dash-content');
     content.innerHTML='<div class="flex flex-col items-center py-16 text-slate-300"><div class="loader mb-4"></div><p class="font-bold text-xs uppercase tracking-widest animate-pulse">Carregando gestão...</p></div>';
     try{
         const [vRes,rRes]=await Promise.all([fetch('/api/vendors'),fetch('/api/dashboard?coordenador=todos&periodo=todos')]);
-        const vendors=await vRes.json(),dashData=await rRes.json(),stats=dashData.stats||{},porVendedor=stats.porVendedor||{};
+        const vendors=await vRes.json(),dashData=await rRes.json(),stats=dashData.stats||{},porVendedor={};
+        // Constrói porVendedor a partir do ranking
+        (stats.ranking||[]).forEach(v=>{ porVendedor[v.nome]=v; });
         const vendByCoord={};vendors.forEach(v=>{if(!vendByCoord[v.coordenador])vendByCoord[v.coordenador]=[];vendByCoord[v.coordenador].push(v);});
         const cards=['Simone Rangel','Jonathan Dornelas'].map(coord=>{
             const vends=vendByCoord[coord]||[];
             const sc=m=>m>=4?'text-emerald-600':m>=3?'text-blue-600':'text-red-500';
-            const vendRows=vends.map(v=>{const vS=porVendedor[v.nome]||{total:0,total_validas:0,total_mal_qualif:0,media:0};return`<div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 transition-colors border border-slate-100"><div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black text-sm flex items-center justify-center flex-shrink-0">${v.nome.charAt(0)}</div><div class="flex-1 min-w-0"><p class="font-black text-sm text-slate-700 truncate">${v.nome}</p><p class="text-[9px] text-slate-400">${vS.total_validas} válidas${vS.total_mal_qualif>0?' · <span class="text-orange-500">'+vS.total_mal_qualif+' excl.</span>':''}</p></div><span class="text-xl font-black ${sc(vS.media)}">${vS.media>0?vS.media.toFixed(1):'—'}</span></div>`;}).join('')||'<p class="text-[10px] text-slate-300 text-center py-4">Nenhum vendedor cadastrado.</p>';
+            const vendRows=vends.map(v=>{const vS=porVendedor[v.nome]||{total:0,total_validas:0,total_mal_qualif:0,media:0};return`<div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 transition-colors border border-slate-100"><div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black text-sm flex items-center justify-center flex-shrink-0">${v.nome.charAt(0)}</div><div class="flex-1 min-w-0"><p class="font-black text-sm text-slate-700 truncate">${v.nome}</p><p class="text-[9px] text-slate-400">${vS.total_validas||0} válidas${(vS.total_mal_qualif||0)>0?' · <span class="text-orange-500">'+(vS.total_mal_qualif||0)+' excl.</span>':''}</p></div><span class="text-xl font-black ${sc(vS.media)}">${vS.media>0?vS.media.toFixed(1):'—'}</span></div>`;}).join('')||'<p class="text-[10px] text-slate-300 text-center py-4">Nenhum vendedor cadastrado.</p>';
             const bc=coord.includes('Simone')?'border-blue-500':'border-violet-500';
             return`<div class="glass-card border-t-4 ${bc} overflow-hidden"><div class="p-6 border-b border-slate-100"><h4 class="font-black text-slate-700 text-sm flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-blue-500"></i> ${coord}</h4><p class="text-[10px] text-slate-400 mt-1">${vends.length} vendedor(es)</p><button onclick="abrirAnalysesCoord('${coord.replace(/'/g,"\\'")}'')" class="mt-3 text-[10px] font-black text-blue-500 hover:text-blue-700 underline flex items-center gap-1"><i data-lucide="history" class="w-3 h-3"></i> Ver histórico →</button></div><div class="p-6 space-y-2">${vendRows}</div><div class="px-6 pb-6"><button onclick="abrirModalAddVendedor('${coord.replace(/'/g,"\\'")}'')" class="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 hover:border-blue-400 text-slate-400 hover:text-blue-600 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest transition-all"><i data-lucide="user-plus" class="w-3 h-3"></i> Adicionar vendedor</button></div></div>`;
         }).join('');
@@ -825,14 +922,23 @@ async function loadGestaoPanel(){
         lucide.createIcons();
     }catch(err){content.innerHTML=`<div class="text-center py-20 text-red-400 font-bold">Erro: ${err.message}</div>`;}
 }
-async function abrirModalAddVendedor(coord){const nome=prompt(`Nome completo do novo vendedor (time: ${coord}):`);if(!nome||!nome.trim())return;try{const res=await fetch('/api/vendors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:nome.trim(),coordenador:coord})});const d=await res.json();if(!d.ok)throw new Error(d.error);await loadVendorsCache();loadGestaoPanel();}catch(err){alert('Erro ao adicionar: '+err.message);}}
+async function abrirModalAddVendedor(coord){
+    if (!isAdmin()) { alert('Sem permissão.'); return; }
+    const nome=prompt(`Nome completo do novo vendedor (time: ${coord}):`);
+    if(!nome||!nome.trim())return;
+    try{const res=await fetch('/api/vendors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:nome.trim(),coordenador:coord})});const d=await res.json();if(!d.ok)throw new Error(d.error);await loadVendorsCache();loadGestaoPanel();}catch(err){alert('Erro ao adicionar: '+err.message);}
+}
 
 // ── Histórico ─────────────────────────────────────────────────────────────────
 let histPage=0;const HIST_PER_PAGE=20;
 async function loadHistorico(reset){
     if(reset)histPage=0;
     const content=document.getElementById('dash-content');
-    content.innerHTML=`<div class="glass-card p-6"><div class="flex flex-wrap gap-3 mb-6 items-end"><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Coordenador</label><select id="hist-filter-coord" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none"><option value="todos">Todos</option><option value="Simone Rangel">Simone Rangel</option><option value="Jonathan Dornelas">Jonathan Dornelas</option></select></div><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vendedor</label><select id="hist-filter-vend" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none"><option value="todos">Todos</option></select></div><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Busca</label><input type="text" id="hist-search" oninput="loadHistorico(true)" placeholder="buscar..." class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none w-52" /></div><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Período</label><select id="hist-filter-periodo" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none"><option value="todos">Todo o período</option><option value="30">Últimos 30 dias</option><option value="7">Últimos 7 dias</option><option value="90">Últimos 90 dias</option></select></div><div class="ml-auto"><button onclick="deletarNaoIdentificados()" class="flex items-center gap-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black px-4 py-2 rounded-xl text-[10px] uppercase tracking-widest transition-all"><i data-lucide="trash-2" class="w-3 h-3"></i> Limpar não identificados</button></div></div><div id="hist-table-container" class="overflow-x-auto"><div class="flex items-center py-12 justify-center text-slate-300"><div class="loader"></div></div></div><div id="hist-pagination" class="flex items-center justify-center gap-4 mt-6"></div></div>`;
+    // Botão de limpar não-identificados: só admin vê
+    const limparBtn = isAdmin()
+        ? `<button onclick="deletarNaoIdentificados()" class="flex items-center gap-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black px-4 py-2 rounded-xl text-[10px] uppercase tracking-widest transition-all"><i data-lucide="trash-2" class="w-3 h-3"></i> Limpar não identificados</button>`
+        : '';
+    content.innerHTML=`<div class="glass-card p-6"><div class="flex flex-wrap gap-3 mb-6 items-end"><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Coordenador</label><select id="hist-filter-coord" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none"><option value="todos">Todos</option><option value="Simone Rangel">Simone Rangel</option><option value="Jonathan Dornelas">Jonathan Dornelas</option></select></div><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vendedor</label><select id="hist-filter-vend" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none"><option value="todos">Todos</option></select></div><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Busca</label><input type="text" id="hist-search" oninput="loadHistorico(true)" placeholder="buscar..." class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none w-52" /></div><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Período</label><select id="hist-filter-periodo" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none"><option value="todos">Todo o período</option><option value="30">Últimos 30 dias</option><option value="7">Últimos 7 dias</option><option value="90">Últimos 90 dias</option></select></div><div class="ml-auto">${limparBtn}</div></div><div id="hist-table-container" class="overflow-x-auto"><div class="flex items-center py-12 justify-center text-slate-300"><div class="loader"></div></div></div><div id="hist-pagination" class="flex items-center justify-center gap-4 mt-6"></div></div>`;
     lucide.createIcons();
     if(!VENDORS_CACHE.length)await loadVendorsCache();
     const sel=document.getElementById('hist-filter-vend');
@@ -864,7 +970,15 @@ async function _fetchHistorico() {
                        : verd.toUpperCase().includes('QUAL') ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
                        : 'bg-slate-100 text-slate-500 border-slate-200';
 
-            // Prefixo "hbtn-" e "hsel-" para evitar colisão com id="btn-text" existente no HTML
+            // Coluna de ações: reatribuição e excluir apenas para admin
+            const acoesAdmin = isAdmin() ? `
+                <select id="hsel-${r.id}" style="font-size:10px;font-weight:700;border:1px solid #e2e8f0;border-radius:10px;padding:4px 8px;background:white;max-width:160px;cursor:pointer;">
+                    <option value="">— reatribuir —</option>
+                </select>
+                <button id="hbtn-${r.id}" style="display:none;font-size:10px;font-weight:900;color:white;background:#2563eb;border:none;border-radius:8px;padding:4px 10px;cursor:pointer;">✓ Salvar</button>
+                <button id="hdel-${r.id}" style="font-size:10px;font-weight:900;color:#f87171;background:none;border:none;cursor:pointer;text-decoration:underline;">excluir</button>
+            ` : '';
+
             return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition-colors" id="hist-row-${r.id}">
                 <td class="py-3 px-3 font-black text-slate-700 text-sm hist-nome-cell">${r.vendedor_nome || '—'}</td>
                 <td class="py-3 px-3 text-[10px] text-slate-500">${r.coordenador || '—'}</td>
@@ -874,14 +988,8 @@ async function _fetchHistorico() {
                 <td class="py-3 px-3 text-[10px] text-slate-400">${dt}</td>
                 <td class="py-3 px-3">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <select id="hsel-${r.id}" style="font-size:10px;font-weight:700;border:1px solid #e2e8f0;border-radius:10px;padding:4px 8px;background:white;max-width:160px;cursor:pointer;">
-                            <option value="">— reatribuir —</option>
-                        </select>
-                        <button id="hbtn-${r.id}" style="display:none;font-size:10px;font-weight:900;color:white;background:#2563eb;border:none;border-radius:8px;padding:4px 10px;cursor:pointer;">
-                            ✓ Salvar
-                        </button>
+                        ${acoesAdmin}
                         <button id="hver-${r.id}" style="font-size:10px;font-weight:900;color:#3b82f6;background:none;border:none;cursor:pointer;text-decoration:underline;">ver</button>
-                        <button id="hdel-${r.id}" style="font-size:10px;font-weight:900;color:#f87171;background:none;border:none;cursor:pointer;text-decoration:underline;">excluir</button>
                     </div>
                 </td>
             </tr>`;
@@ -908,7 +1016,8 @@ async function _fetchHistorico() {
             const ver = document.getElementById('hver-' + r.id);
             const del = document.getElementById('hdel-' + r.id);
 
-            if (sel) {
+            // Popula select de reatribuição (só existe para admin)
+            if (sel && isAdmin()) {
                 VENDORS_CACHE.forEach(v => {
                     const o = document.createElement('option');
                     o.value       = v.nome;
@@ -921,53 +1030,32 @@ async function _fetchHistorico() {
                 });
             }
 
-            if (btn) {
+            if (btn && isAdmin()) {
                 btn.addEventListener('click', async () => {
                     const novoNome  = sel?.value;
                     const reuniaoId = r.id;
                     if (!novoNome) { alert('Selecione um vendedor.'); return; }
-
-                    btn.disabled      = true;
-                    btn.textContent   = '...';
-                    btn.style.opacity = '0.6';
-
+                    btn.disabled = true; btn.textContent = '...'; btn.style.opacity = '0.6';
                     try {
                         const res2 = await fetch('/api/reassign', {
-                            method:  'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body:    JSON.stringify({ reuniao_id: reuniaoId, vendedor_nome: novoNome })
+                            method: 'PATCH', headers: {'Content-Type':'application/json'},
+                            body: JSON.stringify({ reuniao_id: reuniaoId, vendedor_nome: novoNome })
                         });
                         const data = await res2.json();
                         if (!data.ok) throw new Error(data.error || 'Erro desconhecido');
-
-                        const row    = document.getElementById('hist-row-' + reuniaoId);
+                        const row = document.getElementById('hist-row-' + reuniaoId);
                         const nomeEl = row?.querySelector('.hist-nome-cell');
                         if (nomeEl) nomeEl.textContent = novoNome;
-
-                        sel.style.borderColor = '#10b981';
-                        btn.textContent       = '✓ Salvo!';
-                        btn.style.background  = '#10b981';
-                        btn.style.opacity     = '1';
-
-                        setTimeout(() => {
-                            sel.style.borderColor = '';
-                            btn.style.display     = 'none';
-                            btn.disabled          = false;
-                            btn.textContent       = '✓ Salvar';
-                            btn.style.background  = '#2563eb';
-                        }, 2000);
-
-                    } catch (err) {
-                        alert('Erro ao reatribuir: ' + err.message);
-                        btn.disabled      = false;
-                        btn.textContent   = '✓ Salvar';
-                        btn.style.opacity = '1';
-                    }
+                        sel.style.borderColor = '#10b981'; btn.textContent = '✓ Salvo!'; btn.style.background = '#10b981'; btn.style.opacity = '1';
+                        setTimeout(() => { sel.style.borderColor = ''; btn.style.display = 'none'; btn.disabled = false; btn.textContent = '✓ Salvar'; btn.style.background = '#2563eb'; }, 2000);
+                    } catch (err) { alert('Erro ao reatribuir: ' + err.message); btn.disabled = false; btn.textContent = '✓ Salvar'; btn.style.opacity = '1'; }
                 });
             }
 
             if (ver) ver.addEventListener('click', () => abrirAnaliseCompleta(r.id));
-            if (del) del.addEventListener('click', () => deletarRegistro(r.id));
+
+            // Botão excluir: só admin
+            if (del && isAdmin()) del.addEventListener('click', () => deletarRegistro(r.id));
         });
 
         const pg = document.getElementById('hist-pagination');
@@ -983,6 +1071,7 @@ async function _fetchHistorico() {
         tc.innerHTML = `<p class="text-center py-12 text-red-400 font-bold">Erro: ${err.message}</p>`;
     }
 }
+
 // ── Análise completa ──────────────────────────────────────────────────────────
 async function abrirAnaliseCompleta(id){
     const modal=document.createElement('div');modal.id='analise-modal-'+id;modal.className='fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm overflow-y-auto p-4';
@@ -1079,13 +1168,10 @@ async function loadSdrDash(){
 }
 
 async function deletarRegistro(id) {
+    if (!isAdmin()) { alert('Sem permissão.'); return; }
     if (!confirm('Excluir esta análise permanentemente?')) return;
     try {
-        const res = await fetch('/api/records', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id })
-        });
+        const res = await fetch('/api/records', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id}) });
         const d = await res.json();
         if (!d.ok) throw new Error(d.error);
         const row = document.getElementById('hist-row-' + id);
@@ -1094,13 +1180,10 @@ async function deletarRegistro(id) {
 }
 
 async function deletarNaoIdentificados() {
+    if (!isAdmin()) { alert('Sem permissão.'); return; }
     if (!confirm('Excluir TODOS os registros sem vendedor identificado?')) return;
     try {
-        const res = await fetch('/api/records', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ modo: 'nao_identificados' })
-        });
+        const res = await fetch('/api/records', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({modo:'nao_identificados'}) });
         const d = await res.json();
         if (!d.ok) throw new Error(d.error);
         alert('Removidos: ' + d.count + ' registros.');
