@@ -67,6 +67,10 @@ export default async function handler(req, res) {
             if (search?.trim())
                 filters += `&vendedor_nome=ilike.*${encodeURIComponent(search.trim())}*`;
 
+            // Filtro por SDR (busca exata no campo nome_sdr)
+            if (req.query.nome_sdr)
+                filters += `&nome_sdr=eq.${encodeURIComponent(req.query.nome_sdr)}`;
+
             // Período
             if (data_inicio) filters += `&created_at=gte.${data_inicio}`;
             if (data_fim)    filters += `&created_at=lte.${data_fim}T23:59:59`;
