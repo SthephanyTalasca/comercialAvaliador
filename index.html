@@ -365,6 +365,28 @@
                         </select>
                     </div>
                 </div>
+
+                <!-- Filtros SDR -->
+                <div id="dash-filters-sdr" class="hidden flex flex-wrap gap-3 items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Time:</span>
+                        <select id="sdr-filter-coord" onchange="loadSdrDash()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-violet-300">
+                            <option value="todos">Todos os times</option>
+                            <option value="Simone Rangel">Simone Rangel</option>
+                            <option value="Jonathan Dornelas">Jonathan Dornelas</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Período:</span>
+                        <select id="sdr-filter-periodo" onchange="loadSdrDash()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-violet-300">
+                            <option value="30">Últimos 30 dias</option>
+                            <option value="7">Últimos 7 dias</option>
+                            <option value="90">Últimos 90 dias</option>
+                            <option value="todos">Todo o período</option>
+                        </select>
+                    </div>
+                </div>
+
             </div>
             <div id="dash-content" class="p-8 space-y-8">
                 <div class="flex flex-col items-center py-20 text-slate-300">
@@ -850,17 +872,32 @@ function setDashMode(mode){
     dashMode=mode;
     const btns={gestor:{id:'dash-mode-gestor',active:'bg-[#002d72] text-white shadow-md',inactive:'bg-slate-200 text-slate-500'},vendedor:{id:'dash-mode-vendedor',active:'bg-violet-600 text-white shadow-md',inactive:'bg-slate-200 text-slate-500'},gestao:{id:'dash-mode-gestao',active:'bg-emerald-600 text-white shadow-md',inactive:'bg-slate-200 text-slate-500'},sdr:{id:'dash-mode-sdr',active:'bg-violet-700 text-white shadow-md',inactive:'bg-slate-200 text-slate-500'},historico:{id:'dash-mode-historico',active:'bg-slate-700 text-white shadow-md',inactive:'bg-slate-200 text-slate-500'}};
     Object.entries(btns).forEach(([k,b])=>{const el=document.getElementById(b.id);if(el)el.className='flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all '+(k===mode?b.active:b.inactive)+' '+(el.classList.contains('admin-only')?'admin-only':'');});
-    document.getElementById('dash-filters-gestor').classList.toggle('hidden',mode!=='gestor');
-    document.getElementById('dash-filters-vendedor').classList.toggle('hidden',mode!=='vendedor');
+    document.getElementById('dash-filters-gestor').classList.toggle('hidden', mode!=='gestor');
+    document.getElementById('dash-filters-vendedor').classList.toggle('hidden', mode!=='vendedor');
+    document.getElementById('dash-filters-sdr').classList.toggle('hidden', mode!=='sdr');
     document.getElementById('dash-content').innerHTML='<div class="flex flex-col items-center py-20 text-slate-300"><i data-lucide="bar-chart-2" class="w-12 h-12 mb-3"></i><p class="font-bold text-sm">Carregando...</p></div>';
     lucide.createIcons();
     if(mode==='gestor')loadDashboard();
     if(mode==='gestao')isAdmin()?loadGestaoPanel():null;
     if(mode==='vendedor')populateEuSelect();
     if(mode==='sdr')loadSdrDash();
-    if(mode==='historico')loadHistorico();
+    if(mode==='historico') { loadHistorico(true); }
     if(mode==='calendario')loadCalendario();
 }
+function onHistCoordChange() {
+    const coord = document.getElementById('hist-filter-coord')?.value || 'todos';
+    const sel   = document.getElementById('hist-filter-vend');
+    if (!sel) return;
+    sel.innerHTML = '<option value="todos">Todos</option>';
+    const filtrados = coord === 'todos' ? VENDORS_CACHE : VENDORS_CACHE.filter(v => v.coordenador === coord);
+    filtrados.forEach(v => {
+        const o = document.createElement('option');
+        o.value = v.nome; o.textContent = v.nome;
+        sel.appendChild(o);
+    });
+    loadHistorico(true);
+}
+
 async function onCoordChange(){const coord=document.getElementById('dash-filter-coord').value,sel=document.getElementById('dash-filter-vendedor');sel.innerHTML='<option value="todos">Todos</option>';if(!VENDORS_CACHE.length)await loadVendorsCache();const filtrados=coord==='todos'?VENDORS_CACHE:VENDORS_CACHE.filter(v=>v.coordenador===coord);filtrados.forEach(v=>{const o=document.createElement('option');o.value=v.nome;o.textContent=v.nome;sel.appendChild(o);});loadDashboard();}
 
 // ── Meu Desempenho ────────────────────────────────────────────────────────────
@@ -944,13 +981,36 @@ function normalizarVeredicto(v) {
 }
 
 async function loadHistorico(reset){
+    if (!VENDORS_CACHE.length) await loadVendorsCache();
     if(reset)histPage=0;
     const content=document.getElementById('dash-content');
     // Botão de limpar não-identificados: só admin vê
     const limparBtn = isAdmin()
         ? `<button onclick="deletarNaoIdentificados()" class="flex items-center gap-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black px-4 py-2 rounded-xl text-[10px] uppercase tracking-widest transition-all"><i data-lucide="trash-2" class="w-3 h-3"></i> Limpar não identificados</button>`
         : '';
-    content.innerHTML=`<div class="glass-card p-6"><div class="flex flex-wrap gap-3 mb-6 items-end"><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Coordenador</label><select id="hist-filter-coord" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none"><option value="todos">Todos</option><option value="Simone Rangel">Simone Rangel</option><option value="Jonathan Dornelas">Jonathan Dornelas</option></select></div><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vendedor</label><select id="hist-filter-vend" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none"><option value="todos">Todos</option></select></div><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Busca</label><input type="text" id="hist-search" oninput="loadHistorico(true)" placeholder="buscar..." class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none w-52" /></div><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Período</label><select id="hist-filter-periodo" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none"><option value="todos">Todo o período</option><option value="30">Últimos 30 dias</option><option value="7">Últimos 7 dias</option><option value="90">Últimos 90 dias</option></select></div><div class="ml-auto">${limparBtn}</div></div><div id="hist-table-container" class="overflow-x-auto"><div class="flex items-center py-12 justify-center text-slate-300"><div class="loader"></div></div></div><div id="hist-pagination" class="flex items-center justify-center gap-4 mt-6"></div></div>`;
+    // Monta opções de vendedor dinamicamente
+    const coordsHist = ['Todos os times', 'Simone Rangel', 'Jonathan Dornelas'];
+    const coordOptsHist = coordsHist.map((c,i) => '<option value="' + (i===0?'todos':c) + '">' + c + '</option>').join('');
+    const vendOptsHist = '<option value="todos">Todos</option>' + VENDORS_CACHE.map(v =>
+        '<option value="' + v.nome + '">' + v.nome + '</option>'
+    ).join('');
+    const periodoOptsHist = '<option value="todos">Todo o período</option><option value="30">Últimos 30 dias</option><option value="7">Últimos 7 dias</option><option value="90">Últimos 90 dias</option>';
+
+    content.innerHTML = '<div class="glass-card p-6">' +
+        '<div class="flex flex-wrap gap-3 mb-6 items-end">' +
+            '<div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Time</label>' +
+            '<select id="hist-filter-coord" onchange="onHistCoordChange()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none">' + coordOptsHist + '</select></div>' +
+            '<div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vendedor</label>' +
+            '<select id="hist-filter-vend" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none">' + vendOptsHist + '</select></div>' +
+            '<div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Busca</label>' +
+            '<input type="text" id="hist-search" oninput="loadHistorico(true)" placeholder="buscar..." class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none w-52" /></div>' +
+            '<div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Período</label>' +
+            '<select id="hist-filter-periodo" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none">' + periodoOptsHist + '</select></div>' +
+            '<div class="ml-auto">' + limparBtn + '</div>' +
+        '</div>' +
+        '<div id="hist-table-container" class="overflow-x-auto"><div class="flex items-center py-12 justify-center text-slate-300"><div class="loader"></div></div></div>' +
+        '<div id="hist-pagination" class="flex items-center justify-center gap-4 mt-6"></div>' +
+    '</div>';
     lucide.createIcons();
     if(!VENDORS_CACHE.length)await loadVendorsCache();
     const sel=document.getElementById('hist-filter-vend');
@@ -1767,8 +1827,8 @@ async function loadSdrDash(){
     content.innerHTML = '<div class="flex flex-col items-center py-16 text-slate-300"><div class="loader mb-4"></div><p class="font-bold text-xs uppercase tracking-widest animate-pulse">Carregando painel SDR...</p></div>';
 
     try {
-        const coord   = document.getElementById('dash-filter-coord')?.value  || 'todos';
-        const periodo = document.getElementById('dash-filter-periodo')?.value || 'todos';
+        const coord   = document.getElementById('sdr-filter-coord')?.value   || 'todos';
+        const periodo = document.getElementById('sdr-filter-periodo')?.value || 'todos';
         const res     = await fetch('/api/dashboard?coordenador=' + encodeURIComponent(coord) + '&periodo=' + periodo);
         const d       = await res.json();
         const reunioes = (d.reunioes || []).filter(r => r.nome_sdr);
