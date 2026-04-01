@@ -386,6 +386,12 @@
                         </select>
                     </div>
                     <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendedor:</span>
+                        <select id="sdr-filter-vend" onchange="loadSdrDash()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 ring-violet-300">
+                            <option value="todos">Todos</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2">
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">De:</span>
                         <input type="date" id="sdr-filter-inicio" onchange="loadSdrDash()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none" />
                     </div>
@@ -946,7 +952,16 @@ function setDashMode(mode){
     if(mode==='gestor')loadDashboard();
     if(mode==='gestao')isAdmin()?loadGestaoPanel():null;
     if(mode==='vendedor')populateEuSelect();
-    if(mode==='sdr')loadSdrDash();
+    if(mode==='sdr') {
+        // Popula vendedores no filtro SDR ao entrar na aba
+        if (!VENDORS_CACHE.length) loadVendorsCache().then(() => {
+            const sel = document.getElementById('sdr-filter-vend');
+            if (sel && sel.options.length <= 1) {
+                VENDORS_CACHE.forEach(v => { const o=document.createElement('option'); o.value=v.nome; o.textContent=v.nome; sel.appendChild(o); });
+            }
+        });
+        loadSdrDash();
+    }
     if(mode==='historico') { loadHistorico(true); }
     if(mode==='calendario')loadCalendario();
 }
@@ -1899,9 +1914,23 @@ async function loadSdrDash(){
         const periodo = document.getElementById('sdr-filter-periodo')?.value || 'todos';
         const inicio  = document.getElementById('sdr-filter-inicio')?.value  || '';
         const fim     = document.getElementById('sdr-filter-fim')?.value     || '';
-        let sdrQuery  = '/api/dashboard?coordenador=' + encodeURIComponent(coord) + '&periodo=' + periodo;
-        if (inicio && fim) sdrQuery += '&periodo=custom&inicio=' + inicio + '&fim=' + fim;
-        const res     = await fetch(sdrQuery);
+        const vend    = document.getElementById('sdr-filter-vend')?.value    || 'todos';
+
+        // Popula select de vendedor se ainda não populado
+        const selVend = document.getElementById('sdr-filter-vend');
+        if (selVend && selVend.options.length <= 1) {
+            if (!VENDORS_CACHE.length) await loadVendorsCache();
+            VENDORS_CACHE.forEach(v => {
+                const o = document.createElement('option');
+                o.value = v.nome; o.textContent = v.nome;
+                selVend.appendChild(o);
+            });
+        }
+
+        let sdrQuery = '/api/dashboard?coordenador=' + encodeURIComponent(coord) + '&periodo=' + periodo;
+        if (vend !== 'todos') sdrQuery += '&vendedor=' + encodeURIComponent(vend);
+        if (inicio && fim)    sdrQuery += '&periodo=custom&inicio=' + inicio + '&fim=' + fim;
+        const res = await fetch(sdrQuery);
         const d       = await res.json();
         const reunioes = (d.reunioes || []).filter(r => r.nome_sdr);
 
@@ -1922,9 +1951,12 @@ async function loadSdrDash(){
             s.total++;
             if (r.qual_nota_sdr) s.somaNotas += Number(r.qual_nota_sdr);
             const v = (r.qual_veredicto||'').toUpperCase();
-            if (v.includes('PARC'))                                              s.parc++;
-            else if (v.includes('NÃO') || v.includes('NAO') || v.includes('MAL') || v.includes('FORA')) s.naoQual++;
-            else if (v.includes('QUAL'))                                         s.qualif++;
+            if (v.includes('PARC'))
+                s.parc++;
+            else if (v === 'QUALIFICADO' || (v.includes('QUAL') && !v.includes('NÃO') && !v.includes('NAO') && !v.includes('MAL') && !v.includes('FORA')))
+                s.qualif++;
+            else
+                s.naoQual++;
             s.reunioes.push(r);
         });
 
@@ -1932,7 +1964,10 @@ async function loadSdrDash(){
         const totalReunioes = reunioes.length;
         const totalSdrs     = Object.keys(bySdr).length;
         const mediaNotaGeral = reunioes.reduce((a,r) => a + (Number(r.qual_nota_sdr)||0), 0) / totalReunioes;
-        const totalQual     = reunioes.filter(r => { const v=(r.qual_veredicto||'').toUpperCase(); return v.includes('QUAL') && !v.includes('PARC') && !v.includes('NÃO') && !v.includes('NAO'); }).length;
+        const totalQual  = reunioes.filter(r => {
+            const v = (r.qual_veredicto||'').toUpperCase();
+            return v === 'QUALIFICADO' || (v.includes('QUAL') && !v.includes('PARC') && !v.includes('NÃO') && !v.includes('NAO') && !v.includes('MAL') && !v.includes('FORA'));
+        }).length;
         const totalParc     = reunioes.filter(r => (r.qual_veredicto||'').toUpperCase().includes('PARC')).length;
         const taxaDentro    = Math.round(((totalQual + totalParc) / totalReunioes) * 100);
 
@@ -2056,9 +2091,9 @@ async function abrirDetalhesSdr(nomeSdr) {
     content.innerHTML = '<div class="flex flex-col items-center py-16 text-slate-300"><div class="loader mb-4"></div><p class="font-bold text-xs uppercase tracking-widest animate-pulse">Carregando histórico de ' + nomeSdr + '...</p></div>';
 
     try {
-        const res  = await fetch('/api/records?search=' + encodeURIComponent(nomeSdr) + '&limit=50&offset=0');
+        const res  = await fetch('/api/records?nome_sdr=' + encodeURIComponent(nomeSdr) + '&limit=100&offset=0');
         const d    = await res.json();
-        const recs = (d.records || []).filter(r => r.nome_sdr === nomeSdr);
+        const recs = d.records || [];
         const sc   = n => n >= 7 ? 'text-emerald-600' : n >= 5 ? 'text-amber-500' : 'text-red-500';
 
         let rowsHtml = '';
