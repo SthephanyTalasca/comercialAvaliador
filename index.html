@@ -385,6 +385,14 @@
                             <option value="todos">Todo o período</option>
                         </select>
                     </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">De:</span>
+                        <input type="date" id="sdr-filter-inicio" onchange="loadSdrDash()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none" />
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Até:</span>
+                        <input type="date" id="sdr-filter-fim" onchange="loadSdrDash()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none" />
+                    </div>
                 </div>
 
             </div>
@@ -859,7 +867,65 @@ function renderDashboardData({reunioes,stats}) {
     const evolChart=stats.evolucao.length>1?'<div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4 text-blue-400"></i> Evolução Temporal</h4><canvas id="dashEvolucaoChart" height="80"></canvas></div>':'';
     const malList=stats.reunioes_mal_qualificadas||[];
     const relatorioMalQual=malList.length>0?`<div id="relatorio-mal-qualificado" class="glass-card p-8 border-t-4 border-orange-500"><h4 class="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i> Leads Mal Qualificados / Fora de Portfólio</h4><p class="text-[10px] text-slate-400 font-medium mb-6">Estas reuniões <strong class="text-orange-600">não contabilizam</strong> na média.</p><div class="overflow-x-auto"><table class="w-full text-[10px]"><thead><tr class="border-b border-orange-100"><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Vendedor</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Gestor</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Produto</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Veredicto</th><th class="text-center py-2 px-3 font-black text-slate-500 uppercase">SDR</th><th class="text-left py-2 px-3 font-black text-slate-500 uppercase">Data</th><th class="text-center py-2 px-3 font-black text-slate-500 uppercase">Ver</th></tr></thead><tbody>${malList.map(r=>{const isMAL=(r.qual_veredicto||'').toUpperCase().includes('MAL');const badge=isMAL?'bg-red-100 text-red-700 border-red-200':'bg-purple-100 text-purple-700 border-purple-200';const dF=new Date(r.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});const sC=(r.qual_nota_sdr||0)>=7?'text-emerald-600':(r.qual_nota_sdr||0)>=5?'text-amber-500':'text-red-500';return`<tr class="border-b border-slate-50 hover:bg-orange-50/40 transition-colors"><td class="py-3 px-3 font-black text-slate-700">${r.vendedor_nome||'—'}</td><td class="py-3 px-3 text-slate-500">${r.coordenador||'—'}</td><td class="py-3 px-3 text-slate-500">${r.produto||'—'}</td><td class="py-3 px-3"><span class="px-2 py-1 rounded-lg border text-[9px] font-black ${badge} uppercase">${r.qual_veredicto||'—'}</span></td><td class="py-3 px-3 text-center font-black ${sC}">${r.qual_nota_sdr||'—'}</td><td class="py-3 px-3 text-slate-400">${dF}</td><td class="py-3 px-3 text-center"><button onclick="abrirAnaliseCompleta('${r.id}')" class="text-blue-500 hover:text-blue-700 font-black text-[9px] underline">ver →</button></td></tr>`;}).join('')}</tbody></table></div></div>`:`<div class="glass-card p-6 border border-emerald-100 bg-emerald-50/40 text-center"><i data-lucide="check-circle" class="w-8 h-8 text-emerald-500 mx-auto mb-2"></i><p class="text-[11px] font-black text-emerald-700">Nenhum lead mal qualificado 🎉</p></div>`;
-    content.innerHTML=kpis+'<div class="grid grid-cols-1 md:grid-cols-2 gap-6">'+coordCards+'</div>'+evolChart+'<div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i> Ranking de Vendedores</h4><div class="space-y-3">'+ranking+'</div></div><div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2"><i data-lucide="user-check" class="w-4 h-4 text-violet-400"></i> Qualificação de Leads (SDR)</h4><div class="space-y-4">'+vBars+'</div></div>'+relatorioMalQual;
+    // ── Vendedores mais prejudicados (leads mal qualificados) ──────────────────
+    const malPorVend = {};
+    reunioes.forEach(r => {
+        if (!r.mal_qualificado) return;
+        const nome = r.vendedor_nome || '—';
+        if (!malPorVend[nome]) malPorVend[nome] = { total: 0, coord: r.coordenador || '—', reunioes: [] };
+        malPorVend[nome].total++;
+        malPorVend[nome].reunioes.push(r);
+    });
+    const totalReunioesPorVend = {};
+    reunioes.forEach(r => {
+        const nome = r.vendedor_nome || '—';
+        totalReunioesPorVend[nome] = (totalReunioesPorVend[nome] || 0) + 1;
+    });
+
+    let prejudicadosHTML = '';
+    const prejudicadosSorted = Object.entries(malPorVend)
+        .sort((a,b) => b[1].total - a[1].total)
+        .slice(0, 8); // top 8
+
+    if (prejudicadosSorted.length === 0) {
+        prejudicadosHTML = '<div class="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 text-emerald-700"><i data-lucide="check-circle" class="w-5 h-5 flex-shrink-0"></i><p class="text-[11px] font-bold">Nenhum vendedor prejudicado por leads mal qualificados 🎉</p></div>';
+    } else {
+        const maxMal = prejudicadosSorted[0][1].total;
+        prejudicadosSorted.forEach(([nome, dados], i) => {
+            const total = totalReunioesPorVend[nome] || 1;
+            const pct   = Math.round((dados.total / total) * 100);
+            const barW  = Math.round((dados.total / maxMal) * 100);
+            const cor   = pct >= 50 ? 'bg-red-500' : pct >= 25 ? 'bg-orange-400' : 'bg-amber-400';
+            const tcor  = pct >= 50 ? 'text-red-700' : pct >= 25 ? 'text-orange-700' : 'text-amber-700';
+            const initials = nome.split(' ').slice(0,2).map(p=>p[0]||'').join('').toUpperCase();
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:bg-red-50/30 transition-colors cursor-pointer';
+            div.setAttribute('onclick', 'abrirAnalysesCoord("' + dados.coord.replace(/"/g, '') + '")');
+            div.innerHTML =
+                '<div class="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center font-black text-red-600 text-xs flex-shrink-0">' + initials + '</div>' +
+                '<div class="flex-1 min-w-0">' +
+                    '<div class="flex items-center justify-between mb-1">' +
+                        '<p class="font-black text-sm text-slate-700">' + nome + '</p>' +
+                        '<span class="text-[10px] font-black ' + tcor + '">' + dados.total + ' lead' + (dados.total>1?'s':'') + ' mal qualif.</span>' +
+                    '</div>' +
+                    '<div class="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">' +
+                        '<div class="' + cor + ' h-full rounded-full" style="width:' + barW + '%"></div>' +
+                    '</div>' +
+                    '<p class="text-[9px] text-slate-400 mt-1">' + pct + '% das ' + total + ' reuniões · Gestor: ' + dados.coord + '</p>' +
+                '</div>';
+            prejudicadosHTML += div.outerHTML;
+        });
+    }
+
+    const prejudicadosSection = '<div class="glass-card p-8 border-t-4 border-red-400">' +
+        '<h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">' +
+            '<i data-lucide="alert-circle" class="w-4 h-4 text-red-400"></i> Vendedores Mais Prejudicados por Leads Mal Qualificados' +
+        '</h4>' +
+        '<p class="text-[10px] text-slate-400 mb-6">Vendedores que receberam mais reuniões fora do portfólio ou mal qualificadas pelo SDR.</p>' +
+        '<div class="space-y-3">' + prejudicadosHTML + '</div>' +
+    '</div>';
+
+    content.innerHTML=kpis+'<div class="grid grid-cols-1 md:grid-cols-2 gap-6">'+coordCards+'</div>'+evolChart+'<div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i> Ranking de Vendedores</h4><div class="space-y-3">'+ranking+'</div></div><div class="glass-card p-8"><h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2"><i data-lucide="user-check" class="w-4 h-4 text-violet-400"></i> Qualificação de Leads (SDR)</h4><div class="space-y-4">'+vBars+'</div></div>'+prejudicadosSection+relatorioMalQual;
     lucide.createIcons();
     if(stats.evolucao.length>1){if(window.dashChartEvolucao)window.dashChartEvolucao.destroy();const ctx=document.getElementById('dashEvolucaoChart').getContext('2d');window.dashChartEvolucao=new Chart(ctx,{type:'line',data:{labels:stats.evolucao.map(e=>e.semana),datasets:[{label:'Média',data:stats.evolucao.map(e=>e.media),borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,0.08)',borderWidth:2,pointRadius:4,pointBackgroundColor:'#1e3a8a',tension:.3,fill:true}]},options:{scales:{y:{min:0,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}},maintainAspectRatio:true}});}
 }
@@ -982,39 +1048,41 @@ function normalizarVeredicto(v) {
 
 async function loadHistorico(reset){
     if (!VENDORS_CACHE.length) await loadVendorsCache();
-    if(reset)histPage=0;
-    const content=document.getElementById('dash-content');
-    // Botão de limpar não-identificados: só admin vê
-    const limparBtn = isAdmin()
-        ? `<button onclick="deletarNaoIdentificados()" class="flex items-center gap-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black px-4 py-2 rounded-xl text-[10px] uppercase tracking-widest transition-all"><i data-lucide="trash-2" class="w-3 h-3"></i> Limpar não identificados</button>`
-        : '';
-    // Monta opções de vendedor dinamicamente
-    const coordsHist = ['Todos os times', 'Simone Rangel', 'Jonathan Dornelas'];
-    const coordOptsHist = coordsHist.map((c,i) => '<option value="' + (i===0?'todos':c) + '">' + c + '</option>').join('');
-    const vendOptsHist = '<option value="todos">Todos</option>' + VENDORS_CACHE.map(v =>
-        '<option value="' + v.nome + '">' + v.nome + '</option>'
-    ).join('');
-    const periodoOptsHist = '<option value="todos">Todo o período</option><option value="30">Últimos 30 dias</option><option value="7">Últimos 7 dias</option><option value="90">Últimos 90 dias</option>';
+    if (reset) histPage = 0;
 
-    content.innerHTML = '<div class="glass-card p-6">' +
-        '<div class="flex flex-wrap gap-3 mb-6 items-end">' +
-            '<div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Time</label>' +
-            '<select id="hist-filter-coord" onchange="onHistCoordChange()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none">' + coordOptsHist + '</select></div>' +
-            '<div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vendedor</label>' +
-            '<select id="hist-filter-vend" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none">' + vendOptsHist + '</select></div>' +
-            '<div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Busca</label>' +
-            '<input type="text" id="hist-search" oninput="loadHistorico(true)" placeholder="buscar..." class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none w-52" /></div>' +
-            '<div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Período</label>' +
-            '<select id="hist-filter-periodo" onchange="loadHistorico(true)" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none">' + periodoOptsHist + '</select></div>' +
-            '<div class="ml-auto">' + limparBtn + '</div>' +
-        '</div>' +
-        '<div id="hist-table-container" class="overflow-x-auto"><div class="flex items-center py-12 justify-center text-slate-300"><div class="loader"></div></div></div>' +
-        '<div id="hist-pagination" class="flex items-center justify-center gap-4 mt-6"></div>' +
-    '</div>';
-    lucide.createIcons();
-    if(!VENDORS_CACHE.length)await loadVendorsCache();
-    const sel=document.getElementById('hist-filter-vend');
-    if(sel){sel.innerHTML='<option value="todos">Todos</option>';VENDORS_CACHE.forEach(v=>{const o=document.createElement('option');o.value=v.nome;o.textContent=v.nome;sel.appendChild(o);});}
+    const content = document.getElementById('dash-content');
+    const jaExiste = document.getElementById('hist-table-container');
+
+    // Monta a estrutura apenas na primeira vez (ou quando não existe)
+    if (!jaExiste) {
+        const limparBtn = isAdmin()
+            ? '<button onclick="deletarNaoIdentificados()" class="flex items-center gap-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black px-4 py-2 rounded-xl text-[10px] uppercase tracking-widest transition-all"><i data-lucide=\"trash-2\" class=\"w-3 h-3\"></i> Limpar não identificados</button>'
+            : '';
+
+        const coordsHist = [['todos','Todos os times'],['Simone Rangel','Simone Rangel'],['Jonathan Dornelas','Jonathan Dornelas']];
+        const coordOptsHist = coordsHist.map(([v,l]) => '<option value="' + v + '">' + l + '</option>').join('');
+        const vendOptsHist  = '<option value="todos">Todos</option>' + VENDORS_CACHE.map(v => '<option value="' + v.nome + '">' + v.nome + '</option>').join('');
+        const periodoOpts   = '<option value="todos">Todo o período</option><option value="30">Últimos 30 dias</option><option value="7">Últimos 7 dias</option><option value="90">Últimos 90 dias</option>';
+
+        content.innerHTML =
+            '<div class="glass-card p-6">' +
+                '<div class="flex flex-wrap gap-3 mb-6 items-end">' +
+                    '<div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Time</label>' +
+                    '<select id="hist-filter-coord" onchange="onHistCoordChange()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none">' + coordOptsHist + '</select></div>' +
+                    '<div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vendedor</label>' +
+                    '<select id="hist-filter-vend" onchange="_fetchHistorico()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none">' + vendOptsHist + '</select></div>' +
+                    '<div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Busca</label>' +
+                    '<input type="text" id="hist-search" oninput="histPage=0;_fetchHistorico()" placeholder="buscar..." class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none w-52" /></div>' +
+                    '<div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Período</label>' +
+                    '<select id="hist-filter-periodo" onchange="histPage=0;_fetchHistorico()" class="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none">' + periodoOpts + '</select></div>' +
+                    '<div class="ml-auto">' + limparBtn + '</div>' +
+                '</div>' +
+                '<div id="hist-table-container" class="overflow-x-auto"><div class="flex items-center py-12 justify-center text-slate-300"><div class="loader"></div></div></div>' +
+                '<div id="hist-pagination" class="flex items-center justify-center gap-4 mt-6"></div>' +
+            '</div>';
+        lucide.createIcons();
+    }
+
     await _fetchHistorico();
 }
 async function _fetchHistorico() {
@@ -1829,7 +1897,11 @@ async function loadSdrDash(){
     try {
         const coord   = document.getElementById('sdr-filter-coord')?.value   || 'todos';
         const periodo = document.getElementById('sdr-filter-periodo')?.value || 'todos';
-        const res     = await fetch('/api/dashboard?coordenador=' + encodeURIComponent(coord) + '&periodo=' + periodo);
+        const inicio  = document.getElementById('sdr-filter-inicio')?.value  || '';
+        const fim     = document.getElementById('sdr-filter-fim')?.value     || '';
+        let sdrQuery  = '/api/dashboard?coordenador=' + encodeURIComponent(coord) + '&periodo=' + periodo;
+        if (inicio && fim) sdrQuery += '&periodo=custom&inicio=' + inicio + '&fim=' + fim;
+        const res     = await fetch(sdrQuery);
         const d       = await res.json();
         const reunioes = (d.reunioes || []).filter(r => r.nome_sdr);
 
