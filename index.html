@@ -1924,31 +1924,41 @@ async function abrirDetalhesSdr(nomeSdr) {
     content.innerHTML = '<div class="flex flex-col items-center py-16 text-slate-300"><div class="loader mb-4"></div><p class="font-bold text-xs uppercase tracking-widest animate-pulse">Carregando histórico de ' + nomeSdr + '...</p></div>';
 
     try {
-        const res = await fetch('/api/records?search=' + encodeURIComponent(nomeSdr) + '&limit=50&offset=0');
-        const d   = await res.json();
+        const res  = await fetch('/api/records?search=' + encodeURIComponent(nomeSdr) + '&limit=50&offset=0');
+        const d    = await res.json();
         const recs = (d.records || []).filter(r => r.nome_sdr === nomeSdr);
+        const sc   = n => n >= 7 ? 'text-emerald-600' : n >= 5 ? 'text-amber-500' : 'text-red-500';
 
-        const sc = n => n >= 7 ? 'text-emerald-600' : n >= 5 ? 'text-amber-500' : 'text-red-500';
+        let rowsHtml = '';
+        if (recs.length === 0) {
+            rowsHtml = '<p class="text-center py-10 text-slate-300 font-bold text-sm">Nenhuma reunião encontrada.</p>';
+        } else {
+            recs.forEach(r => {
+                const vn = normalizarVeredicto(r.qual_veredicto);
+                const dt = new Date(r.created_at).toLocaleDateString('pt-BR', {day:'2-digit', month:'short', year:'numeric'});
+                const nota = r.qual_nota_sdr || '—';
+                const notaCor = sc(r.qual_nota_sdr || 0);
+                const vend = r.vendedor_nome || '—';
+                const prod = r.produto || '—';
+                rowsHtml +=
+                    '<div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:bg-violet-50/30 transition-colors cursor-pointer" onclick="abrirAnaliseCompleta(\'' + r.id + '\')">' +
+                        '<div class="flex-1 min-w-0">' +
+                            '<p class="font-black text-sm text-slate-700">' + vend + '</p>' +
+                            '<p class="text-[9px] text-slate-400">' + prod + ' · ' + dt + '</p>' +
+                        '</div>' +
+                        '<span class="px-2 py-1 rounded-lg border text-[9px] font-black ' + vn.css + '">' + vn.label + '</span>' +
+                        '<div class="text-center w-12">' +
+                            '<p class="text-[8px] font-black text-slate-400 uppercase">SDR</p>' +
+                            '<p class="text-lg font-black ' + notaCor + '">' + nota + '</p>' +
+                        '</div>' +
+                    '</div>';
+            });
+        }
 
-        const rows = recs.map(r => {
-            const vn = normalizarVeredicto(r.qual_veredicto);
-            const dt = new Date(r.created_at).toLocaleDateString('pt-BR', {day:'2-digit', month:'short', year:'numeric'});
-            return '<div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:bg-violet-50/30 transition-colors cursor-pointer" onclick="abrirAnaliseCompleta('' + r.id + '')">' +
-                '<div class="flex-1 min-w-0">' +
-                    '<p class="font-black text-sm text-slate-700">' + (r.vendedor_nome||'—') + '</p>' +
-                    '<p class="text-[9px] text-slate-400">' + (r.produto||'—') + ' · ' + dt + '</p>' +
-                '</div>' +
-                '<span class="px-2 py-1 rounded-lg border text-[9px] font-black ' + vn.css + '">' + vn.label + '</span>' +
-                '<div class="text-center w-12">' +
-                    '<p class="text-[8px] font-black text-slate-400 uppercase">SDR</p>' +
-                    '<p class="text-lg font-black ' + sc(r.qual_nota_sdr||0) + '">' + (r.qual_nota_sdr||'—') + '</p>' +
-                '</div>' +
-            '</div>';
-        }).join('') || '<p class="text-center py-10 text-slate-300 font-bold text-sm">Nenhuma reunião encontrada.</p>';
-
+        const plural = recs.length !== 1;
         content.innerHTML =
             '<div class="flex items-center gap-4 mb-6">' +
-                '<button onclick="setDashMode('sdr')" class="flex items-center gap-2 text-[10px] font-black text-violet-600 hover:text-violet-800 transition-colors">' +
+                '<button onclick="setDashMode(\'sdr\')" class="flex items-center gap-2 text-[10px] font-black text-violet-600 hover:text-violet-800 transition-colors">' +
                     '<i data-lucide="arrow-left" class="w-4 h-4"></i> Voltar ao Painel SDR' +
                 '</button>' +
             '</div>' +
@@ -1959,10 +1969,12 @@ async function abrirDetalhesSdr(nomeSdr) {
                     '</div>' +
                     '<div>' +
                         '<h3 class="font-black text-slate-800 text-lg">' + nomeSdr + '</h3>' +
-                        '<p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">' + recs.length + ' reunião' + (recs.length !== 1 ? 'ões' : '') + ' auditada' + (recs.length !== 1 ? 's' : '') + '</p>' +
+                        '<p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">' +
+                            recs.length + ' reuni' + (plural ? 'ões' : 'ão') + ' auditada' + (plural ? 's' : '') +
+                        '</p>' +
                     '</div>' +
                 '</div>' +
-                '<div class="space-y-3">' + rows + '</div>' +
+                '<div class="space-y-3">' + rowsHtml + '</div>' +
             '</div>';
 
         lucide.createIcons();
@@ -1970,7 +1982,6 @@ async function abrirDetalhesSdr(nomeSdr) {
         content.innerHTML = '<p class="text-center py-20 text-red-400 font-bold">Erro: ' + err.message + '</p>';
     }
 }
-
 async function deletarRegistro(id) {
     if (!isAdmin()) { alert('Sem permissão.'); return; }
     if (!confirm('Excluir esta análise permanentemente?')) return;
