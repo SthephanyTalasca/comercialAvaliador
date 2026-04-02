@@ -26,8 +26,10 @@ export default async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido' });
     if (!getSession(req)) return res.status(401).json({ error: 'Não autorizado' });
 
-    const { coordenador, periodo, inicio, fim, vendedor, produto } = req.query;
-
+const { coordenador, periodo, vendedor, produto } = req.query;
+const inicio = req.query.inicio || req.query.data_inicio || '';
+const fim    = req.query.fim    || req.query.data_fim    || '';
+    
     let filter = '';
 
     if (coordenador && coordenador !== 'todos') {
