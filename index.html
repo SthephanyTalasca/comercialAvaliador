@@ -1927,9 +1927,10 @@ async function loadSdrDash(){
             });
         }
 
-        let sdrQuery = '/api/dashboard?coordenador=' + encodeURIComponent(coord) + '&periodo=' + periodo;
+        const periodoParam = (inicio && fim) ? 'custom' : periodo;
+        let sdrQuery = '/api/dashboard?coordenador=' + encodeURIComponent(coord) + '&periodo=' + periodoParam;
         if (vend !== 'todos') sdrQuery += '&vendedor=' + encodeURIComponent(vend);
-        if (inicio && fim)    sdrQuery += '&periodo=custom&inicio=' + inicio + '&fim=' + fim;
+        if (inicio && fim)    sdrQuery += '&inicio=' + inicio + '&fim=' + fim;
         const res = await fetch(sdrQuery);
         const d       = await res.json();
         const reunioes = (d.reunioes || []).filter(r => r.nome_sdr);
